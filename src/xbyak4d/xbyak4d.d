@@ -1277,7 +1277,7 @@ version(XBYAK64){
 	}
 
 	void pop(Operand op)  { opPushPop(op, 0B10001111, 0, 0B01011000); }
-	void push(Operand op) {	opPushPop(op, 0B11111111, 6, 0B01010000);	}
+	void push(Operand op) {	opPushPop(op, 0B11111111, 6, 0B01010000); }
 		
 	void push(AddressFrame af, uint32 imm)
 	{
@@ -3016,8 +3016,8 @@ void vcvtdq2pd(Xmm x,  Operand op) { if (!op.isMEM && !op.isXMM()) throw new Exc
 void vcvtpd2ps(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0x5A, true); }
 void vcvtpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_F2, 0xE6, true); }
 void vcvttpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0xE6, true); }
-
-	version(XBYAK64){
+	version(XBYAK64)
+	{
 		void vmovq(Xmm x,  Reg64 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx()), MM_0F | PP_66, 0x6E, false, 1); }
 		void vmovq(Reg64 reg,  Xmm x) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx()), MM_0F | PP_66, 0x7E, false, 1); }
 		void vpextrq(Operand op,  Xmm x, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x16, false, 1); db(imm); }
