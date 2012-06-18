@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.021
+ * Version: 0.022
  * Date: May 1, 2012
  * See_Also:
  * 		URL:<a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -17,7 +17,7 @@ import std.algorithm : swap, min;
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0021, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0022, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -636,6 +636,7 @@ public class Address : Operand {
 		CodeArray CodeArray_;
 	public:
 		bool is32bit_;
+		alias CodeArray_ this;
 		this(uint32 sizeBit, bool isOnlyDisp, uint64 disp, bool is32bit, bool is64bitDisp=false) {
 			super(0, Kind.MEM, sizeBit);
 			CodeArray_ = new CodeArray(6); // 6 = 1(ModRM) + 1(SIB) + 4(disp) 
@@ -677,8 +678,8 @@ version(XBYAK64){
 	Address opIndex(RegRip addr)
 	{
 		Address frame = new Address(bit_, true, addr.disp_, false);
-		frame.CodeArray_.db(0B00000101);
-		frame.CodeArray_.dd(addr.disp_);
+		frame.db(0B00000101);
+		frame.dd(addr.disp_);
 		return frame;
 	}
 }
@@ -704,18 +705,18 @@ version(XBYAK64){
 		if (r.isNone && r.index_.isNone) hasSIB = true;
 }					
 		if (!hasSIB) {
-			frame.CodeArray_.db((mod << 6) | base);
+			frame.db((mod << 6) | base);
 		} else {
-			frame.CodeArray_.db((mod << 6) | Code.ESP);
+			frame.db((mod << 6) | Code.ESP);
 			/* SIB = [2:3:3] = [SS:index:base(=rm)] */
 			int index = r.index_.isNone ? Code.ESP : (r.index_.getIdx & 7);
 			int ss = (r.scale_ == 8) ? 3 : (r.scale_ == 4) ? 2 : (r.scale_ == 2) ? 1 : 0;
-			frame.CodeArray_.db((ss << 6) | (index << 3) | base);
+			frame.db((ss << 6) | (index << 3) | base);
 		}
 		if (mod == mod01) {
-			frame.CodeArray_.db(r.disp_);
+			frame.db(r.disp_);
 		} else if (mod == mod10 || (mod == mod00 && r.isNone)) {
-			frame.CodeArray_.dd(r.disp_);
+			frame.dd(r.disp_);
 		}
 		uint8 rex = cast(uint8)((r.getIdx | r.index_.getIdx) < 8) ? 0 : cast(uint8)(0x40 | ((r.index_.getIdx >> 3) << 1) | (r.getIdx >> 3));
 		frame.setRex(rex);
@@ -953,8 +954,8 @@ version(XBYAK64){
 		db(code0 | (reg.isBit(8) ? 0 : 1));
 		if (code1 != Kind.NONE) db(code1);
 		if (code2 != Kind.NONE) db(code2);
-		addr.CodeArray_.updateRegField( cast(uint8)reg.getIdx );
-		db(addr.CodeArray_.getCode, cast(int)addr.CodeArray_.getSize );
+		addr.updateRegField( cast(uint8)reg.getIdx );
+		db(addr.getCode, cast(int)addr.getSize );
 	}
 	
 	void makeJmp(uint32 disp, LabelType type, uint8 shortCode, uint8 longCode, uint8 longPref)
@@ -1167,8 +1168,8 @@ version(XBYAK64){
 
 		rex(addr, st0);
 		db(code);
-		addr.CodeArray_.updateRegField(ext);
-		db(addr.CodeArray_.getCode, cast(int)addr.CodeArray_.getSize);
+		addr.updateRegField(ext);
+		db(addr.getCode, cast(int)addr.getSize);
 	}
 
 	// use code1 if reg1 == st0
@@ -1592,8 +1593,8 @@ version(XBYAK64){
 		db(code0);
 		if (op.isMEM) {
 			Address addr = cast(Address)(op);
-			addr.CodeArray_.updateRegField( (cast(uint8) x1.getIdx) );
-			db(addr.CodeArray_.getCode, cast(int)(addr.CodeArray_.getSize));
+			addr.updateRegField( (cast(uint8) x1.getIdx) );
+			db(addr.getCode, cast(int)(addr.getSize));
 		} else {
 			db(getModRM(3, x1.getIdx, op.getIdx));
 		}
@@ -1688,7 +1689,7 @@ version(XBYAK64){
 		}
 		
 //	import xbyak_mnemonic; 
-string getVersionString() { return "0.021"; }
+string getVersionString() { return "0.022"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
