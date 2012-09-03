@@ -1,8 +1,8 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.022
- * Date: May 1, 2012
+ * Version: 0.036
+ * Date: Aug 31, 2012
  * See_Also:
  * 		URL:<a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -12,12 +12,12 @@
 module xbyak4d;
 
 import std.stdio;
-import std.string :format; 
+import std.string : format; 
 import std.algorithm : swap, min;
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0022, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0036, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -93,15 +93,21 @@ enum LabelType
 	T_NEAR = 1, 
 	T_AUTO = 2 // T_SHORT if possible
 }
-
-struct Allocator {
-	uint8[] alloc(size_t size) { return new uint8[size]; }
-//	void free(uint8[] p) { /+delete p;+/ }
-	~this() {}
+/*
+void* AlignedMalloc(size_t size, size_t alignment)
+{
+	return _aligned_malloc(size, alignment);
 }
+
+void AlignedFree(void *p)
+{
+	_aligned_free(p);
+}
+*/
 
 // struct inner {
 enum { Debug = 1 };
+static const size_t ALIGN_PAGE_SIZE = 4096;
 bool IsInDisp8(uint32 x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
 bool IsInInt32(uint64 x) { return 0xFFFFFFFF80000000UL <= x || x <= 0x7FFFFFFFU; }
 
@@ -111,6 +117,24 @@ uint32 VerifyInInt32(uint64 x)
 	return cast(uint32)x;
 }
 //} // inner
+
+
+struct Allocator {
+	uint8[] alloc(size_t size) { return new uint8[size]; }
+//	void free(uint8[] p) { /+delete p;+/ }
+	~this() {}
+}
+
+/+
+/*
+	custom allocator
+*/
+struct Allocator {
+	uint8* alloc(size_t size) { return cast(uint8*)(AlignedMalloc(size, ALIGN_PAGE_SIZE)); }
+	void free(uint8* p) { AlignedFree(p); }
+	~this() {}
+}
++/
 
 // Operand
 enum Kind
@@ -125,8 +149,8 @@ enum Kind
 	YMM = 1 << 7
 }
 
-version(XBYAK64)
-{
+version(XBYAK64) {
+
 	enum Code {
 		RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
 		R8D = 8, R9D, R10D, R11D, R12D, R13D, R14D, R15D,
@@ -137,16 +161,18 @@ version(XBYAK64)
 		AX = 0, CX, DX, BX, SP, BP, SI, DI,
 		AL = 0, CL, DL, BL, AH, CH, DH, BH
 	}
-}
-else
-{
+
+} else { //version(XBYAK64)
+
 	enum Code {
 		EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
 		AX = 0, CX, DX, BX, SP, BP, SI, DI,
 		AL = 0, CL, DL, BL, AH, CH, DH, BH
 	}
-} // Operand
 
+} //version(XBYAK64)
+
+// Operand
 Operand OP(int idx=0, Kind kind=Kind.NONE, int bit=0, int ext8bit=0) {
 	return new Operand(idx, kind, bit, ext8bit);
 }
@@ -156,7 +182,6 @@ private:
 	uint8 kind_;
 	uint8 bit_; 
 	uint8 ext8bit_; // 1 if spl/bpl/sil/dil, otherwise 0
-	void opAssign(Operand){};
 public:
 	this(){idx_=0; kind_=0, bit_=0, ext8bit_=0; }
 	this(int idx, Kind kind, int bit, int ext8bit=0) {
@@ -214,16 +239,14 @@ public:
 	}
 };
 
-
 Reg REG(int idx=0, Kind kind=Kind.NONE, int bit=0, int ext8bit=0) {
 	return new Reg(idx, kind, bit, ext8bit);
 }
 public class Reg : Operand {
 private:
-	void opAssign(Reg){};
 	bool hasRex() { return isExt8bit | isREG(64) | isExtIdx; }
 public:
-	this() { }
+	this() {}
 	this(int idx, Kind kind, int bit=0, int ext8bit=0) { super(idx, kind, bit, ext8bit); }
 	Reg changeBit(int bit) { return REG(getIdx, getKind, bit, isExt8bit); }
 	bool isExtIdx() { return getIdx > 7; }
@@ -235,48 +258,36 @@ public:
 
 Reg8 REG8(int idx=0, int ext8bit=0){ return new Reg8(idx, ext8bit); }
 public class Reg8 : Reg {
-private:
-	void opAssign(Reg8){};
 public:
 	this(int idx, int ext8bit) { super(idx, Kind.REG, 8, ext8bit); }
 };
 
 Reg16 REG16(int idx){ return new Reg16(idx); }
 public class Reg16 : Reg {
-private:
-	void opAssign(Reg16){};
 public: 
 	this(int idx) { super(idx, Kind.REG, 16); }
 };
 
 Mmx MMX(int idx, Kind kind=Kind.MMX, int bit=64){ return new Mmx(idx, kind, bit); }
 public class Mmx : Reg {
-private:
-	void opAssign(Mmx){};
 public:
 	this(int idx, Kind kind=Kind.MMX, int bit=64) { super(idx, kind, bit); }
 };
 
 Xmm XMM(int idx, Kind kind=Kind.MMX, int bit=128){ return new Xmm(idx, kind, bit); }
 public class Xmm : Mmx {
-private:
-	void opAssign(Xmm){};
 public:
 	this(int idx, Kind kind=Kind.XMM, int bit=128) { super(idx, kind, bit); }
 };
 
 Ymm YMM(int idx){ return new Ymm(idx); }
 public class Ymm : Xmm {
-private:
-	void opAssign(Ymm){};
 public:
 	this(int idx) { super(idx, Kind.YMM, 256); }
 };
 
 Fpu FPU(int idx){ return new Fpu(idx); }
 public class Fpu : Reg {
-private:
-	void opAssign(Fpu){};	
 public:
 	this(int idx) { super(idx, Kind.FPU, 32); }
 };
@@ -291,7 +302,6 @@ public:
 	int scale_; // 0(index is none), 1, 2, 4, 8
 	uint32 disp_;
 private:
-	// friend class Address;
 	Reg32e opBinary(string op)(Reg32e a, Reg32e b) if (op == "+")
 	{
 		if (a.scale_ == 0) {
@@ -329,7 +339,6 @@ private:
 	Reg32e opBinary(string op)(Reg32e r, uint disp) if (op == "-") {
 		return r.opBinary!("+")(-cast(int)disp);
 	}
-	void opAssign(Reg32e){};
 public:
 	this(int idx, int bit) {
 		super(idx, Kind.REG, bit);
@@ -366,17 +375,12 @@ public:
 Reg32 REG32(int idx){ return new Reg32(idx); }
 public class Reg32 : Reg32e {
 	this(int idx) { super(idx, 32); }
-private:
-	void opAssign(Reg32){};	
 };
 	
-version(XBYAK64)
-{
+version(XBYAK64) {
 	Reg64 REG64(int idx){ return new Reg64(idx); }
 	public class Reg64 : Reg32e {
 		this(int idx) { super(idx, 64); }
-	private:
-		void opAssign(Reg64){};	
 	};
 	struct RegRip {
 		uint32 disp_;
@@ -390,7 +394,7 @@ version(XBYAK64)
 			return RegRip(r.disp_ - disp);
 		}
 	};
-}
+} //version(XBYAK64)
 	
 // 2nd parameter for constructor of CodeArray(maxSize, userPtr, alloc)
 void* AutoGrow = cast(void*)(1);
@@ -448,13 +452,11 @@ protected:
 	*/
 	void growMemory()
 	{
-		size_t newSize = maxSize_ + ALIGN_PAGE_SIZE;
-		uint8* newAllocPtr = cast(uint8*)(alloc_.alloc(newSize + ALIGN_PAGE_SIZE));
-		if (newAllocPtr == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
-		uint8* newTop = getAlignedAddress(newAllocPtr, ALIGN_PAGE_SIZE);
+		size_t newSize = maxSize_ * 2;
+		uint8* newTop = cast(uint8*)alloc_.alloc(newSize);
+		if (newTop == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
 		for (size_t i = 0; i < size_; i++) newTop[i] = top_[i];
-//		alloc_.free(allocPtr_);
-		allocPtr_ = newAllocPtr;
+//		alloc_.free(newTop);
 		top_ = newTop;
 		maxSize_ = newSize;
 	}
@@ -478,10 +480,12 @@ public:
 		allocPtr_ = (type_ == Type.ALLOC_BUF) ? cast(uint8*)(new uint8[maxSize + ALIGN_PAGE_SIZE]) : null;
 		maxSize_ = maxSize;
 		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
+//		top_ = this.isAllocType() ? alloc_.alloc(maxSize) : type_ == USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;  
 		size_ = 0;
 		
 		if (maxSize_ > 0 && top_ == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
 		if (type_ == Type.ALLOC_BUF && !protect(top_, maxSize, true)) {
+//			alloc_.free(top_);
 			throw new Exception(errTbl[Error.CANT_PROTECT]);
 		}
 	}
@@ -490,7 +494,7 @@ public:
 	{
 		if (isAllocType) {
 			protect(top_, maxSize_, false);
-//			alloc_.free(allocPtr_);
+//			alloc_.free(top_);
 		}
 	}
 	
@@ -498,7 +502,6 @@ public:
 	{
 		type_ = rhs.type_;
 		defaultAllocator_ = rhs.defaultAllocator_;
-		allocPtr_ = null;
 		maxSize_ = rhs.maxSize_;
 		top_ = buf_.ptr;
 		size_ = rhs.size_;
@@ -553,7 +556,7 @@ public:
 					printf("%02X ", p[i * 16 + j]);
 				}
 			}
-			putchar('\n');
+			printf("\n");
 			remain -= disp;
 			if (remain <= 0) {
 				break;
@@ -628,18 +631,17 @@ else
 		
 public class Address : Operand {
 	private:
-		void opAssign(Address){};
 		uint64 disp_;
 		bool isOnlyDisp_;
 		bool is64bitDisp_;
 		uint8 rex_;
-		CodeArray CodeArray_;
+		CodeArray codeArray_;
 	public:
 		bool is32bit_;
-		alias CodeArray_ this;
+		alias codeArray_ this;
 		this(uint32 sizeBit, bool isOnlyDisp, uint64 disp, bool is32bit, bool is64bitDisp=false) {
 			super(0, Kind.MEM, sizeBit);
-			CodeArray_ = new CodeArray(6); // 6 = 1(ModRM) + 1(SIB) + 4(disp) 
+			codeArray_ = new CodeArray(6); // 6 = 1(ModRM) + 1(SIB) + 4(disp) 
 			disp_ = disp;
 			isOnlyDisp_ = isOnlyDisp;
 			is64bitDisp_ = is64bitDisp;
@@ -654,8 +656,6 @@ public class Address : Operand {
 };
 
 class AddressFrame {
-	private:
-		void opAssign(AddressFrame){};
 	public:
 		uint32 bit_;
 		this(uint32 bit) { bit_ = bit; }
@@ -682,7 +682,8 @@ version(XBYAK64){
 		frame.dd(addr.disp_);
 		return frame;
 	}
-}
+} //version(XBYAK64)
+
 	Address opIndex(Reg32e inReg32e)
 	{
 		Reg32e r = 	inReg32e.optimize();
@@ -701,9 +702,11 @@ version(XBYAK64){
 		int base = r.isNone ? Code.EBP : (r.getIdx & 7);
 		/* ModR/M = [2:3:3] = [Mod:reg/code:R/M] */
 		bool hasSIB = (!r.index_.isNone || (r.getIdx & 7) == Code.ESP);
+
 version(XBYAK64){
 		if (r.isNone && r.index_.isNone) hasSIB = true;
-}					
+} //version(XBYAK64)
+				
 		if (!hasSIB) {
 			frame.db((mod << 6) | base);
 		} else {
@@ -852,13 +855,13 @@ public:
 };
 
 public class CodeGenerator : CodeArray {
-	private:
-		void opAssign(CodeGenerator){};
+
 version(XBYAK64){
-	enum { i32e = 32 | 64, BIT = 64 };
-}else{
+	enum { i32e = 64 | 32, BIT = 64 }
+}else{ //version(XBYAK64)
 	enum { i32e = 32, BIT = 32 }
-}		
+} //version(XBYAK64)
+	
 	// (XMM, XMM|MEM)
 	static bool isXMM_XMMorMEM(Operand op1, Operand op2)
 	{
@@ -1119,12 +1122,15 @@ version(XBYAK64){
 	
 	void opIncDec(Operand op, int code, int ext) {
 		verifyMemHasSize(op);
+
 version(XBYAK64){
 		if (op.isREG && !op.isBit(8)) {
-			rex(op); db(code | op.getIdx);
+			rex(op);
+			db(code | op.getIdx);
 			return;
 		}
-}
+} //version(XBYAK64)
+
 		code = 0B11111110;
 		if (op.isREG) {
 			opModR( REG(ext, Kind.REG, op.getBit), cast(Reg)op, code);
@@ -1200,7 +1206,8 @@ version(XBYAK64){
 		Reg8 al, cl, dl, bl, ah, ch, dh, bh;
 		AddressFrame ptr, Byte, word, dword, qword;
 		Fpu st0, st1, st2, st3, st4, st5, st6, st7;
-	version(XBYAK64){
+
+version(XBYAK64){
 		Reg64 rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15;
 		Reg32 r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d;
 		Reg16 r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w;
@@ -1211,7 +1218,7 @@ version(XBYAK64){
 		Xmm xm8, xm9, xm10, xm11, xm12, xm13, xm14, xm15; // for my convenience
 		Ymm ym8, ym9, ym10, ym11, ym12, ym13, ym14, ym15;
 		RegRip rip;
-	}
+} //version(XBYAK64)
 	
 	void L(string label)
 	{
@@ -1319,6 +1326,7 @@ version(XBYAK64){
 		}
 
 version(XBYAK64){
+
 		if (addr && addr.is64bitDisp) {
 			if (code) {
 				rex(reg);
@@ -1328,13 +1336,17 @@ version(XBYAK64){
 				throw new Exception( errTbl[Error.BAD_COMBINATION]);
 			}
 		} else opRM_RM(reg1, reg2, 0B10001000);
-}else{
+
+}else{ //version(XBYAK64)
+
 		if (code && addr.isOnlyDisp) {
 			rex(reg, addr);
 			db(code | (reg.isBit(8) ? 0 : 1));
 			dd(cast(uint32)(addr.getDisp));
 		} else opRM_RM(reg1, reg2, 0B10001000);
-}
+
+} //version(XBYAK64)
+
 	}
 
 version(XBYAK64){
@@ -1363,7 +1375,8 @@ version(XBYAK64){
 			throw new Exception( errTbl[Error.BAD_COMBINATION]);
 		}
 	}
-} else {
+} else { // version(XBYAK64)
+
 	void mov(Operand op, uint32 imm)
 	{
 		verifyMemHasSize(op);
@@ -1382,12 +1395,14 @@ version(XBYAK64){
 		throw new Exception( errTbl[Error.BAD_COMBINATION]);
 		}
 	}
-}
+} // version(XBYAK64)
 
 	void cmpxchg8b(Address addr) { opModM(addr, REG32(1), 0x0F, 0B11000111); }
+
 version(XBYAK64){
 	void cmpxchg16b(Address addr) { opModM(addr, REG64(1), 0x0F, 0B11000111); }
-}
+} // version(XBYAK64)
+
 	void xadd(Operand op, Reg reg)
 	{
 		opModRM(reg, op, (op.isREG && reg.isREG && op.getBit == reg.getBit), op.isMEM, 0x0F, 0B11000000 | (reg.isBit(8) ? 0 : 1));
@@ -1400,19 +1415,18 @@ version(XBYAK64){
 			p1 = op2; p2 = op1;
 		}
 		if (p1.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+
+		bool bl = true;
 version(XBYAK64){
-		if (p2.isREG && (p1.isREG(16 | i32e) && p1.getIdx == 0) && (p2.getIdx != 0 || !p1.isREG(32)))
+		bl = (p2.getIdx != 0 || !p1.isREG(32));
+} // version(XBYAK64)
+		
+		if (p2.isREG && (p1.isREG(16 | i32e) && p1.getIdx == 0) && bl)
 		{
-			rex(p2, p1); db(0x90 | (p2.getIdx & 7));
+			rex(p2, p1);
+			db(0x90 | (p2.getIdx & 7));
 			return;
 		}
-} else {
-		if (p2.isREG && (p1.isREG(16 | i32e) && p1.getIdx == 0))
-		{
-			rex(p2, p1); db(0x90 | (p2.getIdx & 7));
-			return;
-		}
-}
 		opModRM(p1, p2, ( p1.isREG && p2.isREG && (p1.getBit == p2.getBit) ), p2.isMEM, 0B10000110 | (p1.isBit(8) ? 40 : 1));
 	}
 
@@ -1499,7 +1513,8 @@ version(XBYAK64){
 		if (!op.isBit(32)) throw new Exception( errTbl[Error.BAD_COMBINATION]);
 		opModRM(reg, op, op.isREG, op.isMEM, 0x63);
 	}
-}
+} // version(XBYAK64)
+
 	// MMX2 : pextrw : reg, mmx/xmm, imm
 	// SSE4 : pextrw, pextrb, pextrd, extractps : reg/mem, mmx/xmm, imm
 	void pextrw(Operand op, Mmx xmm, uint8 imm) { opExt(op, xmm, 0x15, imm, true); }
@@ -1669,27 +1684,31 @@ version(XBYAK64){
 			xm8 = xmm8; xm9 = xmm9; xm10 = xmm10; xm11 = xmm11; xm12 = xmm12; xm13 = xmm13; xm14 = xmm14; xm15 = xmm15; // for my convenience
 			ym8 = ymm8; ym9 = ymm9; ym10 = ymm10; ym11 = ymm11; ym12 = ymm12; ym13 = ymm13; ym14 = ymm14; ym15 = ymm15; // for my convenience
 			rip = RegRip();
-}		
+} // version(XBYAK64)
 			label_ = new Label();
 			label_.set(cast(CodeArray)this);
 		}
 
 		bool hasUndefinedLabel() { return this.label_.hasUndefinedLabel; }
-		override uint8* getCode() {
-			assert(!hasUndefinedLabel());
-			if (hasUndefinedLabel()) new Exception( errTbl[Error.LABEL_IS_NOT_FOUND] );
+		override uint8* getCode()
+		{
+			assert(!hasUndefinedLabel);
+			if (hasUndefinedLabel) new Exception( errTbl[Error.LABEL_IS_NOT_FOUND] );
 			return this.top_;
 		}
 
-		void Align(int x = 16) {
-			if (x != 4 && x != 8 && x != 16 && x != 32) throw new Exception( errTbl[Error.BAD_ALIGN] );
+		void Align(int x = 16)
+		{
+			if (x == 1) return;
+			if (x < 1 || (x & (x - 1))) throw new Exception( errTbl[Error.BAD_ALIGN] );
+		//	if (isAutoGrow() && x > cast(int)ALIGN_PAGE_SIZE) fprintf(stderr, "warning:autoGrow mode does not support %d align\n", x);
 			while (cast(size_t)getCurr % x) {
 				nop();
 			}
 		}
 		
 //	import xbyak_mnemonic; 
-string getVersionString() { return "0.022"; }
+string getVersionString() { return "0.036"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -1965,8 +1984,11 @@ void jg(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x
 void setg(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 15); }
 
 version(XBYAK64) {
+
 	void cdqe() { db(0x48); db(0x98); }
-} else {
+
+} else { //version(XBYAK64)
+
 	void aaa() { db(0x37); }
 	void aad() { db(0xD5); db(0x0A); }
 	void aam() { db(0xD4); db(0x0A); }
@@ -1979,7 +2001,8 @@ version(XBYAK64) {
 	void pushad() { db(0x60); }
 	void pushfd() { db(0x9C); }
 	void popa() { db(0x61); }
-}
+
+} //version(XBYAK64)
 
 void cbw() { db(0x66); db(0x98); }
 void cdq() { db(0x99); }
@@ -3017,16 +3040,17 @@ void vcvtdq2pd(Xmm x,  Operand op) { if (!op.isMEM && !op.isXMM()) throw new Exc
 void vcvtpd2ps(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0x5A, true); }
 void vcvtpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_F2, 0xE6, true); }
 void vcvttpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0xE6, true); }
-	version(XBYAK64)
-	{
-		void vmovq(Xmm x,  Reg64 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx()), MM_0F | PP_66, 0x6E, false, 1); }
-		void vmovq(Reg64 reg,  Xmm x) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx()), MM_0F | PP_66, 0x7E, false, 1); }
-		void vpextrq(Operand op,  Xmm x, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x16, false, 1); db(imm); }
-		void vpinsrq(Xmm x1,  Xmm x2,  Operand op, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm); }
-		void vpinsrq(Xmm x,  Operand op, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm); }
-		void vcvtss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F3, 0x2D, false, 1); }
-		void vcvttss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F3, 0x2C, false, 1); }
-		void vcvtsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F2, 0x2D, false, 1); }
-		void vcvttsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F2, 0x2C, false, 1); }
-	}
-}
+
+version(XBYAK64) {
+	void vmovq(Xmm x,  Reg64 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx()), MM_0F | PP_66, 0x6E, false, 1); }
+	void vmovq(Reg64 reg,  Xmm x) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx()), MM_0F | PP_66, 0x7E, false, 1); }
+	void vpextrq(Operand op,  Xmm x, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x16, false, 1); db(imm); }
+	void vpinsrq(Xmm x1,  Xmm x2,  Operand op, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm); }
+	void vpinsrq(Xmm x,  Operand op, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm); }
+	void vcvtss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F3, 0x2D, false, 1); }
+	void vcvttss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F3, 0x2C, false, 1); }
+	void vcvtsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F2, 0x2D, false, 1); }
+	void vcvttsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F2, 0x2C, false, 1); }
+} //version(XBYAK64)
+
+} //CodeGenerator
