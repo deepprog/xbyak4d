@@ -1,8 +1,8 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.036
- * Date: Aug 31, 2012
+ * Version: 0.037
+ * Date: Sep 4, 2012
  * See_Also:
  * 		URL:<a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -15,9 +15,11 @@ import std.stdio;
 import std.string : format; 
 import std.algorithm : swap, min;
 
+// version = XBYAK64;
+
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0036, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0037, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -93,21 +95,10 @@ enum LabelType
 	T_NEAR = 1, 
 	T_AUTO = 2 // T_SHORT if possible
 }
-/*
-void* AlignedMalloc(size_t size, size_t alignment)
-{
-	return _aligned_malloc(size, alignment);
-}
 
-void AlignedFree(void *p)
-{
-	_aligned_free(p);
-}
-*/
 
 // struct inner {
 enum { Debug = 1 };
-static const size_t ALIGN_PAGE_SIZE = 4096;
 bool IsInDisp8(uint32 x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
 bool IsInInt32(uint64 x) { return 0xFFFFFFFF80000000UL <= x || x <= 0x7FFFFFFFU; }
 
@@ -118,23 +109,15 @@ uint32 VerifyInInt32(uint64 x)
 }
 //} // inner
 
-
+/*
+custom allocator
+*/
 struct Allocator {
 	uint8[] alloc(size_t size) { return new uint8[size]; }
 //	void free(uint8[] p) { /+delete p;+/ }
 	~this() {}
 }
 
-/+
-/*
-	custom allocator
-*/
-struct Allocator {
-	uint8* alloc(size_t size) { return cast(uint8*)(AlignedMalloc(size, ALIGN_PAGE_SIZE)); }
-	void free(uint8* p) { AlignedFree(p); }
-	~this() {}
-}
-+/
 
 // Operand
 enum Kind
@@ -212,27 +195,27 @@ public:
 	{
 		if (kind_ == Kind.REG) {
 			if (ext8bit_) {
-				string tbl[] = [ "spl", "bpl", "sil", "dil" ];
+				string[] tbl = [ "spl", "bpl", "sil", "dil" ];
 				return tbl[idx_ - 4];
 			}
-			string tbl[][] = [
+			string[][] tbl = [
 				[ "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh", "r8b", "r9b", "r10b",  "r11b", "r12b", "r13b", "r14b", "r15b" ],
 				[ "ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w",  "r11w", "r12w", "r13w", "r14w", "r15w" ],
 				[ "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d",  "r11d", "r12d", "r13d", "r14d", "r15d" ],
 				[ "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10",  "r11", "r12", "r13", "r14", "r15" ],
 			];
 			return tbl[bit_ == 8 ? 0 : bit_ == 16 ? 1 : bit_ == 32 ? 2 : 3][idx_];
-		} else if (isYMM()) {
-			string tbl[] = [ "ym0", "ym1", "ym2", "ym3", "ym4", "ym5", "ym6", "ym7", "ym8", "ym9", "ym10", "ym11", "ym12", "ym13", "ym14", "ym15" ];
+		} else if (isYMM) {
+			string[] tbl = [ "ym0", "ym1", "ym2", "ym3", "ym4", "ym5", "ym6", "ym7", "ym8", "ym9", "ym10", "ym11", "ym12", "ym13", "ym14", "ym15" ];
 			return tbl[idx_];
-		} else if (isXMM()) {
-			string tbl[] = [ "xm0", "xm1", "xm2", "xm3", "xm4", "xm5", "xm6", "xm7", "xm8", "xm9", "xm10", "xm11", "xm12", "xm13", "xm14", "xm15" ];
+		} else if (isXMM) {
+			string[] tbl = [ "xm0", "xm1", "xm2", "xm3", "xm4", "xm5", "xm6", "xm7", "xm8", "xm9", "xm10", "xm11", "xm12", "xm13", "xm14", "xm15" ];
 			return tbl[idx_];
-		} else if (isMMX()) {
-			string tbl[] = [ "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7" ];
+		} else if (isMMX) {
+			string[] tbl = [ "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7" ];
 			return tbl[idx_];
-		} else if (isFPU()) {
-			string tbl[] = [ "st0", "st1", "st2", "st3", "st4", "st5", "st6", "st7" ];
+		} else if (isFPU) {
+			string[] tbl = [ "st0", "st1", "st2", "st3", "st4", "st5", "st6", "st7" ];
 			return tbl[idx_];
 		}
 		throw new Exception( errTbl[Error.INTERNAL] );
@@ -250,9 +233,8 @@ public:
 	this(int idx, Kind kind, int bit=0, int ext8bit=0) { super(idx, kind, bit, ext8bit); }
 	Reg changeBit(int bit) { return REG(getIdx, getKind, bit, isExt8bit); }
 	bool isExtIdx() { return getIdx > 7; }
-	uint8 getRex(Reg base = REG()) 
-	{
-		return cast(uint8)( (hasRex() || base.hasRex) ? (0x40 | ((isREG(64) | base.isREG(64)) ? 8 : 0) | (isExtIdx ? 4 : 0)| (base.isExtIdx ? 1 : 0)) : 0);
+	uint8 getRex(Reg base = REG) {
+		return cast(uint8)( (hasRex || base.hasRex) ? (0x40 | ((isREG(64) | base.isREG(64)) ? 8 : 0) | (isExtIdx ? 4 : 0)| (base.isExtIdx ? 1 : 0)) : 0);
 	}
 };
 
@@ -325,7 +307,7 @@ private:
 				return r;
 			} else {
 				if (scale == 2 || scale == 4 || scale == 8) {
-					return REG32E( REG(), r, scale, r.disp_);
+					return REG32E( REG, r, scale, r.disp_);
 				}
 			}
 		}
@@ -342,7 +324,7 @@ private:
 public:
 	this(int idx, int bit) {
 		super(idx, Kind.REG, bit);
-		index_ = REG();
+		index_ = REG;
 		scale_ = 0;
 		disp_ = 0;
 	}
@@ -453,10 +435,12 @@ protected:
 	void growMemory()
 	{
 		size_t newSize = maxSize_ * 2;
-		uint8* newTop = cast(uint8*)alloc_.alloc(newSize);
-		if (newTop == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
+		uint8* newAllocPtr = cast(uint8*)alloc_.alloc(newSize + ALIGN_PAGE_SIZE);
+		if (newAllocPtr == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
+		uint8* newTop = getAlignedAddress(newAllocPtr, ALIGN_PAGE_SIZE);  
 		for (size_t i = 0; i < size_; i++) newTop[i] = top_[i];
 //		alloc_.free(newTop);
+		allocPtr_ = newAllocPtr;
 		top_ = newTop;
 		maxSize_ = newSize;
 	}
@@ -479,27 +463,24 @@ public:
 		alloc_ = allocator != null ? allocator : &defaultAllocator_;
 		allocPtr_ = (type_ == Type.ALLOC_BUF) ? cast(uint8*)(new uint8[maxSize + ALIGN_PAGE_SIZE]) : null;
 		maxSize_ = maxSize;
-		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
-//		top_ = this.isAllocType() ? alloc_.alloc(maxSize) : type_ == USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;  
+		top_ = this.isAllocType ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr; 
 		size_ = 0;
 		
 		if (maxSize_ > 0 && top_ == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
 		if (type_ == Type.ALLOC_BUF && !protect(top_, maxSize, true)) {
-//			alloc_.free(top_);
+//		alloc_.free(allocPtr_);
 			throw new Exception(errTbl[Error.CANT_PROTECT]);
 		}
 	}
 
-	~this()
-	{
+	~this() {
 		if (isAllocType) {
 			protect(top_, maxSize_, false);
-//			alloc_.free(top_);
+//		alloc_.free((allocPtr_);
 		}
 	}
 	
-	this(CodeArray rhs)
-	{
+	this(CodeArray rhs) {
 		type_ = rhs.type_;
 		defaultAllocator_ = rhs.defaultAllocator_;
 		maxSize_ = rhs.maxSize_;
@@ -516,7 +497,7 @@ public:
 	{
 		if (size_ >= maxSize_) {
 			if (type_ == Type.AUTO_GROW) {
-				growMemory();
+				growMemory;
 			} else {
 				throw new Exception( errTbl[Error.CODE_IS_TOO_BIG] );
 			}
@@ -553,10 +534,10 @@ public:
 			}
 			for (size_t j=0; j < 16; j++) {
 				if (j < disp) {
-					printf("%02X ", p[i * 16 + j]);
+					format("%02X ", p[i * 16 + j]).write;
 				}
 			}
-			printf("\n");
+			writeln;
 			remain -= disp;
 			if (remain <= 0) {
 				break;
@@ -666,7 +647,7 @@ class AddressFrame {
 version(XBYAK64){
 		if (adr > 0xFFFFFFFFU) throw new Exception( errTbl[Error.OFFSET_IS_TOO_BIG] );
 }
-		Reg32e r = REG32E( REG(), REG(), 0, cast(uint32)adr);
+		Reg32e r = REG32E( REG, REG, 0, cast(uint32)adr);
 		return opIndex(r);
 	}
 	
@@ -686,7 +667,7 @@ version(XBYAK64){
 
 	Address opIndex(Reg32e inReg32e)
 	{
-		Reg32e r = 	inReg32e.optimize();
+		Reg32e r = 	inReg32e.optimize;
 		Address frame = new Address(bit_, (r.isNone && r.index_.isNone), r.disp_, r.isBit(32) || r.index_.isBit(32));
 		enum {
 			mod00 = 0, mod01 = 1, mod10 = 2
@@ -773,8 +754,7 @@ class Label {
 	}
 
 public:
-	this()
-	{
+	this() {
 		base_ = null;
 		anonymousCount_ = 0;
 		stackPos_ = 1;
@@ -791,7 +771,9 @@ public:
 		if (stackPos_ == 1)	throw new Exception( errTbl[Error.UNDER_LOCAL_LABEL] ); 
 		localCount_ = stack_[--stackPos_ - 1];
 	}
+	
 	void set(CodeArray base) { base_ = base; }
+	
 	void define(string label, size_t addr) {
 		string newLabel = label;
 		if (newLabel == "@@") {
@@ -807,7 +789,7 @@ public:
 		if( (label in undefinedList_) == null ) {
 			return;
 		} else {
-			foreach(JmpLabel jmp; undefinedList_[label]){
+			foreach(JmpLabel jmp; undefinedList_[label]) {
 				uint32 disp = VerifyInInt32(addr - jmp.endOfJmp);
 				if (jmp.isShort && !IsInDisp8(disp)) throw new Exception( errTbl[Error.LABEL_IS_TOO_FAR]);
 				size_t jmpSize = jmp.isShort ? 1 : 4;
@@ -823,8 +805,7 @@ public:
 		}
 	}
 
-	bool getOffset(size_t* offset, string label)
-	{
+	bool getOffset(size_t* offset, string label) {
 		string newLabel = convertLabel(label);
 		auto value = definedList_.get(newLabel, 0);
 		if (value != 0) {
@@ -843,7 +824,7 @@ public:
 	{
 		static if (Debug) {	
 			foreach (string s; undefinedList_.keys) {
-				printf( "undefined label:%s\n", s);
+				format("undefined label:%s", s).writeln;
 			}
 		}
 		return !(undefinedList_.length == 0);
@@ -863,7 +844,7 @@ version(XBYAK64){
 } //version(XBYAK64)
 	
 	// (XMM, XMM|MEM)
-	static bool isXMM_XMMorMEM(Operand op1, Operand op2)
+	bool isXMM_XMMorMEM(Operand op1, Operand op2)
 	{
 		return op1.isXMM && (op2.isXMM || op2.isMEM);
 	}
@@ -893,7 +874,7 @@ version(XBYAK64){
 		return op1.isREG(i32e) && (op2.isXMM || op2.isMEM);
 	}
 
-	void rex(Operand op1, Operand op2 = REG())
+	void rex(Operand op1, Operand op2 = REG)
 	{
 		uint8 rex = 0;
 		Operand p1 = op1;
@@ -977,10 +958,10 @@ version(XBYAK64){
 	
 	void opJmp(string label, LabelType type, uint8 shortCode, uint8 longCode, uint8 longPref)
 	{
-		if (isAutoGrow() && size_ + 16 >= maxSize_) growMemory(); /* avoid splitting code of jmp */
+		if (isAutoGrow && size_ + 16 >= maxSize_) growMemory; /* avoid splitting code of jmp */
 		size_t offset = 0;
 		if (label_.getOffset(&offset, label)) { /* label exists */
-			makeJmp(VerifyInInt32(offset - getSize()), type, shortCode, longCode, longPref);
+			makeJmp(VerifyInInt32(offset - getSize), type, shortCode, longCode, longPref);
 		} else {
 			JmpLabel jmp;
 			jmp.isShort = (type != LabelType.T_NEAR);
@@ -990,21 +971,21 @@ version(XBYAK64){
 				if (longPref) db(longPref);
 				db(longCode); dd(0);
 			}
-			jmp.endOfJmp = getSize();
+			jmp.endOfJmp = getSize;
 			label_.addUndefinedLabel(label, jmp);
 		}
 	}
 		
 	void opJmpAbs(void* addr, LabelType type, uint8 shortCode, uint8 longCode)
 	{
-		if (isAutoGrow()) {
+		if (isAutoGrow) {
 			if (type != LabelType.T_NEAR) throw new Exception( errTbl[Error.ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW]);
-			if (size_ + 16 >= maxSize_) growMemory();
+			if (size_ + 16 >= maxSize_) growMemory;
 			db(longCode);
-			save(size_, cast(size_t)(addr) - (getSize() + 4), 4, false);
+			save(size_, cast(size_t)(addr) - (getSize + 4), 4, false);
 			dd(0);
 		} else {
-			makeJmp(VerifyInInt32(cast(uint8*)(addr) - getCurr()), type, shortCode, longCode, 0);
+			makeJmp(VerifyInInt32( cast(uint8*)addr - getCurr ), type, shortCode, longCode, 0);
 		}
 	}
 
@@ -1089,7 +1070,7 @@ version(XBYAK64){
 		}
 	}
 	
-	void opShxd(Operand op, Reg reg, uint8 imm, int code, Reg8 cl=REG8()) {
+	void opShxd(Operand op, Reg reg, uint8 imm, int code, Reg8 cl=REG8) {
 		if (cl && cl.getIdx != Code.CL) throw new Exception(errTbl[Error.BAD_COMBINATION]);
 		opModRM(reg, op, (op.isREG(16 | i32e) && op.getBit == reg.getBit), op.isMEM && (reg.isREG(16 | i32e)), 0x0F, code | (cl ? 1 : 0));
 		if (!cl) db(imm);
@@ -1120,10 +1101,11 @@ version(XBYAK64){
 		db(imm, immBit / 8);
 	}
 	
-	void opIncDec(Operand op, int code, int ext) {
+	void opIncDec(Operand op, int code, int ext)
+	{
 		verifyMemHasSize(op);
 
-version(XBYAK64){
+version(XBYAK64) {
 		if (op.isREG && !op.isBit(8)) {
 			rex(op);
 			db(code | op.getIdx);
@@ -1152,8 +1134,7 @@ version(XBYAK64){
 		}
 	}
 
-	void verifyMemHasSize(Operand op)
-	{
+	void verifyMemHasSize(Operand op) {
 		if (op.isMEM && op.getBit == 0) throw new Exception( errTbl[Error.MEM_SIZE_IS_NOT_SPECIFIED] );
 	}
 
@@ -1220,32 +1201,27 @@ version(XBYAK64){
 		RegRip rip;
 } //version(XBYAK64)
 	
-	void L(string label)
-	{
-		label_.define(label, getSize()); 
-	}
+	void L(string label) { label_.define(label, getSize); }
 	void inLocalLabel() { label_.enterLocal; }
 	void outLocalLabel() { label_.leaveLocal; }
-	void jmp(string label, LabelType type = LabelType.T_AUTO)
-	{
+	void jmp(string label, LabelType type = LabelType.T_AUTO) {
 		opJmp(label, type, 0B11101011, 0B11101001, 0);
 	}
-	void jmp(void* addr, LabelType type = LabelType.T_AUTO)
-	{
+
+	void jmp(void* addr, LabelType type = LabelType.T_AUTO) {
 		opJmpAbs(addr, type, 0B11101011, 0B11101001);
 	}
-	void jmp(Operand op)
-	{
+
+	void jmp(Operand op) {
 		opR_ModM(op, BIT, 4, 0xFF, NONE, NONE, true);
 	}
-	void call(Operand op)
-	{
+
+	void call(Operand op) {
 		opR_ModM(op, 16 | i32e, 2, 0xFF, NONE, NONE, true);
 	}
 	
 	// (REG|MEM, REG)
-	void test(Operand op, Reg reg)
-	{
+	void test(Operand op, Reg reg) {
 		opModRM(reg, op, op.isREG && (op.getKind == reg.getKind), op.isMEM, 0B10000100);
 	}
 	
@@ -1271,8 +1247,7 @@ version(XBYAK64){
 	}
 		
 	// (REG16|REG32, REG16|REG32|MEM)
-	void imul(Reg reg, Operand op)
-	{
+	void imul(Reg reg, Operand op) {
 		opModRM(reg, op, op.isREG && (reg.getKind == op.getKind), op.isMEM, 0x0F, 0B10101111);
 	}
 		
@@ -1346,7 +1321,6 @@ version(XBYAK64){
 		} else opRM_RM(reg1, reg2, 0B10001000);
 
 } //version(XBYAK64)
-
 	}
 
 version(XBYAK64){
@@ -1380,19 +1354,18 @@ version(XBYAK64){
 	void mov(Operand op, uint32 imm)
 	{
 		verifyMemHasSize(op);
-	if (op.isREG) {
-		rex(op);
-		int code, size;
-		code = 0B10110000 | ((op.isBit(8) ? 0 : 1) << 3);
-		size = op.getBit / 8;
-		db(code | (op.getIdx & 7));
-		db(imm, size);
-	} else if (op.isMEM) {
-		opModM(cast(Address)op, REG(0, Kind.REG, op.getBit), 0B11000110);
-		int size = op.getBit / 8; if (size > 4) size = 4;
-		db(cast(uint32)(imm), size);
-	} else {
-		throw new Exception( errTbl[Error.BAD_COMBINATION]);
+		if (op.isREG) {
+			rex(op);
+			int code = 0B10110000 | ((op.isBit(8) ? 0 : 1) << 3);
+			int size = op.getBit / 8;
+			db(code | (op.getIdx & 7));
+			db(imm, size);
+		} else if (op.isMEM) {
+			opModM(cast(Address)op, REG(0, Kind.REG, op.getBit), 0B11000110);
+			int size = op.getBit / 8; if (size > 4) size = 4;
+			db(cast(uint32)(imm), size);
+		} else {
+			throw new Exception( errTbl[Error.BAD_COMBINATION]);
 		}
 	}
 } // version(XBYAK64)
@@ -1403,12 +1376,12 @@ version(XBYAK64){
 	void cmpxchg16b(Address addr) { opModM(addr, REG64(1), 0x0F, 0B11000111); }
 } // version(XBYAK64)
 
-	void xadd(Operand op, Reg reg)
-	{
+	void xadd(Operand op, Reg reg) {
 		opModRM(reg, op, (op.isREG && reg.isREG && op.getBit == reg.getBit), op.isMEM, 0x0F, 0B11000000 | (reg.isBit(8) ? 0 : 1));
 	}
 
-	void xchg(Operand op1, Operand op2) {
+	void xchg(Operand op1, Operand op2)
+	{
 		Operand p1 = op1;
 		Operand p2 = op2;
 		if (p1.isMEM || (p2.isREG(16 | i32e) && p2.getIdx == 0)) {
@@ -1416,12 +1389,12 @@ version(XBYAK64){
 		}
 		if (p1.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
 
-		bool bl = true;
+		bool BL = true;
 version(XBYAK64){
-		bl = (p2.getIdx != 0 || !p1.isREG(32));
+		BL = (p2.getIdx != 0 || !p1.isREG(32));
 } // version(XBYAK64)
 		
-		if (p2.isREG && (p1.isREG(16 | i32e) && p1.getIdx == 0) && bl)
+		if (p2.isREG && (p1.isREG(16 | i32e) && p1.getIdx == 0) && BL)
 		{
 			rex(p2, p1);
 			db(0x90 | (p2.getIdx & 7));
@@ -1430,13 +1403,11 @@ version(XBYAK64){
 		opModRM(p1, p2, ( p1.isREG && p2.isREG && (p1.getBit == p2.getBit) ), p2.isMEM, 0B10000110 | (p1.isBit(8) ? 40 : 1));
 	}
 
-	void call(string label)
-	{
+	void call(string label) {
 		opJmp(label, LabelType.T_NEAR, 0, 0B11101000, 0);
 	}
 
-	void call(void* addr)
-	{
+	void call(void* addr) {
 		opJmpAbs(addr, LabelType.T_NEAR, 0, 0B11101000);
 	}
 		
@@ -1465,13 +1436,11 @@ version(XBYAK64){
 		opModR(mmx, reg, 0x0F, 0B01101110);
 	}
 		
-	void movq2dq(Xmm xmm, Mmx mmx)
-	{
+	void movq2dq(Xmm xmm, Mmx mmx) {
 		db(0xF3); opModR(xmm, mmx, 0x0F, 0B11010110);
 	}
 
-	void movdq2q(Mmx mmx, Xmm xmm)
-	{
+	void movdq2q(Mmx mmx, Xmm xmm) {
 		db(0xF2); opModR(mmx, xmm, 0x0F, 0B11010110);
 	}
 
@@ -1493,21 +1462,25 @@ version(XBYAK64){
 		if (mmx.isXMM) db(0x66);
 		opModR(mmx, reg, 0x0F, 0B01111110);
 	}
+
 	void movq(Mmx mmx, Reg64 reg)
 	{
 		if (mmx.isXMM) db(0x66);
 		opModR(mmx, reg, 0x0F, 0B01101110);
 	}
+
 	void pextrq(Operand op, Xmm xmm, uint8 imm)
 	{
 		if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
 		opGen(REG64(xmm.getIdx), op, 0x16, 0x66, 0, imm, 0B00111010); // force to 64bit
 	}
+
 	void pinsrq( Xmm xmm, Operand op, uint8 imm)
 	{
 		if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
 		opGen(REG64(xmm.getIdx), op, 0x22, 0x66, 0, imm, 0B00111010); // force to 64bit
 	}
+
 	void movsxd(Reg64 reg, Operand op)
 	{
 		if (!op.isBit(32)) throw new Exception( errTbl[Error.BAD_COMBINATION]);
@@ -1568,14 +1541,16 @@ version(XBYAK64){
 		db(0xF3); opModRM(reg.changeBit(i32e == 32 ? 32 : reg.getBit), op, op.isREG, true, 0x0F, 0xB8);
 	}
 
-	void crc32(Reg32e reg, Operand op) {
+	void crc32(Reg32e reg, Operand op)
+	{
 		if (reg.isBit(32) && op.isBit(16)) db(0x66);
 		db(0xF2);
 		opModRM(reg, op, op.isREG, op.isMEM, 0x0F, 0x38, 0xF0 | (op.isBit(8) ? 0 : 1));
 	}
 
 	// support (x, x, x/m), (y, y, y/m)
-	void opAVX_X_X_XM(Xmm x1, Operand op1, Operand op2, int type, int code0, bool supportYMM, int w = -1) {
+	void opAVX_X_X_XM(Xmm x1, Operand op1, Operand op2, int type, int code0, bool supportYMM, int w = -1)
+	{
 		Xmm x2;
 		Operand op;
 		
@@ -1625,11 +1600,10 @@ version(XBYAK64){
 	void opAVX_X_XM_IMM(Xmm x, Operand op, int type, int code, bool supportYMM, int w = -1, int imm = Kind.NONE)
 	{
 		opAVX_X_X_XM( x, (x.isXMM ? xm0 : ym0), op, type, code, supportYMM, w);
-		if (imm != Kind.NONE)
-			db(cast(uint8)imm);
+		if (imm != Kind.NONE) db(cast(uint8)imm);
 	}
 
-		enum { NONE = 256 };
+	enum { NONE = 256 };
 	public:
 		this( size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = cast(void*)null )
 		{
@@ -1683,9 +1657,9 @@ version(XBYAK64){
 			
 			xm8 = xmm8; xm9 = xmm9; xm10 = xmm10; xm11 = xmm11; xm12 = xmm12; xm13 = xmm13; xm14 = xmm14; xm15 = xmm15; // for my convenience
 			ym8 = ymm8; ym9 = ymm9; ym10 = ymm10; ym11 = ymm11; ym12 = ymm12; ym13 = ymm13; ym14 = ymm14; ym15 = ymm15; // for my convenience
-			rip = RegRip();
+			rip = RegRip;
 } // version(XBYAK64)
-			label_ = new Label();
+			label_ = new Label;
 			label_.set(cast(CodeArray)this);
 		}
 
@@ -1701,14 +1675,16 @@ version(XBYAK64){
 		{
 			if (x == 1) return;
 			if (x < 1 || (x & (x - 1))) throw new Exception( errTbl[Error.BAD_ALIGN] );
-		//	if (isAutoGrow() && x > cast(int)ALIGN_PAGE_SIZE) fprintf(stderr, "warning:autoGrow mode does not support %d align\n", x);
+			if (isAutoGrow() && x > cast(int)ALIGN_PAGE_SIZE) {
+				throw new Exception( "warning:autoGrow mode does not support %d align".format(x) );
+			}
 			while (cast(size_t)getCurr % x) {
 				nop();
 			}
 		}
 		
 //	import xbyak_mnemonic; 
-string getVersionString() { return "0.036"; }
+string getVersionString() { return "0.037"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -1892,99 +1868,99 @@ void movhps(Operand op1, Operand op2) { opMovXMM(op1, op2, 0x16, 0x100); }
 void movlps(Operand op1, Operand op2) { opMovXMM(op1, op2, 0x12, 0x100); }
 void movhpd(Operand op1, Operand op2) { opMovXMM(op1, op2, 0x16, 0x66); }
 void movlpd(Operand op1, Operand op2) { opMovXMM(op1, op2, 0x12, 0x66); }
-void cmovo(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 0); }
+void cmovo(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 0); }
 void jo(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x70, 0x80, 0x0F); }
 void seto(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 0); }
-void cmovno(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 1); }
+void cmovno(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 1); }
 void jno(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x71, 0x81, 0x0F); }
 void setno(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 1); }
-void cmovb(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 2); }
+void cmovb(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 2); }
 void jb(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
 void setb(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 2); }
-void cmovc(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 2); }
+void cmovc(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 2); }
 void jc(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
 void setc(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 2); }
-void cmovnae(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 2); }
+void cmovnae(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 2); }
 void jnae(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
 void setnae(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 2); }
-void cmovnb(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 3); }
+void cmovnb(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 3); }
 void jnb(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
 void setnb(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 3); }
-void cmovae(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 3); }
+void cmovae(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 3); }
 void jae(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
 void setae(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 3); }
-void cmovnc(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 3); }
+void cmovnc(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 3); }
 void jnc(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
 void setnc(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 3); }
-void cmove(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 4); }
+void cmove(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 4); }
 void je(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
 void sete(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 4); }
-void cmovz(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 4); }
+void cmovz(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 4); }
 void jz(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
 void setz(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 4); }
-void cmovne(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 5); }
+void cmovne(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 5); }
 void jne(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
 void setne(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 5); }
-void cmovnz(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 5); }
+void cmovnz(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 5); }
 void jnz(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
 void setnz(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 5); }
-void cmovbe(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 6); }
+void cmovbe(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 6); }
 void jbe(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
 void setbe(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 6); }
-void cmovna(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 6); }
+void cmovna(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 6); }
 void jna(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
 void setna(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 6); }
-void cmovnbe(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 7); }
+void cmovnbe(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 7); }
 void jnbe(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
 void setnbe(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 7); }
-void cmova(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 7); }
+void cmova(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 7); }
 void ja(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
 void seta(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 7); }
-void cmovs(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 8); }
+void cmovs(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 8); }
 void js(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x78, 0x88, 0x0F); }
 void sets(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 8); }
-void cmovns(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 9); }
+void cmovns(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 9); }
 void jns(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x79, 0x89, 0x0F); }
 void setns(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 9); }
-void cmovp(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 10); }
+void cmovp(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 10); }
 void jp(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
 void setp(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 10); }
-void cmovpe(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 10); }
+void cmovpe(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 10); }
 void jpe(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
 void setpe(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 10); }
-void cmovnp(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 11); }
+void cmovnp(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 11); }
 void jnp(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
 void setnp(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 11); }
-void cmovpo(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 11); }
+void cmovpo(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 11); }
 void jpo(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
 void setpo(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 11); }
-void cmovl(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 12); }
+void cmovl(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 12); }
 void jl(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
 void setl(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 12); }
-void cmovnge(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 12); }
+void cmovnge(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 12); }
 void jnge(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
 void setnge(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 12); }
-void cmovnl(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 13); }
+void cmovnl(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 13); }
 void jnl(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
 void setnl(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 13); }
-void cmovge(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 13); }
+void cmovge(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 13); }
 void jge(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
 void setge(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 13); }
-void cmovle(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 14); }
+void cmovle(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 14); }
 void jle(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
 void setle(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 14); }
-void cmovng(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 14); }
+void cmovng(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 14); }
 void jng(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
 void setng(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 14); }
-void cmovnle(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 15); }
+void cmovnle(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 15); }
 void jnle(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
 void setnle(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 15); }
-void cmovg(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 15); }
+void cmovg(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 15); }
 void jg(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
 void setg(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 15); }
 
 version(XBYAK64) {
-
+	
 	void cdqe() { db(0x48); db(0x98); }
 
 } else { //version(XBYAK64)
@@ -2281,38 +2257,38 @@ void fstp(Fpu reg) { opFpu(reg, 0xDD, 0xD8); }
 void fucom(Fpu reg) { opFpu(reg, 0xDD, 0xE0); }
 void fucomp(Fpu reg) { opFpu(reg, 0xDD, 0xE8); }
 void fxch(Fpu reg) { opFpu(reg, 0xD9, 0xC8); }
-void vaddpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x58, true); }
-void vaddps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x58, true); }
-void vaddsd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x58, false); }
-void vaddss(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x58, false); }
-void vsubpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5C, true); }
-void vsubps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5C, true); }
-void vsubsd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5C, false); }
-void vsubss(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5C, false); }
-void vmulpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x59, true); }
-void vmulps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x59, true); }
-void vmulsd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x59, false); }
-void vmulss(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x59, false); }
-void vdivpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5E, true); }
-void vdivps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5E, true); }
-void vdivsd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5E, false); }
-void vdivss(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5E, false); }
-void vmaxpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5F, true); }
-void vmaxps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5F, true); }
-void vmaxsd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5F, false); }
-void vmaxss(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5F, false); }
-void vminpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5D, true); }
-void vminps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5D, true); }
-void vminsd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5D, false); }
-void vminss(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5D, false); }
-void vandpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x54, true); }
-void vandps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x54, true); }
-void vandnpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x55, true); }
-void vandnps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x55, true); }
-void vorpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x56, true); }
-void vorps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x56, true); }
-void vxorpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x57, true); }
-void vxorps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x57, true); }
+void vaddpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x58, true); }
+void vaddps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x58, true); }
+void vaddsd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x58, false); }
+void vaddss(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x58, false); }
+void vsubpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5C, true); }
+void vsubps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5C, true); }
+void vsubsd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5C, false); }
+void vsubss(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5C, false); }
+void vmulpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x59, true); }
+void vmulps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x59, true); }
+void vmulsd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x59, false); }
+void vmulss(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x59, false); }
+void vdivpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5E, true); }
+void vdivps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5E, true); }
+void vdivsd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5E, false); }
+void vdivss(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5E, false); }
+void vmaxpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5F, true); }
+void vmaxps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5F, true); }
+void vmaxsd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5F, false); }
+void vmaxss(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5F, false); }
+void vminpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5D, true); }
+void vminps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5D, true); }
+void vminsd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5D, false); }
+void vminss(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5D, false); }
+void vandpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x54, true); }
+void vandps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x54, true); }
+void vandnpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x55, true); }
+void vandnps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x55, true); }
+void vorpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x56, true); }
+void vorps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x56, true); }
+void vxorpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x57, true); }
+void vxorps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x57, true); }
 void vblendpd(Xmm xm1, Xmm xm2, Operand op, uint8 imm) { opAVX_X_X_XM(xm1, xm2, op, MM_0F3A | PP_66, 0x0D, true, 0); db(imm); }
 void vblendpd(Xmm xmm, Operand op, uint8 imm) { opAVX_X_X_XM(xmm, xmm, op, MM_0F3A | PP_66, 0x0D, true, 0); db(imm); }
 void vblendps(Xmm xm1, Xmm xm2, Operand op, uint8 imm) { opAVX_X_X_XM(xm1, xm2, op, MM_0F3A | PP_66, 0x0C, true, 0); db(imm); }
@@ -2589,16 +2565,16 @@ void vmovdqa(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, MM_0F | PP_66, 0
 void vmovdqu(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, MM_0F | PP_F3, 0x7F, true, -1); }
 void vmovupd(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, MM_0F | PP_66, 0x11, true, -1); }
 void vmovups(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, MM_0F, 0x11, true, -1); }
-void vaddsubpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0xD0, true, -1); }
-void vaddsubps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0xD0, true, -1); }
-void vhaddpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x7C, true, -1); }
-void vhaddps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x7C, true, -1); }
-void vhsubpd(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x7D, true, -1); }
-void vhsubps(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x7D, true, -1); }
-void vaesenc(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xDC, false, 0); }
-void vaesenclast(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xDD, false, 0); }
-void vaesdec(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xDE, false, 0); }
-void vaesdeclast(Xmm xmm, Operand op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xDF, false, 0); }
+void vaddsubpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0xD0, true, -1); }
+void vaddsubps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0xD0, true, -1); }
+void vhaddpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x7C, true, -1); }
+void vhaddps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x7C, true, -1); }
+void vhsubpd(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x7D, true, -1); }
+void vhsubps(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x7D, true, -1); }
+void vaesenc(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xDC, false, 0); }
+void vaesenclast(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xDD, false, 0); }
+void vaesdec(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xDE, false, 0); }
+void vaesdeclast(Xmm xmm, Operand op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xDF, false, 0); }
 void vmaskmovps(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, MM_0F38 | PP_66, 0x2C, true, 0); }
 void vmaskmovps(Address addr, Xmm xm1, Xmm xm2) { opAVX_X_X_XM(xm2, xm1, addr, MM_0F38 | PP_66, 0x2E, true, 0); }
 void vmaskmovpd(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, MM_0F38 | PP_66, 0x2D, true, 0); }
@@ -2891,74 +2867,74 @@ void vcmpgt_oqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 30); }
 void vcmpgt_oqss(Xmm x, Operand op) { vcmpss(x, op, 30); }
 void vcmptrue_usss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 31); }
 void vcmptrue_usss(Xmm x, Operand op) { vcmpss(x, op, 31); }
-void vmovhpd(Xmm x, Operand op1, Operand op2 = OP()) { if (!op2.isNone && !op2.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x16, false); }
+void vmovhpd(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x16, false); }
 void vmovhpd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_66, 0x17, false); }
-void vmovhps(Xmm x, Operand op1, Operand op2 = OP()) { if (!op2.isNone() && !op2.isMEM()) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F, 0x16, false); }
+void vmovhps(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F, 0x16, false); }
 void vmovhps(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F, 0x17, false); }
-void vmovlpd(Xmm x, Operand op1, Operand op2 = OP()) { if (!op2.isNone() && !op2.isMEM()) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x12, false); }
+void vmovlpd(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x12, false); }
 void vmovlpd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_66, 0x13, false); }
-void vmovlps(Xmm x, Operand op1, Operand op2 = OP()) { if (!op2.isNone() && !op2.isMEM()) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F, 0x12, false); }
+void vmovlps(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F, 0x12, false); }
 void vmovlps(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F, 0x13, false); }
-void vfmadd132pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x98, true, 1); }
-void vfmadd213pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA8, true, 1); }
-void vfmadd231pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB8, true, 1); }
-void vfmadd132ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x98, true, 0); }
-void vfmadd213ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA8, true, 0); }
-void vfmadd231ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB8, true, 0); }
-void vfmadd132sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x99, false, 1); }
-void vfmadd213sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA9, false, 1); }
-void vfmadd231sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB9, false, 1); }
-void vfmadd132ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x99, false, 0); }
-void vfmadd213ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA9, false, 0); }
-void vfmadd231ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB9, false, 0); }
-void vfmaddsub132pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x96, true, 1); }
-void vfmaddsub213pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA6, true, 1); }
-void vfmaddsub231pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB6, true, 1); }
-void vfmaddsub132ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x96, true, 0); }
-void vfmaddsub213ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA6, true, 0); }
-void vfmaddsub231ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB6, true, 0); }
-void vfmsubadd132pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x97, true, 1); }
-void vfmsubadd213pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA7, true, 1); }
-void vfmsubadd231pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB7, true, 1); }
-void vfmsubadd132ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x97, true, 0); }
-void vfmsubadd213ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA7, true, 0); }
-void vfmsubadd231ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB7, true, 0); }
-void vfmsub132pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9A, true, 1); }
-void vfmsub213pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAA, true, 1); }
-void vfmsub231pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBA, true, 1); }
-void vfmsub132ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9A, true, 0); }
-void vfmsub213ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAA, true, 0); }
-void vfmsub231ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBA, true, 0); }
-void vfmsub132sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9B, false, 1); }
-void vfmsub213sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAB, false, 1); }
-void vfmsub231sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBB, false, 1); }
-void vfmsub132ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9B, false, 0); }
-void vfmsub213ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAB, false, 0); }
-void vfmsub231ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBB, false, 0); }
-void vfnmadd132pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9C, true, 1); }
-void vfnmadd213pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAC, true, 1); }
-void vfnmadd231pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBC, true, 1); }
-void vfnmadd132ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9C, true, 0); }
-void vfnmadd213ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAC, true, 0); }
-void vfnmadd231ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBC, true, 0); }
-void vfnmadd132sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9D, false, 1); }
-void vfnmadd213sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAD, false, 1); }
-void vfnmadd231sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBD, false, 1); }
-void vfnmadd132ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9D, false, 0); }
-void vfnmadd213ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAD, false, 0); }
-void vfnmadd231ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBD, false, 0); }
-void vfnmsub132pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9E, true, 1); }
-void vfnmsub213pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAE, true, 1); }
-void vfnmsub231pd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBE, true, 1); }
-void vfnmsub132ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9E, true, 0); }
-void vfnmsub213ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAE, true, 0); }
-void vfnmsub231ps(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBE, true, 0); }
-void vfnmsub132sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9F, false, 1); }
-void vfnmsub213sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAF, false, 1); }
-void vfnmsub231sd(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBF, false, 1); }
-void vfnmsub132ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9F, false, 0); }
-void vfnmsub213ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAF, false, 0); }
-void vfnmsub231ss(Xmm xmm, Xmm op1, Operand op2 = OP()) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBF, false, 0); }
+void vfmadd132pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x98, true, 1); }
+void vfmadd213pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA8, true, 1); }
+void vfmadd231pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB8, true, 1); }
+void vfmadd132ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x98, true, 0); }
+void vfmadd213ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA8, true, 0); }
+void vfmadd231ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB8, true, 0); }
+void vfmadd132sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x99, false, 1); }
+void vfmadd213sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA9, false, 1); }
+void vfmadd231sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB9, false, 1); }
+void vfmadd132ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x99, false, 0); }
+void vfmadd213ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA9, false, 0); }
+void vfmadd231ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB9, false, 0); }
+void vfmaddsub132pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x96, true, 1); }
+void vfmaddsub213pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA6, true, 1); }
+void vfmaddsub231pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB6, true, 1); }
+void vfmaddsub132ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x96, true, 0); }
+void vfmaddsub213ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA6, true, 0); }
+void vfmaddsub231ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB6, true, 0); }
+void vfmsubadd132pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x97, true, 1); }
+void vfmsubadd213pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA7, true, 1); }
+void vfmsubadd231pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB7, true, 1); }
+void vfmsubadd132ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x97, true, 0); }
+void vfmsubadd213ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA7, true, 0); }
+void vfmsubadd231ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xB7, true, 0); }
+void vfmsub132pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9A, true, 1); }
+void vfmsub213pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAA, true, 1); }
+void vfmsub231pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBA, true, 1); }
+void vfmsub132ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9A, true, 0); }
+void vfmsub213ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAA, true, 0); }
+void vfmsub231ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBA, true, 0); }
+void vfmsub132sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9B, false, 1); }
+void vfmsub213sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAB, false, 1); }
+void vfmsub231sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBB, false, 1); }
+void vfmsub132ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9B, false, 0); }
+void vfmsub213ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAB, false, 0); }
+void vfmsub231ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBB, false, 0); }
+void vfnmadd132pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9C, true, 1); }
+void vfnmadd213pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAC, true, 1); }
+void vfnmadd231pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBC, true, 1); }
+void vfnmadd132ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9C, true, 0); }
+void vfnmadd213ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAC, true, 0); }
+void vfnmadd231ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBC, true, 0); }
+void vfnmadd132sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9D, false, 1); }
+void vfnmadd213sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAD, false, 1); }
+void vfnmadd231sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBD, false, 1); }
+void vfnmadd132ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9D, false, 0); }
+void vfnmadd213ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAD, false, 0); }
+void vfnmadd231ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBD, false, 0); }
+void vfnmsub132pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9E, true, 1); }
+void vfnmsub213pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAE, true, 1); }
+void vfnmsub231pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBE, true, 1); }
+void vfnmsub132ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9E, true, 0); }
+void vfnmsub213ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAE, true, 0); }
+void vfnmsub231ps(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBE, true, 0); }
+void vfnmsub132sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9F, false, 1); }
+void vfnmsub213sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAF, false, 1); }
+void vfnmsub231sd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBF, false, 1); }
+void vfnmsub132ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x9F, false, 0); }
+void vfnmsub213ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xAF, false, 0); }
+void vfnmsub231ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBF, false, 0); }
 void vaesimc(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0xDB, false, 0); }
 void vbroadcastf128(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_66, 0x1A, true, 0); }
 void vbroadcastsd(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_66, 0x19, true, 0); }
@@ -2967,7 +2943,7 @@ void vextractf128(Operand op, Ymm y, uint8 imm) { opAVX_X_X_XMcvt(y, y.isXMM ? x
 void vextractps(Operand op, Xmm x, uint8 imm) { if (!(op.isREG(32) || op.isMEM) || x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, op.isREG, Kind.XMM, MM_0F3A | PP_66, 0x17, false, 0); db(imm); }
 void vinsertf128(Ymm y1, Ymm y2, Operand op, uint8 imm) { opAVX_X_X_XMcvt(y1, y2, op, op.isXMM, Kind.YMM, MM_0F3A | PP_66, 0x18, true, 0); db(imm); }
 void vperm2f128(Ymm y1, Ymm y2, Operand op, uint8 imm) { opAVX_X_X_XM(y1, y2, op, MM_0F3A | PP_66, 0x06, true, 0); db(imm); }
-void vlddqu(Xmm x, Address addr) { opAVX_X_X_XM(x, x.isXMM() ? xm0 : ym0, addr, MM_0F | PP_F2, 0xF0, true, 0); }
+void vlddqu(Xmm x, Address addr) { opAVX_X_X_XM(x, x.isXMM ? xm0 : ym0, addr, MM_0F | PP_F2, 0xF0, true, 0); }
 void vldmxcsr(Address addr) { opAVX_X_X_XM(xm2, xm0, addr, MM_0F, 0xAE, false, -1); }
 void vstmxcsr(Address addr) { opAVX_X_X_XM(xm3, xm0, addr, MM_0F, 0xAE, false, -1); }
 void vmaskmovdqu(Xmm x1, Xmm x2) { opAVX_X_X_XM(x1, xm0, x2, MM_0F | PP_66, 0xF7, false, -1); }
@@ -2978,8 +2954,8 @@ void vpextrd(Operand op, Xmm x, uint8 imm) { if (!op.isREG(32) && !op.isMEM) thr
 void vpinsrb(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x20, false); db(imm); }
 void vpinsrb(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x20, false); db(imm); }
 void vpinsrw(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F | PP_66, 0xC4, false); db(imm); }
-void vpinsrw(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM()) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F | PP_66, 0xC4, false); db(imm); }
-void vpinsrd(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM()) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 0); db(imm); }
+void vpinsrw(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F | PP_66, 0xC4, false); db(imm); }
+void vpinsrd(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 0); db(imm); }
 void vpinsrd(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 0); db(imm); }
 void vpmovmskb(Reg32e r, Xmm x) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(XMM(r.getIdx), xm0, x, MM_0F | PP_66, 0xD7, false); }
 void vpslldq(Xmm x1, Xmm x2, uint8 imm) { opAVX_X_X_XM(xm7, x1, x2, MM_0F | PP_66, 0x73, false); db(imm); }
@@ -3002,55 +2978,55 @@ void vpsrld(Xmm x1, Xmm x2, uint8 imm) { opAVX_X_X_XM(xm2, x1, x2, MM_0F | PP_66
 void vpsrld(Xmm x, uint8 imm) { opAVX_X_X_XM(xm2, x, x, MM_0F | PP_66, 0x72, false); db(imm); }
 void vpsrlq(Xmm x1, Xmm x2, uint8 imm) { opAVX_X_X_XM(xm2, x1, x2, MM_0F | PP_66, 0x73, false); db(imm); }
 void vpsrlq(Xmm x, uint8 imm) { opAVX_X_X_XM(xm2, x, x, MM_0F | PP_66, 0x73, false); db(imm); }
-void vblendvpd(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4B, true); db(x4.getIdx() << 4); }
-void vblendvpd(Xmm x1, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x1, op, MM_0F3A | PP_66, 0x4B, true); db(x4.getIdx() << 4); }
-void vblendvps(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4A, true); db(x4.getIdx() << 4); }
-void vblendvps(Xmm x1, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x1, op, MM_0F3A | PP_66, 0x4A, true); db(x4.getIdx() << 4); }
-void vpblendvb(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4C, false); db(x4.getIdx() << 4); }
-void vpblendvb(Xmm x1, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x1, op, MM_0F3A | PP_66, 0x4C, false); db(x4.getIdx() << 4); }
-void vmovd(Xmm x, Reg32 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx()), MM_0F | PP_66, 0x6E, false, 0); }
+void vblendvpd(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4B, true); db(x4.getIdx << 4); }
+void vblendvpd(Xmm x1, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x1, op, MM_0F3A | PP_66, 0x4B, true); db(x4.getIdx << 4); }
+void vblendvps(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4A, true); db(x4.getIdx << 4); }
+void vblendvps(Xmm x1, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x1, op, MM_0F3A | PP_66, 0x4A, true); db(x4.getIdx << 4); }
+void vpblendvb(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4C, false); db(x4.getIdx << 4); }
+void vpblendvb(Xmm x1, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x1, op, MM_0F3A | PP_66, 0x4C, false); db(x4.getIdx << 4); }
+void vmovd(Xmm x, Reg32 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x6E, false, 0); }
 void vmovd(Xmm x, Address addr) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_66, 0x6E, false, 0); }
 void vmovd(Reg32 reg, Xmm x) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x7E, false, 0); }
 void vmovd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_66, 0x7E, false, 0); }
 void vmovq(Xmm x, Address addr) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F3, 0x7E, false, -1); }
 void vmovq(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_66, 0xD6, false, -1); }
 void vmovq(Xmm x1, Xmm x2) { opAVX_X_X_XM(x1, xm0, x2, MM_0F | PP_F3, 0x7E, false, -1); }
-void vmovhlps(Xmm x1, Xmm x2, Operand op = OP()) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F, 0x12, false); }
-void vmovlhps(Xmm x1, Xmm x2, Operand op = OP()) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F, 0x16, false); }
+void vmovhlps(Xmm x1, Xmm x2, Operand op = OP) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F, 0x12, false); }
+void vmovlhps(Xmm x1, Xmm x2, Operand op = OP) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F, 0x16, false); }
 void vmovmskpd(Reg r, Xmm x) { if (!r.isBit(i32e)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x.isXMM ? XMM(r.getIdx) : YMM(r.getIdx), x.isXMM ? xm0 : ym0, x, MM_0F | PP_66, 0x50, true, 0); }
 void vmovmskps(Reg r, Xmm x) { if (!r.isBit(i32e)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x.isXMM ? XMM(r.getIdx) : YMM(r.getIdx), x.isXMM ? xm0 : ym0, x, MM_0F, 0x50, true, 0); }
-void vmovntdq(Address addr,  Xmm x) { opAVX_X_X_XM(x, x.isXMM() ? xm0 : ym0, addr, MM_0F | PP_66, 0xE7, true); }
-void vmovntpd(Address addr,  Xmm x) { opAVX_X_X_XM(x, x.isXMM() ? xm0 : ym0, addr, MM_0F | PP_66, 0x2B, true); }
-void vmovntps(Address addr,  Xmm x) { opAVX_X_X_XM(x, x.isXMM() ? xm0 : ym0, addr, MM_0F, 0x2B, true); }
+void vmovntdq(Address addr,  Xmm x) { opAVX_X_X_XM(x, x.isXMM ? xm0 : ym0, addr, MM_0F | PP_66, 0xE7, true); }
+void vmovntpd(Address addr,  Xmm x) { opAVX_X_X_XM(x, x.isXMM ? xm0 : ym0, addr, MM_0F | PP_66, 0x2B, true); }
+void vmovntps(Address addr,  Xmm x) { opAVX_X_X_XM(x, x.isXMM ? xm0 : ym0, addr, MM_0F, 0x2B, true); }
 void vmovntdqa(Xmm x,  Address addr) { opAVX_X_X_XM(x, xm0, addr, MM_0F38 | PP_66, 0x2A, false); }
-void vmovsd(Xmm x1,  Xmm x2,  Operand op = OP()) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F2, 0x10, false); }
+void vmovsd(Xmm x1,  Xmm x2,  Operand op = OP) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F2, 0x10, false); }
 void vmovsd(Xmm x,  Address addr) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F2, 0x10, false); }
 void vmovsd(Address addr,  Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F2, 0x11, false); }
-void vmovss(Xmm x1,  Xmm x2,  Operand op = OP()) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F3, 0x10, false); }
+void vmovss(Xmm x1,  Xmm x2,  Operand op = OP) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F3, 0x10, false); }
 void vmovss(Xmm x,  Address addr) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F3, 0x10, false); }
 void vmovss(Address addr,  Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F3, 0x11, false); }
 void vcvtss2si(Reg32 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2D, false, 0); }
 void vcvttss2si(Reg32 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2C, false, 0); }
 void vcvtsd2si(Reg32 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2D, false, 0); }
 void vcvttsd2si(Reg32 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2C, false, 0); }
-void vcvtsi2ss(Xmm x,  Operand op1,  Operand op2 = OP()) { if (!op2.isNone() && !(op2.isREG(i32e) || op2.isMEM)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, op1, op2, op2.isREG(), Kind.XMM, MM_0F | PP_F3, 0x2A, false, (op1.isMEM() || op2.isMEM()) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1); }
-void vcvtsi2sd(Xmm x,  Operand op1,  Operand op2 = OP()) { if (!op2.isNone() && !(op2.isREG(i32e) || op2.isMEM)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, op1, op2, op2.isREG(), Kind.XMM, MM_0F | PP_F2, 0x2A, false, (op1.isMEM() || op2.isMEM()) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1); }
+void vcvtsi2ss(Xmm x,  Operand op1,  Operand op2 = OP) { if (!op2.isNone && !(op2.isREG(i32e) || op2.isMEM)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, op1, op2, op2.isREG, Kind.XMM, MM_0F | PP_F3, 0x2A, false, (op1.isMEM || op2.isMEM) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1); }
+void vcvtsi2sd(Xmm x,  Operand op1,  Operand op2 = OP) { if (!op2.isNone && !(op2.isREG(i32e) || op2.isMEM)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, op1, op2, op2.isREG, Kind.XMM, MM_0F | PP_F2, 0x2A, false, (op1.isMEM || op2.isMEM) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1); }
 void vcvtps2pd(Xmm x,  Operand op) { if (!op.isMEM && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, !op.isMEM, x.isXMM ? Kind.XMM : Kind.YMM, MM_0F, 0x5A, true); }
-void vcvtdq2pd(Xmm x,  Operand op) { if (!op.isMEM && !op.isXMM()) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, !op.isMEM, x.isXMM ? Kind.XMM : Kind.YMM, MM_0F | PP_F3, 0xE6, true); }
+void vcvtdq2pd(Xmm x,  Operand op) { if (!op.isMEM && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, !op.isMEM, x.isXMM ? Kind.XMM : Kind.YMM, MM_0F | PP_F3, 0xE6, true); }
 void vcvtpd2ps(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0x5A, true); }
 void vcvtpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_F2, 0xE6, true); }
 void vcvttpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0xE6, true); }
 
 version(XBYAK64) {
-	void vmovq(Xmm x,  Reg64 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx()), MM_0F | PP_66, 0x6E, false, 1); }
-	void vmovq(Reg64 reg,  Xmm x) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx()), MM_0F | PP_66, 0x7E, false, 1); }
+	void vmovq(Xmm x,  Reg64 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x6E, false, 1); }
+	void vmovq(Reg64 reg,  Xmm x) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x7E, false, 1); }
 	void vpextrq(Operand op,  Xmm x, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x16, false, 1); db(imm); }
 	void vpinsrq(Xmm x1,  Xmm x2,  Operand op, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm); }
 	void vpinsrq(Xmm x,  Operand op, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm); }
-	void vcvtss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F3, 0x2D, false, 1); }
-	void vcvttss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F3, 0x2C, false, 1); }
-	void vcvtsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F2, 0x2D, false, 1); }
-	void vcvttsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx()), xm0, op, MM_0F | PP_F2, 0x2C, false, 1); }
+	void vcvtss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2D, false, 1); }
+	void vcvttss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2C, false, 1); }
+	void vcvtsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2D, false, 1); }
+	void vcvttsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2C, false, 1); }
 } //version(XBYAK64)
 
 } //CodeGenerator
