@@ -1,8 +1,8 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.037
- * Date: Sep 4, 2012
+ * Version: 0.038
+ * Date: Nov 19, 2012
  * See_Also:
  * 		URL:<a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -275,7 +275,7 @@ public:
 };
 	
 // register for addressing(32bit or 64bit)
-Reg32e REG32E(int idx=0, int bit=0){ return REG32E(idx, bit); }
+Reg32e REG32E(int idx=0, int bit=0){ return new Reg32e(idx, bit); }
 Reg32e REG32E(Reg base, Reg index, int scale, uint disp){ return new Reg32e(base, index, scale, disp); }
 public class Reg32e : Reg {
 public:
@@ -283,43 +283,43 @@ public:
 	Reg index_;
 	int scale_; // 0(index is none), 1, 2, 4, 8
 	uint32 disp_;
-private:
-	Reg32e opBinary(string op)(Reg32e a, Reg32e b) if (op == "+")
+//private:
+	Reg32e opBinary(string op)(Reg32e rhs) if (op == "+")
 	{
-		if (a.scale_ == 0) {
-			if (b.scale_ == 0) { // base + base
-				if (b.getIdx == Code.ESP) { // [reg + esp] => [esp + reg]
-					return REG32E(b, a, 1, a.disp_ + b.disp_);
+		if (this.scale_ == 0) {
+			if (rhs.scale_ == 0) { // base + base
+				if (rhs.getIdx == Code.ESP) { // [reg + esp] => [esp + reg]
+					return REG32E(rhs, this, 1, this.disp_ + rhs.disp_);
 				} else {
-					return REG32E(a, b, 1, a.disp_ + b.disp_);
+					return REG32E(this, rhs, 1, this.disp_ + rhs.disp_);
 				}
-			} else if (b.isNone) { // base + index
-				return Reg32e(a, b.index_, b.scale_, a.disp_ + b.disp_);
+			} else if (rhs.isNone) { // base + index
+				return REG32E(this, rhs.index_, rhs.scale_, this.disp_ + rhs.disp_);
 			}
 		}
 		throw new Exception( errTbl[Error.BAD_ADDRESSING] ); 
 	}
 	
-	Reg32e opBinary(string op)(Reg32e r, int scale) if (op == "*")
+	Reg32e opBinary(string op)(int scale) if (op == "*")
 	{
-		if (r.scale_ == 0) {
+		if (this.scale_ == 0) {
 			if (scale == 1) {
 				return r;
 			} else {
 				if (scale == 2 || scale == 4 || scale == 8) {
-					return REG32E( REG, r, scale, r.disp_);
+					return REG32E( REG, this, scale, r.disp_);
 				}
 			}
 		}
 		throw new Exception( errTbl[Error.BAD_SCALE] ); 
 	}
 	
-	Reg32e opBinary(string op)(Reg32e r, uint disp) if (op == "+") {
-		return REG32E(r, r.index_, r.scale_, r.disp_ + disp);
+	Reg32e opBinary(string op)(uint disp) if (op == "+") {
+		return REG32E(this, this.index_, this.scale_, this.disp_ + disp);
 	}
 	
-	Reg32e opBinary(string op)(Reg32e r, uint disp) if (op == "-") {
-		return r.opBinary!("+")(-cast(int)disp);
+	Reg32e opBinary(string op)(uint disp) if (op == "-") {
+		return this.opBinary!("+")(-cast(int)disp);
 	}
 public:
 	this(int idx, int bit) {
@@ -368,12 +368,12 @@ version(XBYAK64) {
 		uint32 disp_;
 		this(uint disp = 0) { disp_ = disp; }
 		
-		 RegRip opBinary(string op)( RegRip r, uint disp) if (op == "+") {
-			return RegRip(r.disp_ + disp);
+		 RegRip opBinary(string op)(uint disp) if (op == "+") {
+			return RegRip(this.disp_ + disp);
 		}
 		
-		 RegRip opBinary(string op)( RegRip r, uint disp) if (op == "-") {
-			return RegRip(r.disp_ - disp);
+		 RegRip opBinary(string op)(uint disp) if (op == "-") {
+			return RegRip(this.disp_ - disp);
 		}
 	};
 } //version(XBYAK64)
