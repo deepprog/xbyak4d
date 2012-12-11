@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.039
+ * Version: 0.040
  * Date: 2012/12
  * See_Also:
  * 		URL:<a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -10,16 +10,20 @@
  * Authors:   deepprog
 */
 module xbyak4d;
+// version = XBYAK64;
 
 import std.stdio;
 import std.string : format; 
 import std.algorithm : swap, min;
 
-import core.sys.posix.sys.mman;
+version(linux){
+	import core.sys.posix.sys.mman;
+	import std.c.linux.linux;
+}
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0039, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0040, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -109,56 +113,26 @@ uint32 VerifyInInt32(uint64 x)
 }
 //} // inner
 
-version(linux){
-
-	struct Allocator {
-
-		uint8* alloc(size_t size) {
-
-			import std.c.linux.linux;
-
-			size_t pageSize = sysconf(_SC_PAGESIZE);
-
-			int fd = open("/dev/zero", O_RDONLY);
-
-			return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
-
-		}
-
-	//	void free(uint8[] p) { /+delete p;+/ }
-
-	}
-
-}else{
-
-	struct Allocator {
-
-		uint8[] alloc(size_t size) { return new uint8[size]; }
-
-	//	void free(uint8[] p) { /+delete p;+/ }
-
-		~this() {}
-
-	}
-
-}
-
-/+
-
 /*
-
 	custom allocator
-
 */
-struct Allocator {
+version(linux){
+	struct Allocator {
+		uint8* alloc(size_t size) {
+		size_t pageSize = sysconf(_SC_PAGESIZE);
+		int fd = open("/dev/zero", O_RDONLY);
+		return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+	}
 
-	uint8* alloc(size_t size) { return cast(uint8*)(AlignedMalloc(size, ALIGN_PAGE_SIZE)); }
-
-	void free(uint8* p) { AlignedFree(p); }
-
-	~this() {}
+	//	void free(uint8[] p) { /+delete p;+/ }
+	}
+}else{
+	struct Allocator {
+		uint8[] alloc(size_t size) { return new uint8[size]; }
+	//	void free(uint8[] p) { /+delete p;+/ }
+		~this() {}
+	}
 }
-
 
 // Operand
 enum Kind
@@ -503,58 +477,34 @@ public:
 		type_ = getType(maxSize, userPtr);
 		alloc_ = allocator != null ? allocator : &defaultAllocator_;
 		allocPtr_ = (type_ == Type.ALLOC_BUF) ? cast(uint8*)(new uint8[maxSize + ALIGN_PAGE_SIZE]) : null;
-
-		
-
-		import std.c.linux.linux;
-
-		size_t pageSize = sysconf(_SC_PAGESIZE);
-
-		int fd = open("/dev/zero", O_RDONLY);
-
-		allocPtr_= cast(uint8*)mmap(null, maxSize, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
-
-	
-
 		maxSize_ = maxSize;
-
+version(linux)
+{
+		size_t pageSize = sysconf(_SC_PAGESIZE);
+		int fd = open("/dev/zero", O_RDONLY);
+		allocPtr_= cast(uint8*)mmap(null, maxSize, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
 		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
-
-//		top_ = this.isAllocType() ? alloc_.alloc(maxSize) : type_ == USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;  
-
+}else{
+		top_ = this.isAllocType ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr; 
+}
 		size_ = 0;
 		
 		if (maxSize_ > 0 && top_ == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
 		if (type_ == Type.ALLOC_BUF && !protect(top_, maxSize, true)) {
-
-//			alloc_.free(top_);
-
+//		alloc_.free(allocPtr_);
 			throw new Exception(errTbl[Error.CANT_PROTECT]);
-
 		}
-
 	}
 
-	~this()
-
+	~this()	
 	{
-
 		if (isAllocType) {
-
 			protect(top_, maxSize_, false);
-
 //			alloc_.free(top_);
-
 		}
-
 	}
-
 	
-
-	this(CodeArray rhs)
-
-	{
-
+	this(CodeArray rhs) {
 		type_ = rhs.type_;
 		defaultAllocator_ = rhs.defaultAllocator_;
 		maxSize_ = rhs.maxSize_;
@@ -1758,7 +1708,7 @@ version(XBYAK64){
 		}
 		
 //	import xbyak_mnemonic; 
-string getVersionString() { return "0.037"; }
+string getVersionString() { return "0.040"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -3101,6 +3051,6 @@ version(XBYAK64) {
 	void vcvttss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2C, false, 1); }
 	void vcvtsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2D, false, 1); }
 	void vcvttsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2C, false, 1); }
-} //version(XBYAK64)
+} // version(XBYAK64)
 
-} //CodeGenerator
+} // CodeGenerator
