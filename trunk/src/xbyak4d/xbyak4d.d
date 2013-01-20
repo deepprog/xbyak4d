@@ -1,16 +1,18 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.040
- * Date: 2012/12
+ * Version: 0.041
+ * Date: 2013/01
  * See_Also:
- * 		URL:<a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
+ *  URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
- * License:   <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
- * Authors:   deepprog
+ * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
+ * Authors: deepprog
 */
+
 module xbyak4d;
 // version = XBYAK64;
+version = XBYAK32;
 
 import std.stdio;
 import std.string : format; 
@@ -130,7 +132,6 @@ version(linux){
 	struct Allocator {
 		uint8[] alloc(size_t size) { return new uint8[size]; }
 	//	void free(uint8[] p) { /+delete p;+/ }
-		~this() {}
 	}
 }
 
@@ -148,8 +149,7 @@ enum Kind
 }
 
 version(XBYAK64) {
-
-	enum Code {
+  enum Code {
 		RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
 		R8D = 8, R9D, R10D, R11D, R12D, R13D, R14D, R15D,
 		R8W = 8, R9W, R10W, R11W, R12W, R13W, R14W, R15W,
@@ -159,16 +159,15 @@ version(XBYAK64) {
 		AX = 0, CX, DX, BX, SP, BP, SI, DI,
 		AL = 0, CL, DL, BL, AH, CH, DH, BH
 	}
+}
 
-} else { //version(XBYAK64)
-
+version(XBYAK32){
 	enum Code {
 		EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
 		AX = 0, CX, DX, BX, SP, BP, SI, DI,
 		AL = 0, CL, DL, BL, AH, CH, DH, BH
 	}
-
-} //version(XBYAK64)
+}
 
 // Operand
 Operand OP(int idx=0, Kind kind=Kind.NONE, int bit=0, int ext8bit=0) {
@@ -3044,9 +3043,21 @@ void vcvttpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[E
 version(XBYAK64) {
 	void vmovq(Xmm x,  Reg64 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x6E, false, 1); }
 	void vmovq(Reg64 reg,  Xmm x) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x7E, false, 1); }
-	void vpextrq(Operand op,  Xmm x, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x16, false, 1); db(imm); }
-	void vpinsrq(Xmm x1,  Xmm x2,  Operand op, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm); }
-	void vpinsrq(Xmm x,  Operand op, uint8 imm) { if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm); }
+	void vpextrq(Operand op,  Xmm x, uint8 imm) {
+    if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+    opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x16, false, 1);
+    db(imm);
+  }
+	void vpinsrq(Xmm x1,  Xmm x2,  Operand op, uint8 imm) {
+    if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+    opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1);
+    db(imm);
+  }
+	void vpinsrq(Xmm x,  Operand op, uint8 imm) {
+    if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+    opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1);
+    db(imm);
+  }
 	void vcvtss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2D, false, 1); }
 	void vcvttss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2C, false, 1); }
 	void vcvtsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2D, false, 1); }
