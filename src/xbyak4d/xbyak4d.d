@@ -4,7 +4,7 @@
  * Version: 0.041
  * Date: 2013/01
  * See_Also:
- *  URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
+ * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
  * Authors: deepprog
@@ -25,7 +25,7 @@ version(linux){
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0040, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0041, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -159,9 +159,9 @@ version(XBYAK64) {
 		AX = 0, CX, DX, BX, SP, BP, SI, DI,
 		AL = 0, CL, DL, BL, AH, CH, DH, BH
 	}
-}
+} else {
 
-version(XBYAK32){
+// version(XBYAK32){
 	enum Code {
 		EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
 		AX = 0, CX, DX, BX, SP, BP, SI, DI,
@@ -205,7 +205,7 @@ public:
 	bool isBit(uint32 bit) { return (bit_ & bit) != 0; }
 	uint32 getBit() { return bit_; }
 
-	string toString()
+	override string toString()
 	{
 		if (kind_ == Kind.REG) {
 			if (ext8bit_) {
@@ -297,7 +297,7 @@ public:
 	Reg index_;
 	int scale_; // 0(index is none), 1, 2, 4, 8
 	uint32 disp_;
-//private:
+private:
 	Reg32e opBinary(string op)(Reg32e rhs) if (op == "+")
 	{
 		if (this.scale_ == 0) {
@@ -516,6 +516,12 @@ version(linux)
 		top_[0..size_] = rhs.top_[0..size_];
 	}
 	
+	void resetSize()
+	{	
+		size_ = 0;
+		addrInfoList_.clear();
+	}
+
 	void db(int code)
 	{
 		if (size_ >= maxSize_) {
@@ -560,7 +566,7 @@ version(linux)
 					format("%02X ", p[i * 16 + j]).write;
 				}
 			}
-			writeln;
+			writeln();
 			remain -= disp;
 			if (remain <= 0) {
 				break;
@@ -785,6 +791,17 @@ public:
 		localCount_ = 0;
 	}
 
+	void reset()
+	{
+		base_ = null;
+		anonymousCount_ = 0;
+		stackPos_ = 1;
+		usedCount_ = 0;
+		localCount_ = 0;
+		definedList_.clear();
+		undefinedList_.clear();
+	}
+
 	void enterLocal() {
 		if (stackPos_ == maxStack) throw new Exception( errTbl[Error.OVER_LOCAL_LABEL] );
 		localCount_ = stack_[stackPos_++] = ++usedCount_;
@@ -910,7 +927,6 @@ version(XBYAK64){
 			rex = addr.getRex | (cast(Reg)p1).getRex;
 		} else {
 			// ModRM(reg, base);
-////
 			rex = (cast(Reg)op2).getRex((cast(Reg)op1));
 		}
 		// except movsx(16bit, 32/64bit)
@@ -1686,6 +1702,13 @@ version(XBYAK64){
 			label_.set(cast(CodeArray)this);
 		}
 
+		void reset()
+		{
+			resetSize();
+			label_.reset();
+			label_.set(this);
+		}
+
 		bool hasUndefinedLabel() { return this.label_.hasUndefinedLabel; }
 		override uint8* getCode()
 		{
@@ -1706,8 +1729,7 @@ version(XBYAK64){
 			}
 		}
 		
-//	import xbyak_mnemonic; 
-string getVersionString() { return "0.040"; }
+string getVersionString() { return "0.041"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -2031,6 +2053,7 @@ void rdpmc() { db(0x0F); db(0x33); }
 void rdtsc() { db(0x0F); db(0x31); }
 void rdtscp() { db(0x0F); db(0x01); db(0xF9); }
 void wait() { db(0x9B); }
+void fwait() { db(0x9B); }
 void wbinvd() { db(0x0F); db(0x09); }
 void wrmsr() { db(0x0F); db(0x30); }
 void xlatb() { db(0xD7); }
@@ -2051,6 +2074,8 @@ void fdecstp() { db(0xD9); db(0xF6); }
 void fdivp() { db(0xDE); db(0xF9); }
 void fdivrp() { db(0xDE); db(0xF1); }
 void fincstp() { db(0xD9); db(0xF7); }
+void finit() { db(0x9B); db(0xDB); db(0xE3); }	
+void fninit() { db(0xDB); db(0xE3); }
 void fld1() { db(0xD9); db(0xE8); }
 void fldl2t() { db(0xD9); db(0xE9); }
 void fldl2e() { db(0xD9); db(0xEA); }
@@ -2196,6 +2221,8 @@ void aeskeygenassist(Xmm xmm, Operand op, int imm) { opGen(xmm, op, 0xDF, 0x66, 
 void ldmxcsr(Address addr) { opModM(addr, REG32(2), 0x0F, 0xAE); }
 void stmxcsr(Address addr) { opModM(addr, REG32(3), 0x0F, 0xAE); }
 void clflush(Address addr) { opModM(addr, REG32(7), 0x0F, 0xAE); }
+void fldcw(Address addr) { opModM(addr, REG32(5), 0xD9, 0x100); }
+void fstcw(Address addr) { opModM(addr, REG32(7), 0x9B, 0xD9); }
 void movntpd(Address addr, Xmm reg) { opModM(addr, REG16(reg.getIdx), 0x0F, 0x2B); }
 void movntdq(Address addr, Xmm reg) { opModM(addr, REG16(reg.getIdx), 0x0F, 0xE7); }
 void movsx(Reg reg, Operand op) { opMovxx(reg, op, 0xBE); }
