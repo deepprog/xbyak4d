@@ -1,8 +1,8 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.041
- * Date: 2013/01
+ * Version: 0.042
+ * Date: 2013/01/22
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -18,6 +18,10 @@ import std.stdio;
 import std.string : format; 
 import std.algorithm : swap, min;
 
+version(Windows){
+	import core.sys.windows.windows;  // VirtualProtect
+}
+
 version(linux){
 	import core.sys.posix.sys.mman;
 	import std.c.linux.linux;
@@ -25,7 +29,7 @@ version(linux){
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0041, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0042, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -102,18 +106,17 @@ enum LabelType
 	T_AUTO = 2 // T_SHORT if possible
 }
 
+//struct inner {
+	enum { Debug = 1 };
+	bool IsInDisp8(uint32 x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
+	bool IsInDisp32(uint64 x) { return 0xFFFFFFFF80000000UL <= x || x <= 0x7FFFFFFFU; }
 
-// struct inner {
-enum { Debug = 1 };
-bool IsInDisp8(uint32 x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
-bool IsInInt32(uint64 x) { return 0xFFFFFFFF80000000UL <= x || x <= 0x7FFFFFFFU; }
-
-uint32 VerifyInInt32(uint64 x) 
-{
-	if (!IsInInt32(x)) throw new Exception( errTbl[Error.OFFSET_IS_TOO_BIG] );
-	return cast(uint32)x;
-}
-//} // inner
+	uint32 VerifyInInt32(uint64 x) 
+	{
+		if (!IsInDisp32(x)) throw new Exception( errTbl[Error.OFFSET_IS_TOO_BIG] );
+		return cast(uint32)x;
+	}
+//}
 
 /*
 	custom allocator
@@ -158,9 +161,9 @@ version(XBYAK64) {
 		AX = 0, CX, DX, BX, SP, BP, SI, DI,
 		AL = 0, CL, DL, BL, AH, CH, DH, BH
 	}
-} else {
+}
 
-// version(XBYAK32){
+version(XBYAK32){
 	enum Code {
 		EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
 		AX = 0, CX, DX, BX, SP, BP, SI, DI,
@@ -598,30 +601,25 @@ version(linux)
 		@param canExec [in] true(enable to exec), false(disable to exec)
 		@return true(success), false(failure)
 	*/
-	bool protect(void* addr, size_t size, bool canExec)
-	{
-/+	
-version(WIN32) {
+	
+version(Windows) {
+	bool protect(void* addr, size_t size, bool canExec) {
 		DWORD oldProtect;
-		return VirtualProtect(const_cast<void*>(addr), size, canExec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldProtect) != 0;
+		return VirtualProtect(cast(void*)(addr), size, canExec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldProtect) != 0;
+	}
 }
-else
-{
-	version(__GNUC__)
-	{
+
+version(linux){
+	bool protect(void* addr, size_t size, bool canExec) {
 		size_t pageSize = sysconf(_SC_PAGESIZE);
 		size_t iaddr = cast(size_t)addr;
 		size_t roundAddr = iaddr & ~(pageSize - cast(size_t)1);
 		int mode = PROT_READ | PROT_WRITE | (canExec ? PROT_EXEC : 0);
-		return mprotect(cast(void*)(roundAddr), size + (iaddr - roundAddr), mode) == 0;
-	}
-	else
-	{
-+/
+	//	return mprotect(cast(void*)(roundAddr), size + (iaddr - roundAddr), mode) == 0;
 		return true;
-	//}	
-//}
 	}
+}
+
 	/**
 		get aligned memory pointer
 		@param addr [in] address
@@ -1364,7 +1362,7 @@ version(XBYAK64){
 			rex(op);
 			int code, size;
 			
-			if (op.isBit(64) && IsInInt32(imm)) {
+			if (op.isBit(64) && IsInDisp32(imm)) {
 				db(0B11000111);
 				code = 0B11000000;
 				size = 4;
@@ -1723,7 +1721,7 @@ version(XBYAK64){
 			}
 		}
 		
-string getVersionString() { return "0.041"; }
+string getVersionString() { return "0.042"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
