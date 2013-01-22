@@ -125,7 +125,6 @@ version(linux){
 		int fd = open("/dev/zero", O_RDONLY);
 		return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
 	}
-
 	//	void free(uint8[] p) { /+delete p;+/ }
 	}
 }else{
@@ -407,7 +406,6 @@ private:
 		ALLOC_BUF,  // use new(alignment, protect)
 		AUTO_GROW // automatically move and grow memory if necessary
 	}
-//	void opAssign(CodeArray){};
 	bool isAllocType() { return type_ == Type.ALLOC_BUF || type_ == Type.AUTO_GROW; }
 	Type getType(size_t maxSize, void* userPtr)
 	{
@@ -482,10 +480,8 @@ version(linux)
 		size_t pageSize = sysconf(_SC_PAGESIZE);
 		int fd = open("/dev/zero", O_RDONLY);
 		allocPtr_= cast(uint8*)mmap(null, maxSize, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
-		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
-}else{
-		top_ = this.isAllocType ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr; 
 }
+		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
 		size_ = 0;
 		
 		if (maxSize_ > 0 && top_ == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
@@ -495,8 +491,7 @@ version(linux)
 		}
 	}
 
-	~this()	
-	{
+	~this()	{
 		if (isAllocType) {
 			protect(top_, maxSize_, false);
 //			alloc_.free(top_);
@@ -516,8 +511,7 @@ version(linux)
 		top_[0..size_] = rhs.top_[0..size_];
 	}
 	
-	void resetSize()
-	{	
+	void resetSize() {	
 		size_ = 0;
 		addrInfoList_.clear();
 	}
