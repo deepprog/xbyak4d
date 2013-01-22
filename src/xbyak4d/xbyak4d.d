@@ -460,6 +460,7 @@ protected:
 		top_ = newTop;
 		maxSize_ = newSize;
 	}
+
 	/*
 		calc jmp address for AutoGrow mode
 	*/
@@ -708,7 +709,7 @@ version(XBYAK64){
 
 version(XBYAK64){
 		if (r.isNone && r.index_.isNone) hasSIB = true;
-} //version(XBYAK64)
+}
 				
 		if (!hasSIB) {
 			frame.db((mod << 6) | base);
@@ -872,9 +873,9 @@ public class CodeGenerator : CodeArray {
 
 version(XBYAK64){
 	enum { i32e = 64 | 32, BIT = 64 }
-}else{ //version(XBYAK64)
+}else{
 	enum { i32e = 32, BIT = 32 }
-} //version(XBYAK64)
+}
 	
 	// (XMM, XMM|MEM)
 	bool isXMM_XMMorMEM(Operand op1, Operand op2)
@@ -1142,8 +1143,7 @@ version(XBYAK64) {
 			db(code | op.getIdx);
 			return;
 		}
-} //version(XBYAK64)
-
+}
 		code = 0B11111110;
 		if (op.isREG) {
 			opModR( REG(ext, Kind.REG, op.getBit), cast(Reg)op, code);
@@ -1230,7 +1230,7 @@ version(XBYAK64){
 		Xmm xm8, xm9, xm10, xm11, xm12, xm13, xm14, xm15; // for my convenience
 		Ymm ym8, ym9, ym10, ym11, ym12, ym13, ym14, ym15;
 		RegRip rip;
-} //version(XBYAK64)
+}
 	
 	void L(string label) { label_.define(label, getSize); }
 	void inLocalLabel() { label_.enterLocal; }
@@ -1342,26 +1342,23 @@ version(XBYAK64){
 				throw new Exception( errTbl[Error.BAD_COMBINATION]);
 			}
 		} else opRM_RM(reg1, reg2, 0B10001000);
-
-}else{ //version(XBYAK64)
-
+}else{
 		if (code && addr.isOnlyDisp) {
 			rex(reg, addr);
 			db(code | (reg.isBit(8) ? 0 : 1));
 			dd(cast(uint32)(addr.getDisp));
 		} else opRM_RM(reg1, reg2, 0B10001000);
-
-} //version(XBYAK64)
+}
 	}
 
-version(XBYAK64){
+version(XBYAK64) {
 	void mov(Operand op, uint64 imm)
 	{
 		verifyMemHasSize(op);
 		if (op.isREG) {
 			rex(op);
 			int code, size;
-			
+
 			if (op.isBit(64) && IsInDisp32(imm)) {
 				db(0B11000111);
 				code = 0B11000000;
@@ -1380,8 +1377,9 @@ version(XBYAK64){
 			throw new Exception( errTbl[Error.BAD_COMBINATION]);
 		}
 	}
-} else { // version(XBYAK64)
+}
 
+version(XBYAK32) {
 	void mov(Operand op, uint32 imm)
 	{
 		verifyMemHasSize(op);
@@ -1399,13 +1397,13 @@ version(XBYAK64){
 			throw new Exception( errTbl[Error.BAD_COMBINATION]);
 		}
 	}
-} // version(XBYAK64)
+}
 
-	void cmpxchg8b(Address addr) { opModM(addr, REG32(1), 0x0F, 0B11000111); }
+void cmpxchg8b(Address addr) { opModM(addr, REG32(1), 0x0F, 0B11000111); }
 
 version(XBYAK64){
 	void cmpxchg16b(Address addr) { opModM(addr, REG64(1), 0x0F, 0B11000111); }
-} // version(XBYAK64)
+}
 
 	void xadd(Operand op, Reg reg) {
 		opModRM(reg, op, (op.isREG && reg.isREG && op.getBit == reg.getBit), op.isMEM, 0x0F, 0B11000000 | (reg.isBit(8) ? 0 : 1));
@@ -1423,7 +1421,7 @@ version(XBYAK64){
 		bool BL = true;
 version(XBYAK64){
 		BL = (p2.getIdx != 0 || !p1.isREG(32));
-} // version(XBYAK64)
+}
 		
 		if (p2.isREG && (p1.isREG(16 | i32e) && p1.getIdx == 0) && BL)
 		{
@@ -1623,7 +1621,6 @@ version(XBYAK64){
 	// if cvt then return pointer to Xmm(idx) (or Ymm(idx)), otherwise return op
 	void opAVX_X_X_XMcvt(Xmm x1, Operand op1, Operand op2, bool cvt, Kind kind, int type, int code0, bool supportYMM, int w = -1)
 	{
-		// use static_cast to avoid calling unintentional copy constructor on gcc
 		opAVX_X_X_XM(x1, op1, cvt ? kind == Kind.XMM ? cast(Operand)(XMM(op2.getIdx)) : cast(Operand)(YMM(op2.getIdx)) : op2, type, code0, supportYMM, w);
 	}
 
@@ -1689,7 +1686,7 @@ version(XBYAK64){
 			xm8 = xmm8; xm9 = xmm9; xm10 = xmm10; xm11 = xmm11; xm12 = xmm12; xm13 = xmm13; xm14 = xmm14; xm15 = xmm15; // for my convenience
 			ym8 = ymm8; ym9 = ymm9; ym10 = ymm10; ym11 = ymm11; ym12 = ymm12; ym13 = ymm13; ym14 = ymm14; ym15 = ymm15; // for my convenience
 			rip = RegRip;
-} // version(XBYAK64)
+}
 			label_ = new Label;
 			label_.set(cast(CodeArray)this);
 		}
@@ -1997,11 +1994,8 @@ void jg(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x
 void setg(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 15); }
 
 version(XBYAK64) {
-	
 	void cdqe() { db(0x48); db(0x98); }
-
-} else { //version(XBYAK64)
-
+} else {
 	void aaa() { db(0x37); }
 	void aad() { db(0xD5); db(0x0A); }
 	void aam() { db(0xD4); db(0x0A); }
@@ -2014,8 +2008,7 @@ version(XBYAK64) {
 	void pushad() { db(0x60); }
 	void pushfd() { db(0x9C); }
 	void popa() { db(0x61); }
-
-} //version(XBYAK64)
+}
 
 void cbw() { db(0x66); db(0x98); }
 void cdq() { db(0x99); }
@@ -3081,6 +3074,6 @@ version(XBYAK64) {
 	void vcvttss2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2C, false, 1); }
 	void vcvtsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2D, false, 1); }
 	void vcvttsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2C, false, 1); }
-} // version(XBYAK64)
+}
 
 } // CodeGenerator
