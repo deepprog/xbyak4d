@@ -109,6 +109,7 @@ enum LabelType
 //struct inner {
 	enum { Debug = 1 };
 	bool IsInDisp8(uint32 x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
+	bool IsInDisp16(uint32 x) { return 0xFFFF8000 <= x || x <= 0x7FFF; }
 	bool IsInDisp32(uint64 x) { return 0xFFFFFFFF80000000UL <= x || x <= 0x7FFFFFFFU; }
 
 	uint32 VerifyInInt32(uint64 x) 
@@ -950,7 +951,6 @@ version(XBYAK64){
 	}
 		
 	Label label_;
-	bool isInDisp16(uint32 x) { return 0xFFFF8000 <= x || x <= 0x7FFF; }
 	uint8 getModRM(int mod, int r1, int r2) { return cast(uint8)((mod << 6) | ((r1 & 7) << 3) | (r2 & 7)); }
 		
 	void opModR(Reg reg1, Reg reg2, int code0, int code1 = Kind.NONE, int code2 = Kind.NONE)
@@ -1119,7 +1119,7 @@ version(XBYAK64){
 	// (REG|MEM, IMM)
 	void opRM_I(Operand op, uint32 imm, int code, int ext) {
 		verifyMemHasSize(op);
-		uint32 immBit = IsInDisp8(imm) ? 8 : isInDisp16(imm) ? 16 : 32;
+		uint32 immBit = IsInDisp8(imm) ? 8 : IsInDisp16(imm) ? 16 : 32;
 		if (op.getBit < immBit) throw new Exception( errTbl[Error.IMM_IS_TOO_BIG] );
 		if (op.isREG(32|64) && immBit == 16) immBit = 32; /* don't use MEM16 if 32/64bit mode */
 		if (op.isREG && op.getIdx == 0 && (op.getBit == immBit || (op.isBit(64) && immBit == 32))) { // rax, eax, ax, al
@@ -1297,7 +1297,7 @@ version(XBYAK64){
 	{
 		if (af.bit_ == 8 && IsInDisp8(imm)) {
 			db(0B01101010); db(imm);
-		} else if (af.bit_ == 16 && isInDisp16(imm)) {
+		} else if (af.bit_ == 16 && IsInDisp16(imm)) {
 			db(0x66); db(0B01101000); dw(imm);
 		} else {
 			db(0B01101000); dd(imm);
@@ -1362,7 +1362,7 @@ version(XBYAK64){
 			rex(op);
 			int code, size;
 			
-			if (op.isBit(64) && IsInDisp32(imm)) {
+			if (op.isBit(64) && IsInInt32(imm)) {
 				db(0B11000111);
 				code = 0B11000000;
 				size = 4;
