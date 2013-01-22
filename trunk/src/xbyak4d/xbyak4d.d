@@ -1362,7 +1362,7 @@ version(XBYAK64){
 			rex(op);
 			int code, size;
 			
-			if (op.isBit(64) && IsInInt32(imm)) {
+			if (op.isBit(64) && IsInDisp32(imm)) {
 				db(0B11000111);
 				code = 0B11000000;
 				size = 4;
