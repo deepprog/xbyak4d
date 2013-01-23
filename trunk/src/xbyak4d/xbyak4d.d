@@ -1,8 +1,8 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.042
- * Date: 2013/01/22
+ * Version: 0.043
+ * Date: 2013/01/23
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -11,8 +11,8 @@
 */
 
 module xbyak4d;
-version = XBYAK64;
-//version = XBYAK32;
+//version = XBYAK64;
+version = XBYAK32;
 
 import std.stdio;
 import std.string : format; 
@@ -29,7 +29,7 @@ version(linux){
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0042, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0043, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -114,7 +114,9 @@ enum LabelType
 
 	uint32 VerifyInInt32(uint64 x) 
 	{
+version(XBYAK64) {
 		if (!IsInDisp32(x)) throw new Exception( errTbl[Error.OFFSET_IS_TOO_BIG] );
+}
 		return cast(uint32)x;
 	}
 //}
@@ -123,18 +125,27 @@ enum LabelType
 	custom allocator
 */
 version(linux){
-	struct Allocator {
-		uint8* alloc(size_t size) {
-		size_t pageSize = sysconf(_SC_PAGESIZE);
-		int fd = open("/dev/zero", O_RDONLY);
-		return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
-	}
-	//	void free(uint8[] p) { /+delete p;+/ }
+	struct Allocator
+	{
+		uint8* alloc(size_t size)
+		{
+			size_t pageSize = sysconf(_SC_PAGESIZE);
+			int fd = open("/dev/zero", O_RDONLY);
+			return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+		}
+		void free(uint8* p, size_t length) { munmap(cast(void*)p, length); }
 	}
 }else{
 	struct Allocator {
 		uint8[] alloc(size_t size) { return new uint8[size]; }
-	//	void free(uint8[] p) { /+delete p;+/ }
+		void free(uint8* p, size_t length)
+		{
+			/+delete p;+/
+			writeln();
+			writeln("free");
+			writeln(p);
+			writeln(length);
+		}
 	}
 }
 
@@ -457,7 +468,8 @@ protected:
 		if (newAllocPtr == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
 		uint8* newTop = getAlignedAddress(newAllocPtr, ALIGN_PAGE_SIZE);  
 		for (size_t i = 0; i < size_; i++) newTop[i] = top_[i];
-//		alloc_.free(newTop);
+		
+		alloc_.free(allocPtr_, maxSize_);
 		allocPtr_ = newAllocPtr;
 		top_ = newTop;
 		maxSize_ = newSize;
@@ -486,14 +498,15 @@ version(linux)
 {
 		size_t pageSize = sysconf(_SC_PAGESIZE);
 		int fd = open("/dev/zero", O_RDONLY);
-		allocPtr_= cast(uint8*)mmap(null, maxSize, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+		allocPtr_= cast(uint8*)mmap(null, maxSize_, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
 }
 		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
 		size_ = 0;
 		
 		if (maxSize_ > 0 && top_ == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
-		if (type_ == Type.ALLOC_BUF && !protect(top_, maxSize, true)) {
-//		alloc_.free(allocPtr_);
+		if (type_ == Type.ALLOC_BUF && !protect(top_, maxSize, true))
+		{
+			alloc_.free(allocPtr_, maxSize_);
 			throw new Exception(errTbl[Error.CANT_PROTECT]);
 		}
 	}
@@ -501,7 +514,7 @@ version(linux)
 	~this()	{
 		if (isAllocType) {
 			protect(top_, maxSize_, false);
-//			alloc_.free(top_);
+			alloc_.free(allocPtr_, maxSize_);
 		}
 	}
 	
@@ -1720,7 +1733,7 @@ version(XBYAK64){
 			}
 		}
 		
-string getVersionString() { return "0.042"; }
+string getVersionString() { return "0.043"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
