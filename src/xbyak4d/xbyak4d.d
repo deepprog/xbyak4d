@@ -11,8 +11,8 @@
 */
 
 module xbyak4d;
-// version = XBYAK64;
-version = XBYAK32;
+version = XBYAK64;
+//version = XBYAK32;
 
 import std.stdio;
 import std.string : format; 
@@ -381,7 +381,9 @@ version(XBYAK64) {
 	public class Reg64 : Reg32e {
 		this(int idx) { super(idx, 64); }
 	};
-	struct RegRip {
+	
+	struct RegRip
+	{
 		uint32 disp_;
 		this(uint disp = 0) { disp_ = disp; }
 		
@@ -393,7 +395,7 @@ version(XBYAK64) {
 			return RegRip(this.disp_ - disp);
 		}
 	};
-} //version(XBYAK64)
+}
 	
 // 2nd parameter for constructor of CodeArray(maxSize, userPtr, alloc)
 void* AutoGrow = cast(void*)(1);
@@ -1685,7 +1687,7 @@ version(XBYAK64){
 			
 			xm8 = xmm8; xm9 = xmm9; xm10 = xmm10; xm11 = xmm11; xm12 = xmm12; xm13 = xmm13; xm14 = xmm14; xm15 = xmm15; // for my convenience
 			ym8 = ymm8; ym9 = ymm9; ym10 = ymm10; ym11 = ymm11; ym12 = ymm12; ym13 = ymm13; ym14 = ymm14; ym15 = ymm15; // for my convenience
-			rip = RegRip;
+			rip = RegRip();
 }
 			label_ = new Label;
 			label_.set(cast(CodeArray)this);
