@@ -1,8 +1,8 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.043
- * Date: 2013/01/23
+ * Version: 0.044
+ * Date: 2013/03/26
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -106,7 +106,8 @@ enum LabelType
 	T_AUTO = 2 // T_SHORT if possible
 }
 
-//struct inner {
+struct inner {
+static:
 	enum { Debug = 1 };
 	bool IsInDisp8(uint32 x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
 	bool IsInDisp16(uint32 x) { return 0xFFFF8000 <= x || x <= 0x7FFF; }
@@ -119,7 +120,7 @@ version(XBYAK64) {
 }
 		return cast(uint32)x;
 	}
-//}
+}
 
 /*
 	custom allocator
@@ -133,7 +134,7 @@ version(linux){
 			int fd = open("/dev/zero", O_RDONLY);
 			return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
 		}
-		void free(uint8* p, size_t length) { munmap(cast(void*)p, length); }
+		void free(uint8* p, size_t length) { munmap(cast(void*)p, length).writeln; }
 	}
 }else{
 	struct Allocator {
@@ -482,7 +483,7 @@ protected:
 	{
 		foreach (i; addrInfoList_)
 		{
-			uint32 disp = VerifyInInt32(i.isRelative_ ? i.val_ : i.val_ - cast(size_t)(top_));
+			uint32 disp = inner.VerifyInInt32(i.isRelative_ ? i.val_ : i.val_ - cast(size_t)(top_));
 			rewrite(i.offset_, disp, i.size_);
 		}
 		if (!protect(top_, size_, true)) throw new Exception(errTbl[Error.CANT_PROTECT]);
@@ -713,7 +714,7 @@ version(XBYAK64){
 		int mod;
 		if (r.isNone || ((r.getIdx & 7) != Code.EBP && r.disp_ == 0)) {
 			mod = mod00;
-		} else if (IsInDisp8(r.disp_)) {
+		} else if (inner.IsInDisp8(r.disp_)) {
 			mod = mod01;
 		} else {
 			mod = mod10;
@@ -839,8 +840,8 @@ public:
 			return;
 		} else {
 			foreach(JmpLabel jmp; undefinedList_[label]) {
-				uint32 disp = VerifyInInt32(addr - jmp.endOfJmp);
-				if (jmp.isShort && !IsInDisp8(disp)) throw new Exception( errTbl[Error.LABEL_IS_TOO_FAR]);
+				uint32 disp = inner.VerifyInInt32(addr - jmp.endOfJmp);
+				if (jmp.isShort && !inner.IsInDisp8(disp)) throw new Exception( errTbl[Error.LABEL_IS_TOO_FAR]);
 				size_t jmpSize = jmp.isShort ? 1 : 4;
 				size_t offset = cast(size_t)jmp.endOfJmp - jmpSize;
 				
@@ -871,7 +872,7 @@ public:
 
 	bool hasUndefinedLabel()
 	{
-		static if (Debug) {	
+		static if (inner.Debug) {	
 			foreach (string s; undefinedList_.keys) {
 				format("undefined label:%s", s).writeln;
 			}
@@ -994,7 +995,7 @@ version(XBYAK64){
 		int shortJmpSize = 2;
 		int longHeaderSize = longPref ? 2 : 1;
 		int longJmpSize = longHeaderSize + 4;
-		if (type != LabelType.T_NEAR && IsInDisp8(disp - shortJmpSize)) {
+		if (type != LabelType.T_NEAR && inner.IsInDisp8(disp - shortJmpSize)) {
 			db(shortCode); db(disp - shortJmpSize);
 		} else {
 			if (type == LabelType.T_SHORT) throw new Exception( errTbl[Error.LABEL_IS_TOO_FAR]);
@@ -1008,7 +1009,7 @@ version(XBYAK64){
 		if (isAutoGrow && size_ + 16 >= maxSize_) growMemory; /* avoid splitting code of jmp */
 		size_t offset = 0;
 		if (label_.getOffset(&offset, label)) { /* label exists */
-			makeJmp(VerifyInInt32(offset - getSize), type, shortCode, longCode, longPref);
+			makeJmp(inner.VerifyInInt32(offset - getSize), type, shortCode, longCode, longPref);
 		} else {
 			JmpLabel jmp;
 			jmp.isShort = (type != LabelType.T_NEAR);
@@ -1032,7 +1033,7 @@ version(XBYAK64){
 			save(size_, cast(size_t)(addr) - (getSize + 4), 4, false);
 			dd(0);
 		} else {
-			makeJmp(VerifyInInt32( cast(uint8*)addr - getCurr ), type, shortCode, longCode, 0);
+			makeJmp(inner.VerifyInInt32( cast(uint8*)addr - getCurr ), type, shortCode, longCode, 0);
 		}
 	}
 
@@ -1135,7 +1136,7 @@ version(XBYAK64){
 	// (REG|MEM, IMM)
 	void opRM_I(Operand op, uint32 imm, int code, int ext) {
 		verifyMemHasSize(op);
-		uint32 immBit = IsInDisp8(imm) ? 8 : IsInDisp16(imm) ? 16 : 32;
+		uint32 immBit = inner.IsInDisp8(imm) ? 8 : inner.IsInDisp16(imm) ? 16 : 32;
 		if (op.getBit < immBit) throw new Exception( errTbl[Error.IMM_IS_TOO_BIG] );
 		if (op.isREG(32|64) && immBit == 16) immBit = 32; /* don't use MEM16 if 32/64bit mode */
 		if (op.isREG && op.getIdx == 0 && (op.getBit == immBit || (op.isBit(64) && immBit == 32))) { // rax, eax, ax, al
@@ -1299,7 +1300,7 @@ version(XBYAK64){
 		
 	void imul(Reg reg, Operand op, int imm)
 	{
-		int s = IsInDisp8(imm) ? 1 : 0;
+		int s = inner.IsInDisp8(imm) ? 1 : 0;
 		opModRM(reg, op, op.isREG && (reg.getKind == op.getKind), op.isMEM, 0B01101001 | (s << 1));
 		int size = s ? 1 : reg.isREG(16) ? 2 : 4;
 		db(imm, size);
@@ -1310,9 +1311,9 @@ version(XBYAK64){
 		
 	void push(AddressFrame af, uint32 imm)
 	{
-		if (af.bit_ == 8 && IsInDisp8(imm)) {
+		if (af.bit_ == 8 && inner.IsInDisp8(imm)) {
 			db(0B01101010); db(imm);
-		} else if (af.bit_ == 16 && IsInDisp16(imm)) {
+		} else if (af.bit_ == 16 && inner.IsInDisp16(imm)) {
 			db(0x66); db(0B01101000); dw(imm);
 		} else {
 			db(0B01101000); dd(imm);
@@ -1322,7 +1323,7 @@ version(XBYAK64){
 	/* use "push(word, 4)" if you want "push word 4" */
 	void push(uint32 imm)
 	{
-		if (IsInDisp8(imm)) {
+		if (inner.IsInDisp8(imm)) {
 			push(Byte, imm);
 		} else {
 			push(dword, imm);
@@ -1733,7 +1734,7 @@ version(XBYAK64){
 			}
 		}
 		
-string getVersionString() { return "0.043"; }
+string getVersionString() { return "0.044"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
