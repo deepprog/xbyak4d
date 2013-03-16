@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  
- * Version: 0.044
+ * Version: 0.045
  * Date: 2013/03/26
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -29,7 +29,7 @@ version(linux){
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0043, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0045, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -134,7 +134,7 @@ version(linux){
 			int fd = open("/dev/zero", O_RDONLY);
 			return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
 		}
-		void free(uint8* p, size_t length) { munmap(cast(void*)p, length).writeln; }
+		void free(uint8* p, size_t length) { munmap(cast(void*)p, length); }
 	}
 }else{
 	struct Allocator {
@@ -142,10 +142,10 @@ version(linux){
 		void free(uint8* p, size_t length)
 		{
 			/+delete p;+/
-			writeln();
-			writeln("free");
-			writeln(p);
-			writeln(length);
+//			writeln();
+//			writeln("free");
+//			writeln(p);
+//			writeln(length);
 		}
 	}
 }
@@ -1734,7 +1734,7 @@ version(XBYAK64){
 			}
 		}
 		
-string getVersionString() { return "0.044"; }
+string getVersionString() { return "0.045"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
