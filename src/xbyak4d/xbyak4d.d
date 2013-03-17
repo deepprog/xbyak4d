@@ -1,8 +1,7 @@
 /**
  * xbyak for the D programming language
- 
- * Version: 0.045
- * Date: 2013/03/26
+ * Version: 0.046
+ * Date: 2013/03/17
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -11,8 +10,8 @@
 */
 
 module xbyak4d;
-//version = XBYAK64;
-version = XBYAK32;
+version = XBYAK64;
+//version = XBYAK32;
 
 import std.stdio;
 import std.string : format; 
@@ -1375,7 +1374,7 @@ version(XBYAK64) {
 			rex(op);
 			int code, size;
 
-			if (op.isBit(64) && IsInDisp32(imm)) {
+			if (op.isBit(64) && inner.IsInDisp32(imm)) {
 				db(0B11000111);
 				code = 0B11000000;
 				size = 4;
