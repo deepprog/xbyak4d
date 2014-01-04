@@ -10,8 +10,8 @@
 */
 
 module xbyak4d;
-version = XBYAK64;
-//version = XBYAK32;
+//version = XBYAK64;
+version = XBYAK32;
 
 import std.stdio;
 import std.string : format; 
@@ -108,6 +108,7 @@ enum LabelType
 struct inner {
 static:
 	enum { Debug = 1 };
+	const size_t ALIGN_PAGE_SIZE = 4096;
 	bool IsInDisp8(uint32 x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
 	bool IsInDisp16(uint32 x) { return 0xFFFF8000 <= x || x <= 0x7FFF; }
 	bool IsInDisp32(uint64 x) { return 0xFFFFFFFF80000000UL <= x || x <= 0x7FFFFFFFU; }
@@ -119,7 +120,15 @@ version(XBYAK64) {
 }
 		return cast(uint32)x;
 	}
+	
+	enum LabelMode {
+		LasIs, // as is
+		Labs, // absolute
+		LaddTop // (addr + top) for mov(reg, label) with AutoGrow
+	}
+
 }
+
 
 /*
 	custom allocator
@@ -196,14 +205,13 @@ private:
 public:
 	this(){idx_=0; kind_=0, bit_=0, ext8bit_=0; }
 	this(int idx, Kind kind, int bit, int ext8bit=0) {
-		idx_ = cast(uint8)idx;
+		idx_ = cast(uint8)(idx | (ext8bit ? 0x80 : 0));
 		kind_ = cast(uint8)kind;
 		bit_ = cast(uint8)bit;
-		ext8bit_ = cast(uint8)ext8bit;
 		assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
 	}
 	Kind getKind() { return cast(Kind)kind_; }
-	int getIdx() { return cast(int)idx_; }
+	int getIdx() { return cast(int)idx_ & 15; }
 	bool isNone() { return (kind_ == 0); }
 	bool isMMX() { return isKind(Kind.MMX); }
 	bool isXMM() { return isKind(Kind.XMM); }
@@ -211,7 +219,7 @@ public:
 	bool isREG(int bit=0) { return isKind(Kind.REG, bit); }
 	bool isMEM(int bit=0) { return isKind(Kind.MEM, bit); }
 	bool isFPU() { return isKind(Kind.FPU); }
-	bool isExt8bit() { return (ext8bit_ != 0); }
+	bool isExt8bit() { return (idx_ & 0x80) != 0; }
 	// any bit is accetable if bit == 0
 	bool isKind(int kind, uint32 bit=0) {
 		return (kind_ & kind) && (bit == 0 || (bit_ & bit)); // cf. you can set (8|16)
@@ -222,7 +230,7 @@ public:
 	override string toString()
 	{
 		if (kind_ == Kind.REG) {
-			if (ext8bit_) {
+			if (isExt8bit) {
 				string[] tbl = [ "spl", "bpl", "sil", "dil" ];
 				return tbl[idx_ - 4];
 			}
@@ -414,12 +422,11 @@ void* AutoGrow = cast(void*)(1);
 class CodeArray {
 private:
 	enum {
-		ALIGN_PAGE_SIZE = 4096,
 		MAX_FIXED_BUF_SIZE = 8
 	}
 	enum Type {
 		FIXED_BUF, // use buf_(non alignment, non protect)
-		USER_BUF, // use userPtr(non alignment, non protect)
+		USER_BUF = 1, // use userPtr(non alignment, non protect)
 		ALLOC_BUF,  // use new(alignment, protect)
 		AUTO_GROW // automatically move and grow memory if necessary
 	}
@@ -464,9 +471,9 @@ protected:
 	void growMemory()
 	{
 		size_t newSize = maxSize_ * 2;
-		uint8* newAllocPtr = cast(uint8*)alloc_.alloc(newSize + ALIGN_PAGE_SIZE);
+		uint8* newAllocPtr = cast(uint8*)alloc_.alloc(newSize + inner.ALIGN_PAGE_SIZE);
 		if (newAllocPtr == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
-		uint8* newTop = getAlignedAddress(newAllocPtr, ALIGN_PAGE_SIZE);  
+		uint8* newTop = getAlignedAddress(newAllocPtr, inner.ALIGN_PAGE_SIZE);  
 		for (size_t i = 0; i < size_; i++) newTop[i] = top_[i];
 		
 		alloc_.free(allocPtr_, maxSize_);
@@ -492,7 +499,7 @@ public:
 	this(size_t maxSize = MAX_FIXED_BUF_SIZE, void* userPtr = null, Allocator* allocator = null) {
 		type_ = getType(maxSize, userPtr);
 		alloc_ = allocator != null ? allocator : &defaultAllocator_;
-		allocPtr_ = (type_ == Type.ALLOC_BUF) ? cast(uint8*)(new uint8[maxSize + ALIGN_PAGE_SIZE]) : null;
+		allocPtr_ = (type_ == Type.ALLOC_BUF) ? cast(uint8*)(new uint8[maxSize + inner.ALIGN_PAGE_SIZE]) : null;
 		maxSize_ = maxSize;
 version(linux)
 {
@@ -500,7 +507,7 @@ version(linux)
 		int fd = open("/dev/zero", O_RDONLY);
 		allocPtr_= cast(uint8*)mmap(null, maxSize_, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
 }
-		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
+		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, inner.ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
 		size_ = 0;
 		
 		if (maxSize_ > 0 && top_ == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
@@ -749,6 +756,7 @@ version(XBYAK64){
 struct JmpLabel {
 	size_t endOfJmp; /* end address of jmp */
 	bool isShort;
+	inner.LabelMode mode;
 };
 
 class Label {
@@ -1231,7 +1239,7 @@ version(XBYAK64) {
 		Reg32 eax, ecx , edx, ebx, esp, ebp, esi, edi;
 		Reg16 ax, cx, dx, bx, sp, bp, si, di;
 		Reg8 al, cl, dl, bl, ah, ch, dh, bh;
-		AddressFrame ptr, Byte, word, dword, qword;
+		AddressFrame ptr, byte_, word, dword, qword;
 		Fpu st0, st1, st2, st3, st4, st5, st6, st7;
 
 version(XBYAK64){
@@ -1323,7 +1331,7 @@ version(XBYAK64){
 	void push(uint32 imm)
 	{
 		if (inner.IsInDisp8(imm)) {
-			push(Byte, imm);
+			push(byte_, imm);
 		} else {
 			push(dword, imm);
 		}
@@ -1666,11 +1674,8 @@ version(XBYAK64){
 			ym0 = ymm0; ym1 = ymm1; ym2 = ymm2; ym3 = ymm3;
 			ym4 = ymm4; ym5 = ymm5; ym6 = ymm6; ym7 = ymm7; // for my convenience
 			
-			eax = REG32(Code.EAX);
-			ecx = REG32(Code.ECX);
-			edx = REG32(Code.EDX); ebx = REG32(Code.EBX);
-			esp = REG32(Code.ESP); ebp = REG32(Code.EBP);
-			esi = REG32(Code.ESI); edi = REG32(Code.EDI);	
+			eax = REG32(Code.EAX); ecx = REG32(Code.ECX); edx = REG32(Code.EDX); ebx = REG32(Code.EBX);
+			esp = REG32(Code.ESP); ebp = REG32(Code.EBP); esi = REG32(Code.ESI); edi = REG32(Code.EDI);	
 			
 			ax = REG16(Code.EAX); cx = REG16(Code.ECX); dx = REG16(Code.EDX); bx = REG16(Code.EBX);
 			sp = REG16(Code.ESP); bp = REG16(Code.EBP); si = REG16(Code.ESI); di = REG16(Code.EDI);
@@ -1679,17 +1684,22 @@ version(XBYAK64){
 			ah = REG8(Code.AH); ch = REG8(Code.CH); ch = REG8(Code.DH); ch = REG8(Code.BH); 
 		
 			ptr = new AddressFrame(0); 
-			Byte = new AddressFrame(8); 
+			byte_ = new AddressFrame(8); 
 			word = new AddressFrame(16); 
 			dword = new AddressFrame(32); 
 			qword = new AddressFrame(64); 
 			
 			st0 = FPU(0); st1 = FPU(1); st2 = FPU(2); st3 = FPU(3); 
 			st4 = FPU(4); st5 = FPU(5); st6 = FPU(6); st7 = FPU(7); 
+
+			label_ = new Label;
+			label_.set(cast(CodeArray)this);
+
 version(XBYAK64){
 			rax = REG64(Code.RAX); rcx = REG64(Code.RCX); rdx = REG64(Code.RDX); rbx = REG64(Code.RBX);
-			rsp = REG64(Code.RSP); rbp = REG64(Code.RBP); rsi = REG64(Code.RSI); rdi = REG64(Code.RDI); r8 = REG64(Code.R8); r9 = REG64(Code.R9); r10 = REG64(Code.R10); r11 = REG64(Code.R11); r12 = REG64(Code.R12); r13 = REG64(Code.R13); r14 = REG64(Code.R14); r15 = REG64(Code.R15);
-		
+			rsp = REG64(Code.RSP); rbp = REG64(Code.RBP); rsi = REG64(Code.RSI); rdi = REG64(Code.RDI);
+			
+			r8 = REG64(Code.R8); r9 = REG64(Code.R9); r10 = REG64(Code.R10); r11 = REG64(Code.R11); r12 = REG64(Code.R12); r13 = REG64(Code.R13); r14 = REG64(Code.R14); r15 = REG64(Code.R15);
 			r8d = REG32(Code.R8D); r9d = REG32(Code.R9D); r10d = REG32(Code.R10D); r11d = REG32(Code.R11D); r12d = REG32(Code.R12D); r13d = REG32(Code.R13D); r14d = REG32(Code.R14D); r15d = REG32(Code.R15D);
 			r8w = REG16(Code.R8W); r9w = REG16(Code.R9W); r10w = REG16(Code.R10W); r11w = REG16(Code.R11W); r12w = REG16(Code.R12W); r13w = REG16(Code.R13W); r14w = REG16(Code.R14W); r15w = REG16(Code.R15W);
 			r8b = REG8(Code.R8B); r9b = REG8(Code.R9B); r10b = REG8(Code.R10B); r11b = REG8(Code.R11B); r12b = REG8(Code.R12B); r13b = REG8(Code.R13B); r14b = REG8(Code.R14B); r15b = REG8(Code.R15B);
@@ -1702,8 +1712,6 @@ version(XBYAK64){
 			ym8 = ymm8; ym9 = ymm9; ym10 = ymm10; ym11 = ymm11; ym12 = ymm12; ym13 = ymm13; ym14 = ymm14; ym15 = ymm15; // for my convenience
 			rip = RegRip();
 }
-			label_ = new Label;
-			label_.set(cast(CodeArray)this);
 		}
 
 		void reset()
@@ -1725,7 +1733,7 @@ version(XBYAK64){
 		{
 			if (x == 1) return;
 			if (x < 1 || (x & (x - 1))) throw new Exception( errTbl[Error.BAD_ALIGN] );
-			if (isAutoGrow() && x > cast(int)ALIGN_PAGE_SIZE) {
+			if (isAutoGrow() && x > cast(int)inner.ALIGN_PAGE_SIZE) {
 				throw new Exception( "warning:autoGrow mode does not support %d align".format(x) );
 			}
 			while (cast(size_t)getCurr % x) {
