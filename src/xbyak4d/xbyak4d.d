@@ -100,11 +100,22 @@ class XError : Exception {
 		"internal error"
 	];
 
-	this(ERR err){
+public:
+	this(ERR err = ERR.NONE) {
 		err_ = cast(int)err;
 		super(errTbl[err_]);
 	}
+	
+	string what() {
+		return errTbl[err_];
+	}
+	
 };
+
+string ConvertErrorToString(XError xerr = new XError())
+{
+	return xerr.what();
+}
 
 enum LabelType
 {
