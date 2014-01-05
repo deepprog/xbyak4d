@@ -38,7 +38,7 @@ alias ushort uint16;
 alias ubyte uint8;
 alias int size_t;
 
-enum Error
+enum ERR
 {
 	NONE = 0,
 	BAD_ADDRESSING,
@@ -68,35 +68,43 @@ enum Error
 	INTERNAL
 }
 
-string[] errTbl =
-[
-	"none",
-	"bad addressing",
-	"code is too big",
-	"bad scale",
-	"esp can't be index",
-	"bad combination",
-	"bad size of register",
-	"imm is too big",
-	"bad align",
-	"label is redefined",
-	"label is too far",
-	"label is not found",
-	"code is not copyable",
-	"bad parameter",
-	"can't protect",
-	"can't use 64bit disp(use (void*))",
-	"offset is too big",
-	"MEM size is not specified",
-	"bad mem size",
-	"bad st combination",
-	"over local label",
-	"under local label",
-	"can't alloc",
-	"T_SHORT is not supported in AutoGrow",
-	"bad protect mode",
-	"internal error"
-];
+class XError : Exception {
+	int err_;
+	string[] errTbl =
+	[
+		"none",
+		"bad addressing",
+		"code is too big",
+		"bad scale",
+		"esp can't be index",
+		"bad combination",
+		"bad size of register",
+		"imm is too big",
+		"bad align",
+		"label is redefined",
+		"label is too far",
+		"label is not found",
+		"code is not copyable",
+		"bad parameter",
+		"can't protect",
+		"can't use 64bit disp(use (void*))",
+		"offset is too big",
+		"MEM size is not specified",
+		"bad mem size",
+		"bad st combination",
+		"over local label",
+		"under local label",
+		"can't alloc",
+		"T_SHORT is not supported in AutoGrow",
+		"bad protect mode",
+		"internal error"
+	];
+
+	this(ERR err){
+		err_ = cast(int)err;
+		super(errTbl[err_]);
+	}
+};
 
 enum LabelType
 {
@@ -254,7 +262,7 @@ public:
 			string[] tbl = [ "st0", "st1", "st2", "st3", "st4", "st5", "st6", "st7" ];
 			return tbl[idx_];
 		}
-		throw new Exception( errTbl[Error.INTERNAL] );
+		throw new XError(ERR.INTERNAL);
 	}
 };
 
@@ -372,11 +380,11 @@ public:
 		disp_ = disp;
 
 		if (scale != 0 && scale != 1 && scale != 2 && scale != 4 && scale != 8)
-			throw new Exception( errTbl[Error.BAD_SCALE] ); 
+			throw new XError(ERR.BAD_SCALE); 
 		if (!base.isNone && !index.isNone && base.getBit != index.getBit)
-			throw new Exception( errTbl[Error.BAD_COMBINATION] ); 
+			throw new XError(ERR.BAD_COMBINATION); 
 		if (index.getIdx == Code.ESP)
-			throw new Exception( errTbl[Error.ESP_CANT_BE_INDEX] ); 
+			throw new XError(ERR.ESP_CANT_BE_INDEX); 
 	}
 	
 	Reg32e optimize() // select smaller size
@@ -472,7 +480,7 @@ protected:
 	{
 		size_t newSize = maxSize_ * 2;
 		uint8* newAllocPtr = cast(uint8*)alloc_.alloc(newSize + inner.ALIGN_PAGE_SIZE);
-		if (newAllocPtr == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
+		if (newAllocPtr == null) throw new XError(ERR.CANT_ALLOC);
 		uint8* newTop = getAlignedAddress(newAllocPtr, inner.ALIGN_PAGE_SIZE);  
 		for (size_t i = 0; i < size_; i++) newTop[i] = top_[i];
 		
@@ -492,7 +500,7 @@ protected:
 			uint32 disp = inner.VerifyInInt32(i.isRelative_ ? i.val_ : i.val_ - cast(size_t)(top_));
 			rewrite(i.offset_, disp, i.size_);
 		}
-		if (!protect(top_, size_, true)) throw new Exception(errTbl[Error.CANT_PROTECT]);
+		if (!protect(top_, size_, true)) throw new XError(ERR.CANT_PROTECT);
 	}
 	
 public:
@@ -510,11 +518,11 @@ version(linux)
 		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, inner.ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
 		size_ = 0;
 		
-		if (maxSize_ > 0 && top_ == null) throw new Exception(errTbl[Error.CANT_ALLOC]);
+		if (maxSize_ > 0 && top_ == null) throw new XError(ERR.CANT_ALLOC);
 		if (type_ == Type.ALLOC_BUF && !protect(top_, maxSize, true))
 		{
 			alloc_.free(allocPtr_, maxSize_);
-			throw new Exception(errTbl[Error.CANT_PROTECT]);
+			throw new XError(ERR.CANT_PROTECT);
 		}
 	}
 
@@ -533,7 +541,7 @@ version(linux)
 		size_ = rhs.size_;
 
 		if (type_ != Type.FIXED_BUF) {
-			throw new Exception(errTbl[Error.CODE_ISNOT_COPYABLE]);
+			throw new XError(ERR.CODE_ISNOT_COPYABLE);
 		}
 		top_[0..size_] = rhs.top_[0..size_];
 	}
@@ -549,7 +557,7 @@ version(linux)
 			if (type_ == Type.AUTO_GROW) {
 				growMemory;
 			} else {
-				throw new Exception( errTbl[Error.CODE_IS_TOO_BIG] );
+				throw new XError(ERR.CODE_IS_TOO_BIG);
 			}
 		}
 		top_[size_++] = cast(uint8)code;
@@ -562,7 +570,7 @@ version(linux)
 
 	void db(uint64 code, int codeSize)
 	{
-		if (codeSize > 8) throw new Exception( errTbl[Error.BAD_PARAMETER] ); 
+		if (codeSize > 8) throw new XError(ERR.BAD_PARAMETER); 
 		for (int i=0; i < codeSize; i++) db(cast(uint8)(code >> (i*8)));
 	}
 	
@@ -604,7 +612,7 @@ version(linux)
 	void rewrite(size_t offset, uint64 disp, size_t size)
 	{
 		assert(offset < maxSize_);
-		if (size != 1 && size != 2 && size != 4 && size != 8) throw new Exception( errTbl[Error.BAD_PARAMETER] ); 
+		if (size != 1 && size != 2 && size != 4 && size != 8) throw new XError(ERR.BAD_PARAMETER); 
 		uint8* data = top_ + offset;
 		for (size_t i=0; i<size; i++) {
 			data[i] = cast(uint8)(disp >> (i*8));
@@ -820,12 +828,12 @@ public:
 	}
 
 	void enterLocal() {
-		if (stackPos_ == maxStack) throw new Exception( errTbl[Error.OVER_LOCAL_LABEL] );
+		if (stackPos_ == maxStack) throw new XError(ERR.OVER_LOCAL_LABEL);
 		localCount_ = stack_[stackPos_++] = ++usedCount_;
 	}
 	
 	void leaveLocal() {
-		if (stackPos_ == 1)	throw new Exception( errTbl[Error.UNDER_LOCAL_LABEL] ); 
+		if (stackPos_ == 1)	throw new XError(ERR.UNDER_LOCAL_LABEL); 
 		localCount_ = stack_[--stackPos_ - 1];
 	}
 	
@@ -840,7 +848,7 @@ public:
 		}
 		label = newLabel;
 		// add label
-		if (addr == 0) throw new Exception( errTbl[Error.LABEL_IS_REDEFINED] );
+		if (addr == 0) throw new XError(ERR.LABEL_IS_REDEFINED);
 		definedList_[label] = addr;
 	// search undefined label
 		if( (label in undefinedList_) == null ) {
@@ -848,7 +856,7 @@ public:
 		} else {
 			foreach(JmpLabel jmp; undefinedList_[label]) {
 				uint32 disp = inner.VerifyInInt32(addr - jmp.endOfJmp);
-				if (jmp.isShort && !inner.IsInDisp8(disp)) throw new Exception( errTbl[Error.LABEL_IS_TOO_FAR]);
+				if (jmp.isShort && !inner.IsInDisp8(disp)) throw new XError(ERR.LABEL_IS_TOO_FAR);
 				size_t jmpSize = jmp.isShort ? 1 : 4;
 				size_t offset = cast(size_t)jmp.endOfJmp - jmpSize;
 				
@@ -937,7 +945,7 @@ version(XBYAK64){
 		Operand p1 = op1;
 		Operand	p2 = op2;
 		if (p1.isMEM) swap(p1, p2);
-		if (p1.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION] );
+		if (p1.isMEM) throw new XError(ERR.BAD_COMBINATION);
 		if (p2.isMEM) {
 			Address addr = cast(Address)p2;
 			if (BIT == 64 && addr.is32bit_) db(0x67);
@@ -988,7 +996,7 @@ version(XBYAK64){
 		
 	void opModM(Address addr, Reg reg, int code0, int code1 = Kind.NONE, int code2 = Kind.NONE)
 	{
-		if (addr.is64bitDisp) new Exception( errTbl[Error.CANT_USE_64BIT_DISP] ); 
+		if (addr.is64bitDisp) new XError(ERR.CANT_USE_64BIT_DISP); 
 		rex(addr, reg);
 		db(code0 | (reg.isBit(8) ? 0 : 1));
 		if (code1 != Kind.NONE) db(code1);
@@ -1005,7 +1013,7 @@ version(XBYAK64){
 		if (type != LabelType.T_NEAR && inner.IsInDisp8(disp - shortJmpSize)) {
 			db(shortCode); db(disp - shortJmpSize);
 		} else {
-			if (type == LabelType.T_SHORT) throw new Exception( errTbl[Error.LABEL_IS_TOO_FAR]);
+			if (type == LabelType.T_SHORT) throw new XError(ERR.LABEL_IS_TOO_FAR);
 			if (longPref) db(longPref);
 			db(longCode); dd(disp - longJmpSize);
 		}
@@ -1034,7 +1042,7 @@ version(XBYAK64){
 	void opJmpAbs(void* addr, LabelType type, uint8 shortCode, uint8 longCode)
 	{
 		if (isAutoGrow) {
-			if (type != LabelType.T_NEAR) throw new Exception( errTbl[Error.ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW]);
+			if (type != LabelType.T_NEAR) throw new XError(ERR.ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW);
 			if (size_ + 16 >= maxSize_) growMemory;
 			db(longCode);
 			save(size_, cast(size_t)(addr) - (getSize + 4), 4, false);
@@ -1047,7 +1055,7 @@ version(XBYAK64){
 	/* preCode is for SSSE3/SSE4 */
 	void opGen(Operand reg, Operand op, int code, int pref, bool isValid, int imm8=Kind.NONE, int preCode=Kind.NONE)
 	{
-		if (isValid) throw new Exception( errTbl[Error.BAD_COMBINATION] );
+		if (isValid) throw new XError(ERR.BAD_COMBINATION);
 		if (pref != Kind.NONE) db(pref);
 		if (op.isMEM) {
 			opModM(cast(Address)op, cast(Reg)reg, 0x0F, preCode, code);
@@ -1078,7 +1086,7 @@ version(XBYAK64){
 		} else if (op1.isMEM && op2.isXMM) {
 			opModM(cast(Address)(op1), cast(Reg)(op2), 0x0F, code | 1);
 		} else {
-			throw new Exception( errTbl[Error.BAD_COMBINATION] );
+			throw new XError(ERR.BAD_COMBINATION);
 		}
 	}
 	
@@ -1100,7 +1108,7 @@ version(XBYAK64){
 		} else if(op.isMEM) {
 			opModM(cast(Address)op, REG(ext, Kind.REG, opBit), code0, code1, code2);
 		} else {
-			throw new Exception(errTbl[Error.BAD_COMBINATION]);
+			throw new XError(ERR.BAD_COMBINATION);
 		}
 	}
 	
@@ -1111,7 +1119,7 @@ version(XBYAK64){
 	}
 	
 	void opShift(Operand op, Reg8 cl, int ext) {
-		if (cl.getIdx != Code.CL) throw new Exception(errTbl[Error.BAD_COMBINATION]);
+		if (cl.getIdx != Code.CL) throw new XError(ERR.BAD_COMBINATION);
 		opR_ModM(op, 0, ext, 0B11010010);
 	}
 	
@@ -1121,12 +1129,12 @@ version(XBYAK64){
 		} else if (condM) {
 			opModM(cast(Address)op2, cast(Reg)op1, code0, code1, code2);
 		} else {
-			throw new Exception(errTbl[Error.BAD_COMBINATION]);
+			throw new XError(ERR.BAD_COMBINATION);
 		}
 	}
 	
 	void opShxd(Operand op, Reg reg, uint8 imm, int code, Reg8 cl=REG8) {
-		if (cl && cl.getIdx != Code.CL) throw new Exception(errTbl[Error.BAD_COMBINATION]);
+		if (cl && cl.getIdx != Code.CL) throw new XError(ERR.BAD_COMBINATION);
 		opModRM(reg, op, (op.isREG(16 | i32e) && op.getBit == reg.getBit), op.isMEM && (reg.isREG(16 | i32e)), 0x0F, code | (cl ? 1 : 0));
 		if (!cl) db(imm);
 	}
@@ -1144,7 +1152,7 @@ version(XBYAK64){
 	void opRM_I(Operand op, uint32 imm, int code, int ext) {
 		verifyMemHasSize(op);
 		uint32 immBit = inner.IsInDisp8(imm) ? 8 : inner.IsInDisp16(imm) ? 16 : 32;
-		if (op.getBit < immBit) throw new Exception( errTbl[Error.IMM_IS_TOO_BIG] );
+		if (op.getBit < immBit) throw new XError(ERR.IMM_IS_TOO_BIG);
 		if (op.isREG(32|64) && immBit == 16) immBit = 32; /* don't use MEM16 if 32/64bit mode */
 		if (op.isREG && op.getIdx == 0 && (op.getBit == immBit || (op.isBit(64) && immBit == 32))) { // rax, eax, ax, al
 			rex(op);
@@ -1184,17 +1192,17 @@ version(XBYAK64) {
 		} else if (op.isMEM) {
 			opModM(cast(Address)op, REG(ext, Kind.REG, op.getBit), code);
 		} else {
-			throw new Exception( errTbl[Error.BAD_COMBINATION] );
+			throw new XError(ERR.BAD_COMBINATION);
 		}
 	}
 
 	void verifyMemHasSize(Operand op) {
-		if (op.isMEM && op.getBit == 0) throw new Exception( errTbl[Error.MEM_SIZE_IS_NOT_SPECIFIED] );
+		if (op.isMEM && op.getBit == 0) throw new XError(ERR.MEM_SIZE_IS_NOT_SPECIFIED);
 	}
 
 	void opMovxx(Reg reg, Operand op, uint8 code)
 	{
-		if (op.isBit(32)) throw new Exception( errTbl[Error.BAD_COMBINATION] );
+		if (op.isBit(32)) throw new XError(ERR.BAD_COMBINATION);
 		int w = op.isBit(16);
 		bool cond = reg.isREG && (reg.getBit > op.getBit);
 		opModRM(reg, op, cond && op.isREG, cond && op.isMEM, 0x0F, code | w);
@@ -1202,9 +1210,9 @@ version(XBYAK64) {
 	
 	void opFpuMem(Address addr, uint8 m16, uint8 m32, uint8 m64, uint8 ext, uint8 m64ext)
 	{
-		if (addr.is64bitDisp) throw new Exception( errTbl[Error.CANT_USE_64BIT_DISP] );
+		if (addr.is64bitDisp) throw new XError(ERR.CANT_USE_64BIT_DISP);
 		uint8 code = addr.isBit(16) ? m16 : addr.isBit(32) ? m32 : addr.isBit(64) ? m64 : 0;
-		if (!code) throw new Exception( errTbl[Error.BAD_MEM_SIZE] );
+		if (!code) throw new XError(ERR.BAD_MEM_SIZE);
 		if (m64ext && addr.isBit(64)) ext = m64ext;
 
 		rex(addr, st0);
@@ -1218,7 +1226,7 @@ version(XBYAK64) {
 	void opFpuFpu(Fpu reg1, Fpu reg2, uint32 code1, uint32 code2)
 	{
 		uint32 code = reg1.getIdx == 0 ? code1 : reg2.getIdx == 0 ? code2 : 0;
-		if (!code) throw new Exception( errTbl[Error.BAD_ST_COMBINATION] );
+		if (!code) throw new XError(ERR.BAD_ST_COMBINATION);
 		db(cast(uint8)(code >> 8));
 		db(cast(uint8)(code | (reg1.getIdx | reg2.getIdx)));
 	}
@@ -1417,7 +1425,7 @@ version(XBYAK32) {
 			int size = op.getBit / 8; if (size > 4) size = 4;
 			db(cast(uint32)(imm), size);
 		} else {
-			throw new Exception( errTbl[Error.BAD_COMBINATION]);
+			throw new XError(ERR.BAD_COMBINATION);
 		}
 	}
 }
@@ -1439,7 +1447,7 @@ version(XBYAK64){
 		if (p1.isMEM || (p2.isREG(16 | i32e) && p2.getIdx == 0)) {
 			p1 = op2; p2 = op1;
 		}
-		if (p1.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+		if (p1.isMEM) throw new XError(ERR.BAD_COMBINATION);
 
 		bool BL = true;
 version(XBYAK64){
@@ -1549,7 +1557,7 @@ version(XBYAK64){
 	
 	void pinsrw(Mmx mmx, Operand op, int imm)
 	{
-		if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+		if (!op.isREG(32) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION);
 		opGen(mmx, op, 0B11000100, mmx.isXMM ? 0x66 : NONE, 0, imm);
 	}
 
@@ -1565,7 +1573,7 @@ version(XBYAK64){
 
 	void maskmovq(Mmx reg1, Mmx reg2)
 	{
-		if (!reg1.isMMX || !reg2.isMMX) throw new Exception( errTbl[Error.BAD_COMBINATION] );
+		if (!reg1.isMMX || !reg2.isMMX) throw new XError(ERR.BAD_COMBINATION);
 		opModR(reg1, reg2, 0x0F, 0B11110111);
 	}
 
@@ -1580,7 +1588,7 @@ version(XBYAK64){
 	
 	void movntq(Address addr, Mmx mmx)
 	{
-		if (!mmx.isMMX) throw new Exception( errTbl[Error.BAD_COMBINATION] );
+		if (!mmx.isMMX) throw new XError(ERR.BAD_COMBINATION);
 		opModM(addr, mmx, 0x0F, 0B11100111);
 	}
 		
@@ -1588,7 +1596,7 @@ version(XBYAK64){
 	{
 		bool is16bit = reg.isREG(16) && (op.isREG(16) || op.isMEM);
 		if (!is16bit && !(reg.isREG(i32e) && (op.isREG(i32e) || op.isMEM)))
-			throw new Exception( errTbl[Error.BAD_COMBINATION] );
+			throw new XError(ERR.BAD_COMBINATION);
 		if (is16bit) db(0x66);
 		db(0xF3); opModRM(reg.changeBit(i32e == 32 ? 32 : reg.getBit), op, op.isREG, true, 0x0F, 0xB8);
 	}
@@ -1611,13 +1619,13 @@ version(XBYAK64){
 			op = op1;
 		} else {
 			if (!(op1.isXMM || (supportYMM && op1.isYMM))) 
-				throw new Exception( errTbl[Error.BAD_COMBINATION] );
+				throw new XError(ERR.BAD_COMBINATION);
 			x2 = cast(Xmm)(op1);
 			op = op2;
 		}
 		// (x1, x2, op)
 		if (!((x1.isXMM && x2.isXMM) || (supportYMM && x1.isYMM && x2.isYMM))) 
-			throw new Exception( errTbl[Error.BAD_COMBINATION] );
+			throw new XError(ERR.BAD_COMBINATION);
 		bool x, b;
 		if (op.isMEM) {
 			Address addr = cast(Address)op;
@@ -1725,14 +1733,14 @@ version(XBYAK64){
 		override uint8* getCode()
 		{
 			assert(!hasUndefinedLabel);
-			if (hasUndefinedLabel) new Exception( errTbl[Error.LABEL_IS_NOT_FOUND] );
+			if (hasUndefinedLabel) new XError(ERR.LABEL_IS_NOT_FOUND);
 			return this.top_;
 		}
 
 		void Align(int x = 16)
 		{
 			if (x == 1) return;
-			if (x < 1 || (x & (x - 1))) throw new Exception( errTbl[Error.BAD_ALIGN] );
+			if (x < 1 || (x & (x - 1))) throw new XError(ERR.BAD_ALIGN);
 			if (isAutoGrow() && x > cast(int)inner.ALIGN_PAGE_SIZE) {
 				throw new Exception( "warning:autoGrow mode does not support %d align".format(x) );
 			}
@@ -2925,13 +2933,13 @@ void vcmpgt_oqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 30); }
 void vcmpgt_oqss(Xmm x, Operand op) { vcmpss(x, op, 30); }
 void vcmptrue_usss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 31); }
 void vcmptrue_usss(Xmm x, Operand op) { vcmpss(x, op, 31); }
-void vmovhpd(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x16, false); }
+void vmovhpd(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x16, false); }
 void vmovhpd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_66, 0x17, false); }
-void vmovhps(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F, 0x16, false); }
+void vmovhps(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x, op1, op2, MM_0F, 0x16, false); }
 void vmovhps(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F, 0x17, false); }
-void vmovlpd(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x12, false); }
+void vmovlpd(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x12, false); }
 void vmovlpd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_66, 0x13, false); }
-void vmovlps(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x, op1, op2, MM_0F, 0x12, false); }
+void vmovlps(Xmm x, Operand op1, Operand op2 = OP) { if (!op2.isNone && !op2.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x, op1, op2, MM_0F, 0x12, false); }
 void vmovlps(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F, 0x13, false); }
 void vfmadd132pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x98, true, 1); }
 void vfmadd213pd(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xA8, true, 1); }
@@ -2998,24 +3006,24 @@ void vbroadcastf128(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_
 void vbroadcastsd(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_66, 0x19, true, 0); }
 void vbroadcastss(Xmm x, Address addr) { opAVX_X_XM_IMM(x, addr, MM_0F38 | PP_66, 0x18, true, 0); }
 void vextractf128(Operand op, Ymm y, uint8 imm) { opAVX_X_X_XMcvt(y, y.isXMM ? xm0 : ym0, op, op.isXMM, Kind.YMM, MM_0F3A | PP_66, 0x19, true, 0); db(imm); }
-void vextractps(Operand op, Xmm x, uint8 imm) { if (!(op.isREG(32) || op.isMEM) || x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, op.isREG, Kind.XMM, MM_0F3A | PP_66, 0x17, false, 0); db(imm); }
+void vextractps(Operand op, Xmm x, uint8 imm) { if (!(op.isREG(32) || op.isMEM) || x.isYMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, op.isREG, Kind.XMM, MM_0F3A | PP_66, 0x17, false, 0); db(imm); }
 void vinsertf128(Ymm y1, Ymm y2, Operand op, uint8 imm) { opAVX_X_X_XMcvt(y1, y2, op, op.isXMM, Kind.YMM, MM_0F3A | PP_66, 0x18, true, 0); db(imm); }
 void vperm2f128(Ymm y1, Ymm y2, Operand op, uint8 imm) { opAVX_X_X_XM(y1, y2, op, MM_0F3A | PP_66, 0x06, true, 0); db(imm); }
 void vlddqu(Xmm x, Address addr) { opAVX_X_X_XM(x, x.isXMM ? xm0 : ym0, addr, MM_0F | PP_F2, 0xF0, true, 0); }
 void vldmxcsr(Address addr) { opAVX_X_X_XM(xm2, xm0, addr, MM_0F, 0xAE, false, -1); }
 void vstmxcsr(Address addr) { opAVX_X_X_XM(xm3, xm0, addr, MM_0F, 0xAE, false, -1); }
 void vmaskmovdqu(Xmm x1, Xmm x2) { opAVX_X_X_XM(x1, xm0, x2, MM_0F | PP_66, 0xF7, false, -1); }
-void vpextrb(Operand op, Xmm x, uint8 imm) { if (!op.isREG(i32e) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x14, false); db(imm); }
+void vpextrb(Operand op, Xmm x, uint8 imm) { if (!op.isREG(i32e) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x14, false); db(imm); }
 void vpextrw(Reg r, Xmm x, uint8 imm) { opAVX_X_X_XM(XMM(r.getIdx), xm0, x, MM_0F | PP_66, 0xC5, false, r.isBit(64) ? 1 : 0); db(imm); }
 void vpextrw(Address addr, Xmm x, uint8 imm) { opAVX_X_X_XM(x, xm0, addr, MM_0F3A | PP_66, 0x15, false); db(imm); }
-void vpextrd(Operand op, Xmm x, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x16, false, 0); db(imm); }
-void vpinsrb(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x20, false); db(imm); }
-void vpinsrb(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x20, false); db(imm); }
-void vpinsrw(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F | PP_66, 0xC4, false); db(imm); }
-void vpinsrw(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F | PP_66, 0xC4, false); db(imm); }
-void vpinsrd(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 0); db(imm); }
-void vpinsrd(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 0); db(imm); }
-void vpmovmskb(Reg32e r, Xmm x) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(XMM(r.getIdx), xm0, x, MM_0F | PP_66, 0xD7, false); }
+void vpextrd(Operand op, Xmm x, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x16, false, 0); db(imm); }
+void vpinsrb(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x20, false); db(imm); }
+void vpinsrb(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x20, false); db(imm); }
+void vpinsrw(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F | PP_66, 0xC4, false); db(imm); }
+void vpinsrw(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F | PP_66, 0xC4, false); db(imm); }
+void vpinsrd(Xmm x1, Xmm x2, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 0); db(imm); }
+void vpinsrd(Xmm x, Operand op, uint8 imm) { if (!op.isREG(32) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 0); db(imm); }
+void vpmovmskb(Reg32e r, Xmm x) { if (x.isYMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(XMM(r.getIdx), xm0, x, MM_0F | PP_66, 0xD7, false); }
 void vpslldq(Xmm x1, Xmm x2, uint8 imm) { opAVX_X_X_XM(xm7, x1, x2, MM_0F | PP_66, 0x73, false); db(imm); }
 void vpslldq(Xmm x, uint8 imm) { opAVX_X_X_XM(xm7, x, x, MM_0F | PP_66, 0x73, false); db(imm); }
 void vpsrldq(Xmm x1, Xmm x2, uint8 imm) { opAVX_X_X_XM(xm3, x1, x2, MM_0F | PP_66, 0x73, false); db(imm); }
@@ -3049,31 +3057,31 @@ void vmovd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_66, 0x7E
 void vmovq(Xmm x, Address addr) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F3, 0x7E, false, -1); }
 void vmovq(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_66, 0xD6, false, -1); }
 void vmovq(Xmm x1, Xmm x2) { opAVX_X_X_XM(x1, xm0, x2, MM_0F | PP_F3, 0x7E, false, -1); }
-void vmovhlps(Xmm x1, Xmm x2, Operand op = OP) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F, 0x12, false); }
-void vmovlhps(Xmm x1, Xmm x2, Operand op = OP) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F, 0x16, false); }
-void vmovmskpd(Reg r, Xmm x) { if (!r.isBit(i32e)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x.isXMM ? XMM(r.getIdx) : YMM(r.getIdx), x.isXMM ? xm0 : ym0, x, MM_0F | PP_66, 0x50, true, 0); }
-void vmovmskps(Reg r, Xmm x) { if (!r.isBit(i32e)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x.isXMM ? XMM(r.getIdx) : YMM(r.getIdx), x.isXMM ? xm0 : ym0, x, MM_0F, 0x50, true, 0); }
+void vmovhlps(Xmm x1, Xmm x2, Operand op = OP) { if (!op.isNone && !op.isXMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x1, x2, op, MM_0F, 0x12, false); }
+void vmovlhps(Xmm x1, Xmm x2, Operand op = OP) { if (!op.isNone && !op.isXMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x1, x2, op, MM_0F, 0x16, false); }
+void vmovmskpd(Reg r, Xmm x) { if (!r.isBit(i32e)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x.isXMM ? XMM(r.getIdx) : YMM(r.getIdx), x.isXMM ? xm0 : ym0, x, MM_0F | PP_66, 0x50, true, 0); }
+void vmovmskps(Reg r, Xmm x) { if (!r.isBit(i32e)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x.isXMM ? XMM(r.getIdx) : YMM(r.getIdx), x.isXMM ? xm0 : ym0, x, MM_0F, 0x50, true, 0); }
 void vmovntdq(Address addr,  Xmm x) { opAVX_X_X_XM(x, x.isXMM ? xm0 : ym0, addr, MM_0F | PP_66, 0xE7, true); }
 void vmovntpd(Address addr,  Xmm x) { opAVX_X_X_XM(x, x.isXMM ? xm0 : ym0, addr, MM_0F | PP_66, 0x2B, true); }
 void vmovntps(Address addr,  Xmm x) { opAVX_X_X_XM(x, x.isXMM ? xm0 : ym0, addr, MM_0F, 0x2B, true); }
 void vmovntdqa(Xmm x,  Address addr) { opAVX_X_X_XM(x, xm0, addr, MM_0F38 | PP_66, 0x2A, false); }
-void vmovsd(Xmm x1,  Xmm x2,  Operand op = OP) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F2, 0x10, false); }
+void vmovsd(Xmm x1,  Xmm x2,  Operand op = OP) { if (!op.isNone && !op.isXMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F2, 0x10, false); }
 void vmovsd(Xmm x,  Address addr) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F2, 0x10, false); }
 void vmovsd(Address addr,  Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F2, 0x11, false); }
-void vmovss(Xmm x1,  Xmm x2,  Operand op = OP) { if (!op.isNone && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F3, 0x10, false); }
+void vmovss(Xmm x1,  Xmm x2,  Operand op = OP) { if (!op.isNone && !op.isXMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F3, 0x10, false); }
 void vmovss(Xmm x,  Address addr) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F3, 0x10, false); }
 void vmovss(Address addr,  Xmm x) { opAVX_X_X_XM(x, xm0, addr, MM_0F | PP_F3, 0x11, false); }
 void vcvtss2si(Reg32 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2D, false, 0); }
 void vcvttss2si(Reg32 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F3, 0x2C, false, 0); }
 void vcvtsd2si(Reg32 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2D, false, 0); }
 void vcvttsd2si(Reg32 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2C, false, 0); }
-void vcvtsi2ss(Xmm x,  Operand op1,  Operand op2 = OP) { if (!op2.isNone && !(op2.isREG(i32e) || op2.isMEM)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, op1, op2, op2.isREG, Kind.XMM, MM_0F | PP_F3, 0x2A, false, (op1.isMEM || op2.isMEM) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1); }
-void vcvtsi2sd(Xmm x,  Operand op1,  Operand op2 = OP) { if (!op2.isNone && !(op2.isREG(i32e) || op2.isMEM)) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, op1, op2, op2.isREG, Kind.XMM, MM_0F | PP_F2, 0x2A, false, (op1.isMEM || op2.isMEM) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1); }
-void vcvtps2pd(Xmm x,  Operand op) { if (!op.isMEM && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, !op.isMEM, x.isXMM ? Kind.XMM : Kind.YMM, MM_0F, 0x5A, true); }
-void vcvtdq2pd(Xmm x,  Operand op) { if (!op.isMEM && !op.isXMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, !op.isMEM, x.isXMM ? Kind.XMM : Kind.YMM, MM_0F | PP_F3, 0xE6, true); }
-void vcvtpd2ps(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0x5A, true); }
-void vcvtpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_F2, 0xE6, true); }
-void vcvttpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new Exception( errTbl[Error.BAD_COMBINATION]); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0xE6, true); }
+void vcvtsi2ss(Xmm x,  Operand op1,  Operand op2 = OP) { if (!op2.isNone && !(op2.isREG(i32e) || op2.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, op1, op2, op2.isREG, Kind.XMM, MM_0F | PP_F3, 0x2A, false, (op1.isMEM || op2.isMEM) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1); }
+void vcvtsi2sd(Xmm x,  Operand op1,  Operand op2 = OP) { if (!op2.isNone && !(op2.isREG(i32e) || op2.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, op1, op2, op2.isREG, Kind.XMM, MM_0F | PP_F2, 0x2A, false, (op1.isMEM || op2.isMEM) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1); }
+void vcvtps2pd(Xmm x,  Operand op) { if (!op.isMEM && !op.isXMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, !op.isMEM, x.isXMM ? Kind.XMM : Kind.YMM, MM_0F, 0x5A, true); }
+void vcvtdq2pd(Xmm x,  Operand op) { if (!op.isMEM && !op.isXMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, !op.isMEM, x.isXMM ? Kind.XMM : Kind.YMM, MM_0F | PP_F3, 0xE6, true); }
+void vcvtpd2ps(Xmm x,  Operand op) { if (x.isYMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0x5A, true); }
+void vcvtpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_F2, 0xE6, true); }
+void vcvttpd2dq(Xmm x,  Operand op) { if (x.isYMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XM(op.isYMM ? YMM(x.getIdx) : x, op.isYMM ? ym0 : xm0, op, MM_0F | PP_66, 0xE6, true); }
 
 version(XBYAK64) {
 	void vmovq(Xmm x,  Reg64 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x6E, false, 1); }
