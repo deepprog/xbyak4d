@@ -106,16 +106,15 @@ public:
 		super(errTbl[err_]);
 	}
 	
-	string what() {
+	int toInt() {
+		return err_;
+	}
+	
+	override string toString() {
 		return errTbl[err_];
 	}
 	
 };
-
-string ConvertErrorToString(XError xerr = new XError())
-{
-	return xerr.what();
-}
 
 enum LabelType
 {
