@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.046
- * Date: 2013/03/17
+ * Version: 0.047
+ * Date: 2014/01/11
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -28,7 +28,7 @@ version(linux){
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0045, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0047, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -157,14 +157,14 @@ inline void AlignedFree(void *p)
 	free(p);
 #endif
 }
-
-template<class To, class From>
-inline const To CastTo(From p) throw()
-{
-	return (const To)(size_t)(p);
-}
-
 */
+
+/+
+template CastTo(To, From)  {
+	To CastTo(From p){
+	return cast(To)(p);
+}
++/
 
 struct inner {
 static:
@@ -409,91 +409,9 @@ public:
 	this(int idx) { super(idx, Kind.FPU, 32); }
 };
 	
-// register for addressing(32bit or 64bit)
-Reg32e REG32E(int idx=0, int bit=0){ return new Reg32e(idx, bit); }
-Reg32e REG32E(Reg base, Reg index, int scale, uint disp){ return new Reg32e(base, index, scale, disp); }
 public class Reg32e : Reg {
-public:
-	// [base_(this) + index_ * scale_ + disp_]
-	Reg index_;
-	int scale_; // 0(index is none), 1, 2, 4, 8
-	uint32 disp_;
-private:
-	Reg32e opBinary(string op)(Reg32e rhs) if (op == "+")
-	{
-		if (this.scale_ == 0) {
-			if (rhs.scale_ == 0) { // base + base
-				if (rhs.getIdx == Code.ESP) { // [reg + esp] => [esp + reg]
-					return REG32E(rhs, this, 1, this.disp_ + rhs.disp_);
-				} else {
-					return REG32E(this, rhs, 1, this.disp_ + rhs.disp_);
-				}
-			} else if (rhs.isNone) { // base + index
-				return REG32E(this, rhs.index_, rhs.scale_, this.disp_ + rhs.disp_);
-			}
-		}
-		throw new Exception( errTbl[Error.BAD_ADDRESSING] ); 
-	}
-	
-	Reg32e opBinary(string op)(int scale) if (op == "*")
-	{
-		if (this.scale_ == 0) {
-			if (scale == 1) {
-				return r;
-			} else {
-				if (scale == 2 || scale == 4 || scale == 8) {
-					return REG32E( REG, this, scale, r.disp_);
-				}
-			}
-		}
-		throw new Exception( errTbl[Error.BAD_SCALE] ); 
-	}
-	
-	Reg32e opBinary(string op)(uint disp) if (op == "+") {
-		return REG32E(this, this.index_, this.scale_, this.disp_ + disp);
-	}
-	
-	Reg32e opBinary(string op)(uint disp) if (op == "-") {
-		return this.opBinary!("+")(-cast(int)disp);
-	}
-public:
-	this(int idx, int bit) {
-		super(idx, Kind.REG, bit);
-		index_ = REG;
-		scale_ = 0;
-		disp_ = 0;
-	}
-	
-	this(Reg base, Reg index, int scale, uint disp) {
-		super( base.getIdx, base.getKind, base.getBit );
-		index_ = index;
-		scale_ = scale;
-		disp_ = disp;
-
-		if (scale != 0 && scale != 1 && scale != 2 && scale != 4 && scale != 8)
-			throw new XError(ERR.BAD_SCALE); 
-		if (!base.isNone && !index.isNone && base.getBit != index.getBit)
-			throw new XError(ERR.BAD_COMBINATION); 
-		if (index.getIdx == Code.ESP)
-			throw new XError(ERR.ESP_CANT_BE_INDEX); 
-	}
-	
-	Reg32e optimize() // select smaller size
-	{
-		// [reg * 2] => [reg + reg]
-		if (isNone && !index_.isNone && scale_ == 2) {
-			Reg index = REG( index_.getIdx, Kind.REG, index_.getBit );
-			return REG32E(index, index, 1, disp_);
-		}
-		return this;
-	}
-};
-
-/+
-public class Reg32e : Reg {
-	this(int idx, int bit) { super(idx, Code.REG, bit); }
+	this(int idx, int bit) { super(idx, Kind.REG, bit); }
 }
-+/
 
 Reg32 REG32(int idx){ return new Reg32(idx); }
 public class Reg32 : Reg32e {
@@ -519,8 +437,6 @@ version(XBYAK64) {
 		}
 	};
 }
-
-
 
 class RegExp {
 public:
@@ -581,30 +497,29 @@ private:
 	RegExp opBinary(string op)(RegExp b) if (op == "+")
 	{
 		if (index_.bit && b.index_.bit) throw new XError(ERR.BAD_ADDRESSING);
-		RegExp ret = this;
-		if (!ret.index_.bit) { ret.index_ = b.index_; ret.scale_ = b.scale_; }
+		if (!this.index_.bit) { this.index_ = b.index_; this.scale_ = b.scale_; }
 		if (b.base_.bit) {
-			if (ret.base_.bit) {
-				if (ret.index_.bit) throw new XError(ERR.BAD_ADDRESSING);
+			if (this.base_.bit) {
+				if (this.index_.bit) throw new XError(ERR.BAD_ADDRESSING);
 				// base + base => base + index * 1
-				ret.index_ = b.base_;
+				this.index_ = b.base_;
 				// [reg + esp] => [esp + reg]
-				if (ret.index_.idx == Code.ESP) {
-					auto tmp = ret.base_; ret.base_ = ret.index_; ret.index_ = tmp;
+				if (this.index_.idx == Code.ESP) {
+					RegExp tmp = this.base_; this.base_ = this.index_; this.index_ = tmp;
 				}
-				ret.scale_ = 1;
+				this.scale_ = 1;
 			} else {
-				ret.base_ = b.base_;
+				this.base_ = b.base_;
 			}
 		}
-		ret.disp_ += b.disp_;
+		this.disp_ += b.disp_;
 		return ret;
 	}
-	Reg32e opBinary(string op)(int scale) if (op == "*") {
+	RegExp opBinary(string op)(int scale) if (op == "*") {
 		return new RegExp(r, scale);
 	}
 	
-	Reg32e opBinary(string op)(uint disp) if (op == "-") {
+	RegExp opBinary(string op)(uint disp) if (op == "-") {
 		RegExp ret = this;
 		ret.disp_ -= disp;
 		return ret;
@@ -625,7 +540,6 @@ private:
 		MAX_FIXED_BUF_SIZE = 8
 	}
 	enum Type {
-		FIXED_BUF, // use buf_(non alignment, non protect)
 		USER_BUF = 1, // use userPtr(non alignment, non protect)
 		ALLOC_BUF,  // use new(alignment, protect)
 		AUTO_GROW // automatically move and grow memory if necessary
@@ -635,21 +549,27 @@ private:
 	{
 		if (userPtr == AutoGrow) return Type.AUTO_GROW;
 		if (userPtr) return Type.USER_BUF;
-		if (maxSize <= MAX_FIXED_BUF_SIZE) return Type.FIXED_BUF;
+//		if (maxSize <= MAX_FIXED_BUF_SIZE) return Type.FIXED_BUF;
 		return Type.ALLOC_BUF;
 	}
 	
 	struct AddrInfo {
-		size_t offset_;
-		size_t val_;
-		int size_;
-		bool isRelative_;
-		this(size_t offset, size_t val, int size, bool isRelative)
+		size_t codeOffset; // position to write
+		size_t jmpAddr; // value to write
+		int jmpSize; // size of jmpAddr
+		inner.LabelMode mode;
+		this(size_t _codeOffset, size_t _jmpAddr, int _jmpSize, inner.LabelMode _mode)
 		{
-			offset_ = offset;
-			val_ = val;
-			size_ = size;
-			isRelative_ = isRelative;
+			codeOffset = _codeOffset;
+			jmpAddr = _jmpAddr;
+			jmpSize = _jmpSize;
+			mode = _mode;
+		}
+		uint64 getVal(uint8* top)
+		{
+			uint64 disp = (mode == inner.LabelMode.LaddTop) ? jmpAddr + cast(size_t)top : (mode == inner.LabelMode.LasIs) ? jmpAddr : jmpAddr - cast(size_t)top;
+			if (jmpSize == 4) disp = inner.VerifyInInt32(disp);
+			return disp;
 		}
 	}
 	
@@ -689,8 +609,8 @@ protected:
 	{
 		foreach (i; addrInfoList_)
 		{
-			uint32 disp = inner.VerifyInInt32(i.isRelative_ ? i.val_ : i.val_ - cast(size_t)(top_));
-			rewrite(i.offset_, disp, i.size_);
+			uint64 disp = i.getVal(top_);
+			rewrite(i.codeOffset, disp, i.jmpSize);
 		}
 		if (!protect(top_, size_, true)) throw new XError(ERR.CANT_PROTECT);
 	}
@@ -724,20 +644,7 @@ version(linux)
 			alloc_.free(allocPtr_, maxSize_);
 		}
 	}
-	
-	this(CodeArray rhs) {
-		type_ = rhs.type_;
-		defaultAllocator_ = rhs.defaultAllocator_;
-		maxSize_ = rhs.maxSize_;
-		top_ = buf_.ptr;
-		size_ = rhs.size_;
 
-		if (type_ != Type.FIXED_BUF) {
-			throw new XError(ERR.CODE_ISNOT_COPYABLE);
-		}
-		top_[0..size_] = rhs.top_[0..size_];
-	}
-	
 	void resetSize() {	
 		size_ = 0;
 		addrInfoList_.clear();
@@ -770,8 +677,14 @@ version(linux)
 	void dd(uint32 code) { db(code, 4); }
 	uint8* getCode() { return top_; }
 	uint8* getCurr() { return cast(uint8*)&top_[size_]; }
-	size_t getSize() { return size_; }
 
+	size_t getSize() { return size_; }
+	void setSize(size_t size)
+	{
+		if (size >= maxSize_) throw new XError(ERR.OFFSET_IS_TOO_BIG);
+		size_ = size;
+	}
+	
 	void dump()
 	{
 		uint8* p = getCode;
@@ -810,9 +723,9 @@ version(linux)
 			data[i] = cast(uint8)(disp >> (i*8));
 		}
 	}
-	void save(size_t offset, size_t val, int size, bool isRelative)
+	void save(size_t offset, size_t val, int size, inner.LabelMode mode)
 	{
-		addrInfoList_ ~= AddrInfo(offset, val, size, isRelative);
+		addrInfoList_ ~= AddrInfo(offset, val, size, mode);
 	}
 	bool isAutoGrow()  { return type_ == Type.AUTO_GROW; }
 	void updateRegField(uint8 regIdx) {
@@ -856,24 +769,45 @@ version(linux){
 };
 		
 public class Address : Operand {
-	private:
+		uint8 top_[6]; // 6 = 1(ModRM) + 1(SIB) + 4(disp)
+		uint8 size_;
+		uint8 rex_;
 		uint64 disp_;
 		bool isOnlyDisp_;
 		bool is64bitDisp_;
-		uint8 rex_;
-		CodeArray codeArray_;
-	public:
 		bool is32bit_;
-		alias codeArray_ this;
-		this(uint32 sizeBit, bool isOnlyDisp, uint64 disp, bool is32bit, bool is64bitDisp=false) {
+		bool isVsib_;
+		bool isYMM_;
+		void verify() { if (isVsib_) throw new XError(ERR.BAD_VSIB_ADDRESSING); }
+	public:
+		this(uint32 sizeBit, bool isOnlyDisp, uint64 disp, bool is32bit, bool is64bitDisp=false, bool isVsib=false, bool isYMM=false) {
 			super(0, Kind.MEM, sizeBit);
-			codeArray_ = new CodeArray(6); // 6 = 1(ModRM) + 1(SIB) + 4(disp) 
+			size_ = 0;
+			rex_ = 0;
 			disp_ = disp;
 			isOnlyDisp_ = isOnlyDisp;
 			is64bitDisp_ = is64bitDisp;
-			rex_ = 0;
-			is32bit_ =is32bit;
+			is32bit_ = is32bit;
+			isVsib_ = isVsib;
+			isYMM_ = isYMM;
 		}
+		
+		void db(int code)
+		{
+			if (size_ >= top_.sizeof) throw new XError(ERR.CODE_IS_TOO_BIG);
+			top_[size_++] = cast(uint8)code;
+		}
+		void dd(uint32 code) { for (int i = 0; i < 4; i++) db(code >> (i * 8)); }
+		uint8* getCode() { return top_; }
+		size_t getSize() { return size_; }
+		void updateRegField(uint8 regIdx)
+		{
+			*top_ = (*top_ & 0B11000111) | ((regIdx << 3) & 0B00111000);
+		}
+		void setVsib(bool isVsib) { isVsib_ = isVsib; }
+		bool isVsib() { return isVsib_; }
+		bool isYMM() { return isYMM_; }
+		bool is32bit() { verify(); return is32bit_; }	
 		bool isOnlyDisp() { return isOnlyDisp_; } // for mov eax
 		uint64 getDisp() { return disp_; }
 		uint8 getRex() { return rex_; }
@@ -882,20 +816,66 @@ public class Address : Operand {
 };
 
 class AddressFrame {
-	public:
-		uint32 bit_;
-		this(uint32 bit) { bit_ = bit; }
+private:
+	Address makeAddress(RegExp e)
+	{
+		e.verify();
+		bool isVsib = e.isVsib;
+		bool isYMM = e.isYMM;
+		RegExp.SReg base = e.getBase;
+		RegExp.SReg index = e.getIndex;
+		uint32 disp = e.getDisp;
 		
+		Address frame = new Address(bit_, (!base.bit && !index.bit), disp, base.bit == 32 || index.bit == 32, false, isVsib, isYMM);
+		enum {
+			mod00 = 0, mod01 = 1, mod10 = 2
+		};
+		int mod;
+		if (!base.bit || ((base.idx & 7) != Code.EBP && disp == 0)) {
+			mod = mod00; 
+		} else if (inner.IsInDisp8(disp)) {
+			mod = mod01;
+		} else {
+			mod = mod10;
+		}
+		int baseIdx = base.bit ? (base.idx & 7) : Code.EBP;
+		/* ModR/M = [2:3:3] = [Mod:reg/code:R/M] */
+		bool hasSIB = index.bit || (base.idx & 7) == Code.ESP;
+version(XBYAK64) {
+		if (!base.bit && !index.bit) hasSIB = true;
+}
+		if (hasSIB) {
+			frame.db((mod << 6) | Code.ESP);
+			/* SIB = [2:3:3] = [SS:index:base(=rm)] */
+			int indexIdx = index.bit ? (index.idx & 7) : Code.ESP;
+			int scale = e.getScale();
+			int ss = (scale == 8) ? 3 : (scale == 4) ? 2 : (scale == 2) ? 1 : 0;
+			frame.db((ss << 6) | (indexIdx << 3) | baseIdx);
+		} else {
+			frame.db((mod << 6) | baseIdx);
+		}
+		if (mod == mod01) {
+			frame.db(disp);
+		} else if (mod == mod10 || (mod == mod00 && !base.bit)) {
+			frame.dd(disp);
+		}
+		int rex = ((index.idx >> 3) << 1) | (base.idx >> 3);
+		if (rex) rex |= 0x40;
+		frame.setRex(cast(uint8)rex);
+		return frame;
+	}
+public:
+	uint32 bit_;
+	this(uint32 bit) { bit_ = bit; }
 	Address opIndex(void* disp)
 	{
 		size_t adr = cast(size_t)disp;
 version(XBYAK64){
 		if (adr > 0xFFFFFFFFU) throw new XError(ERR.OFFSET_IS_TOO_BIG);
 }
-		Reg32e r = REG32E( REG, REG, 0, cast(uint32)adr);
-		return opIndex(r);
+		RegExp e = new RegExp(cast(uint32)adr);
+		return opIndex(e);
 	}
-	
 version(XBYAK64){
 	Address opIndex(uint64 disp)
 	{
@@ -909,53 +889,15 @@ version(XBYAK64){
 		return frame;
 	}
 } //version(XBYAK64)
-
-	Address opIndex(Reg32e inReg32e)
+	Address opIndex(RegExp e)
 	{
-		Reg32e r = 	inReg32e.optimize;
-		Address frame = new Address(bit_, (r.isNone && r.index_.isNone), r.disp_, r.isBit(32) || r.index_.isBit(32));
-		enum {
-			mod00 = 0, mod01 = 1, mod10 = 2
-		}
-		int mod;
-		if (r.isNone || ((r.getIdx & 7) != Code.EBP && r.disp_ == 0)) {
-			mod = mod00;
-		} else if (inner.IsInDisp8(r.disp_)) {
-			mod = mod01;
-		} else {
-			mod = mod10;
-		}
-		int base = r.isNone ? Code.EBP : (r.getIdx & 7);
-		/* ModR/M = [2:3:3] = [Mod:reg/code:R/M] */
-		bool hasSIB = (!r.index_.isNone || (r.getIdx & 7) == Code.ESP);
-
-version(XBYAK64){
-		if (r.isNone && r.index_.isNone) hasSIB = true;
-}
-				
-		if (!hasSIB) {
-			frame.db((mod << 6) | base);
-		} else {
-			frame.db((mod << 6) | Code.ESP);
-			/* SIB = [2:3:3] = [SS:index:base(=rm)] */
-			int index = r.index_.isNone ? Code.ESP : (r.index_.getIdx & 7);
-			int ss = (r.scale_ == 8) ? 3 : (r.scale_ == 4) ? 2 : (r.scale_ == 2) ? 1 : 0;
-			frame.db((ss << 6) | (index << 3) | base);
-		}
-		if (mod == mod01) {
-			frame.db(r.disp_);
-		} else if (mod == mod10 || (mod == mod00 && r.isNone)) {
-			frame.dd(r.disp_);
-		}
-		uint8 rex = cast(uint8)((r.getIdx | r.index_.getIdx) < 8) ? 0 : cast(uint8)(0x40 | ((r.index_.getIdx >> 3) << 1) | (r.getIdx >> 3));
-		frame.setRex(rex);
-		return frame;
+		return makeAddress(e.optimize);
 	}
 };
-
+	
 struct JmpLabel {
-	size_t endOfJmp; /* end address of jmp */
-	bool isShort;
+	size_t endOfJmp; /* offset from top to the end address of jmp */
+	int jmpSize;
 	inner.LabelMode mode;
 };
 
@@ -1031,34 +973,46 @@ public:
 	
 	void set(CodeArray base) { base_ = base; }
 	
-	void define(string label, size_t addr) {
-		string newLabel = label;
-		if (newLabel == "@@") {
-			newLabel ~= toStr(++anonymousCount_);
+	void define(string _label, size_t addrOffset, uint8* addr = null)
+	{
+		string label = _label;
+		if (label == "@@") {
+			label ~= toStr(++anonymousCount_);
 		} else if (label[0] == '.') {
-			newLabel ~= toStr(localCount_);
+			label ~= toStr(localCount_);
 		}
-		label = newLabel;
 		// add label
-		if (addr == 0) throw new XError(ERR.LABEL_IS_REDEFINED);
-		definedList_[label] = addr;
+		DefinedList item;
+		item[label] = addrOffset;
+		
+		if (addrOffset == 0) throw new XError(ERR.LABEL_IS_REDEFINED);
+		definedList_[label] = addrOffset;
 	// search undefined label
-		if( (label in undefinedList_) == null ) {
-			return;
-		} else {
-			foreach(JmpLabel jmp; undefinedList_[label]) {
-				uint32 disp = inner.VerifyInInt32(addr - jmp.endOfJmp);
-				if (jmp.isShort && !inner.IsInDisp8(disp)) throw new XError(ERR.LABEL_IS_TOO_FAR);
-				size_t jmpSize = jmp.isShort ? 1 : 4;
-				size_t offset = cast(size_t)jmp.endOfJmp - jmpSize;
-				
-				if (base_.isAutoGrow) {
-					base_.save(offset, disp, jmpSize, true);
+		if( (label in undefinedList_) == null ) { return;} 
+		else 
+		{
+			foreach(jmp; undefinedList_[label])
+			{
+				size_t offset = jmp.endOfJmp - jmp.jmpSize;
+				size_t disp;
+				if (jmp.mode == inner.LabelMode.LaddTop)
+				{
+					disp = addrOffset;
+				} else if (jmp.mode == inner.LabelMode.Labs)
+				{
+					disp = cast(size_t)addr;
 				} else {
-					base_.rewrite(offset, disp, jmpSize);
+					disp = addrOffset - jmp.endOfJmp;
+					if (jmp.jmpSize <= 4) disp = inner.VerifyInInt32(disp);
+					if (jmp.jmpSize == 1 && !inner.IsInDisp8(cast(uint32)disp)) throw new XError(ERR.LABEL_IS_TOO_FAR);
 				}
+				if (base_.isAutoGrow) {
+					base_.save(offset, disp, jmp.jmpSize, jmp.mode);
+				} else {
+					base_.rewrite(offset, disp, jmp.jmpSize);
+				}
+				undefinedList_.remove(label);
 			}
-			undefinedList_.remove(label);
 		}
 	}
 
@@ -1219,14 +1173,18 @@ version(XBYAK64){
 			makeJmp(inner.VerifyInInt32(offset - getSize), type, shortCode, longCode, longPref);
 		} else {
 			JmpLabel jmp;
-			jmp.isShort = (type != LabelType.T_NEAR);
-			if (jmp.isShort) {
-				db(shortCode); db(0);
-			} else {
+			if (type == LabelType.T_NEAR) {
+				jmp.jmpSize = 4;
 				if (longPref) db(longPref);
 				db(longCode); dd(0);
+			} else {
+				jmp.jmpSize = 1;
+				db(shortCode); db(0);
 			}
-			jmp.endOfJmp = getSize;
+			jmp.mode = inner.LabelMode.LasIs;
+			
+			
+			jmp.endOfJmp = size_;
 			label_.addUndefinedLabel(label, jmp);
 		}
 	}
@@ -1237,8 +1195,8 @@ version(XBYAK64){
 			if (type != LabelType.T_NEAR) throw new XError(ERR.ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW);
 			if (size_ + 16 >= maxSize_) growMemory;
 			db(longCode);
-			save(size_, cast(size_t)(addr) - (getSize + 4), 4, false);
 			dd(0);
+			save(size_ - 4 , cast(size_t)(addr) - size_, 4, inner.LabelMode.Labs);
 		} else {
 			makeJmp(inner.VerifyInInt32( cast(uint8*)addr - getCurr ), type, shortCode, longCode, 0);
 		}
@@ -1553,45 +1511,57 @@ version(XBYAK64){
 			addr= cast(Address) reg1;
 			code = 0B10100010;
 		}
-
 version(XBYAK64){
-
-		if (addr && addr.is64bitDisp) {
-			if (code) {
+		if (addr && addr.is64bitDisp)
+		{
+			if (code)
+			{
 				rex(reg);
 				db(reg1.isREG(8) ? 0xA0 : reg1.isREG ? 0xA1 : reg2.isREG(8) ? 0xA2 : 0xA3);
 				db(addr.getDisp, 8);
-			} else {
+			} else
+			{
 				throw new XError(ERR.BAD_COMBINATION);
 			}
-		} else opRM_RM(reg1, reg2, 0B10001000);
+		}else
+		{
+			opRM_RM(reg1, reg2, 0B10001000);
+		}
 }else{
-		if (code && addr.isOnlyDisp) {
+		if (code && addr.isOnlyDisp)
+		{
 			rex(reg, addr);
 			db(code | (reg.isBit(8) ? 0 : 1));
 			dd(cast(uint32)(addr.getDisp));
-		} else opRM_RM(reg1, reg2, 0B10001000);
-}
+		}else
+		{	
+			opRM_RM(reg1, reg2, 0B10001000);
+		}
+}		
 	}
 
 version(XBYAK64) {
-	void mov(Operand op, uint64 imm)
+	void mov(Operand op, uint64 imm, bool opti = true)
 	{
 		verifyMemHasSize(op);
 		if (op.isREG) {
-			rex(op);
-			int code, size;
+			int bit = op.getBit;
+			int idx = op.getIdx;
+			int code = 0B10110000 | ((bit == 8 ? 0 : 1) << 3);
 
-			if (op.isBit(64) && inner.IsInDisp32(imm)) {
-				db(0B11000111);
-				code = 0B11000000;
-				size = 4;
+			if (op.isBit(64) && (imm >> 32) == 0) {
+				rex(new Reg32(idx));
+				bit = 32;
 			} else {
-				code = 0B10110000 | ((op.isBit(8) ? 0 : 1) << 3);
-				size = op.getBit / 8;
+				rex(op);
+				if (opti && bit == 64 && inner.IsInDisp32(imm)) {
+					db(0B11000111);
+					code = 0B11000000;
+					bit = 32;
+				}
 			}
 			db(code | (op.getIdx & 7));
-			db(imm, size);
+			db(imm,  bit / 8);
 		} else if (op.isMEM) {
 			opModM(cast(Address)op, REG(0, Kind.REG, op.getBit), 0B11000110);
 			int size = op.getBit / 8; if (size > 4) size = 4;
@@ -1603,15 +1573,17 @@ version(XBYAK64) {
 }
 
 version(XBYAK32) {
-	void mov(Operand op, uint32 imm)
+	void mov(Operand op, uint32 imm, bool opti = true)
 	{
 		verifyMemHasSize(op);
 		if (op.isREG) {
+			int bit = op.getBit;
+			int idx = op.getIdx;
+			int code = 0B10110000 | ((bit == 8 ? 0 : 1) << 3);
+			
 			rex(op);
-			int code = 0B10110000 | ((op.isBit(8) ? 0 : 1) << 3);
-			int size = op.getBit / 8;
 			db(code | (op.getIdx & 7));
-			db(imm, size);
+			db(imm,  bit / 8);
 		} else if (op.isMEM) {
 			opModM(cast(Address)op, REG(0, Kind.REG, op.getBit), 0B11000110);
 			int size = op.getBit / 8; if (size > 4) size = 4;
@@ -1799,7 +1771,48 @@ version(XBYAK64){
 		db(0xF2);
 		opModRM(reg, op, op.isREG, op.isMEM, 0x0F, 0x38, 0xF0 | (op.isBit(8) ? 0 : 1));
 	}
-
+	
+	void opVex(Reg r, Operand p1, Operand p2, int type, int code, int w)
+	{
+		bool x, b;
+		if (p2.isMEM) {
+			Address addr = cast(Address)p2;
+			uint8 rex = addr.getRex;
+			x = (rex & 2) != 0;
+			b = (rex & 1) != 0;
+			if (BIT == 64 && addr.is32bit) db(0x67);
+			if (BIT == 64 && w == -1) w = (rex & 4) ? 1 : 0;
+		} else {
+			x = false;
+			b = (cast(Reg)(p2)).isExtIdx;
+		}
+		if (w == -1) w = 0;
+		vex(r.isExtIdx, p1.getIdx, r.isYMM, type, x, b, w);
+		db(code);
+		if (p2.isMEM) {
+			Address addr = cast(Address)p2;
+			addr.updateRegField(cast(uint8)(r.getIdx));
+			db(addr.getCode, cast(int)(addr.getSize));
+		} else {
+			db(getModRM(3, r.getIdx, p2.getIdx));
+		}
+	}
+	// (r, r, r/m) if isR_R_RM
+	// (r, r/m, r)
+	void opGpr(Reg32e r, Operand op1, Operand op2, int type, uint8 code, bool isR_R_RM)
+	{
+		Operand p1 = op1;
+		Operand p2 = op2;
+		if (!isR_R_RM) {
+			auto tmp = p1;
+			p2 = p1;
+			p1 = tmp;
+		}
+		uint bit = r.getBit;
+		if (p1.getBit != bit || (p2.isREG && p2.getBit != bit)) throw new XError(ERR.BAD_COMBINATION);
+		int w = bit == 64;
+		opVex(r, p1, p2, type, code, w);
+	}
 	// support (x, x, x/m), (y, y, y/m)
 	void opAVX_X_X_XM(Xmm x1, Operand op1, Operand op2, int type, int code0, bool supportYMM, int w = -1)
 	{
@@ -1853,7 +1866,39 @@ version(XBYAK64){
 		opAVX_X_X_XM( x, (x.isXMM ? xm0 : ym0), op, type, code, supportYMM, w);
 		if (imm != Kind.NONE) db(cast(uint8)imm);
 	}
-
+// QQQ:need to refactor
+	void opSp1(Reg reg, Operand op, uint8 pref, uint8 code0, uint8 code1)
+	{
+		if (reg.isBit(8)) throw new XError(ERR.BAD_SIZE_OF_REGISTER);
+		bool is16bit = reg.isREG(16) && (op.isREG(16) || op.isMEM);
+		if (!is16bit && !(reg.isREG(i32e) && (op.isREG(reg.getBit) || op.isMEM))) throw new XError(ERR.BAD_COMBINATION);
+		if (is16bit) db(0x66);
+		db(pref); opModRM(reg.changeBit(i32e == 32 ? 32 : reg.getBit), op, op.isREG, true, code0, code1);
+	}
+	
+	void opGather(Xmm x1, Address addr, Xmm x2, int type, uint8 code, int w, int mode)
+	{
+		if (!addr.isVsib) throw new XError(ERR.BAD_VSIB_ADDRESSING);
+		int y_vx_y = 0;
+		int y_vy_y = 1;
+//		int x_vy_x = 2;
+		bool isAddrYMM = addr.isYMM();
+		if (!x1.isXMM || isAddrYMM || !x2.isXMM) {
+			bool isOK = false;
+			if (mode == y_vx_y) {
+				isOK = x1.isYMM && !isAddrYMM && x2.isYMM;
+			} else if (mode == y_vy_y) {
+				isOK = x1.isYMM && isAddrYMM && x2.isYMM;
+			} else { // x_vy_x
+				isOK = !x1.isYMM && isAddrYMM && !x2.isYMM;
+			}
+			if (!isOK) throw new XError(ERR.BAD_VSIB_ADDRESSING);
+		}
+		addr.setVsib(false);
+		opAVX_X_X_XM(isAddrYMM ? YMM(x1.getIdx) : x1, isAddrYMM ? YMM(x2.getIdx) : x2, addr, type, code, true, w);
+		addr.setVsib(true);
+	}
+	
 	enum { NONE = 256 };
 	public:
 		this( size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = cast(void*)null )
@@ -1941,7 +1986,7 @@ version(XBYAK64){
 			}
 		}
 		
-string getVersionString() { return "0.045"; }
+string getVersionString() { return "0.047"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -2216,6 +2261,14 @@ void cmovg(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM, 
 void jg(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
 void setg(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 15); }
 
+version(XBYAK32) {
+	void jcxz(string label) { db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
+	void jecxz(string label) { opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
+} else {
+	void jecxz(string label) { db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
+	void jrcxz(string label) { opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
+}
+
 version(XBYAK64) {
 	void cdqe() { db(0x48); db(0x98); }
 } else {
@@ -2359,6 +2412,11 @@ void shrd(Operand op, Reg reg, uint8 imm) { opShxd(op, reg, imm, 0xAC); }
 void shrd(Operand op, Reg reg, Reg8 cl) { opShxd(op, reg, 0, 0xAC, cl); }
 void bsf(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0xBC); }
 void bsr(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0xBD); }
+/+
+void popcnt(Reg reg, Operand op) { opSp1(reg, op, 0xF3, 0x0F, 0xB8); }
+void tzcnt(Reg reg, Operand op) { opSp1(reg, op, 0xF3, 0x0F, 0xBC); }
+void lzcnt(Reg reg, Operand op) { opSp1(reg, op, 0xF3, 0x0F, 0xBD); }
++/
 void pshufb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x00, 0x66, NONE, 0x38); }
 void phaddw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x01, 0x66, NONE, 0x38); }
 void phaddd(Mmx mmx, Operand op) { opMMX(mmx, op, 0x02, 0x66, NONE, 0x38); }
@@ -2426,6 +2484,12 @@ void pcmpistrm(Xmm xmm, Operand op, int imm) { opGen(xmm, op, 0x62, 0x66, isXMM_
 void pcmpistri(Xmm xmm, Operand op, int imm) { opGen(xmm, op, 0x63, 0x66, isXMM_XMMorMEM(xmm, op), cast(uint8)imm, 0x3A); }
 void pclmulqdq(Xmm xmm, Operand op, int imm) { opGen(xmm, op, 0x44, 0x66, isXMM_XMMorMEM(xmm, op), cast(uint8)imm, 0x3A); }
 void aeskeygenassist(Xmm xmm, Operand op, int imm) { opGen(xmm, op, 0xDF, 0x66, isXMM_XMMorMEM(xmm, op), cast(uint8)imm, 0x3A); }
+//
+void pclmullqlqdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x00); }
+void pclmulhqlqdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x01); }
+void pclmullqhdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x10); }
+void pclmulhqhdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x11); }
+//
 void ldmxcsr(Address addr) { opModM(addr, REG32(2), 0x0F, 0xAE); }
 void stmxcsr(Address addr) { opModM(addr, REG32(3), 0x0F, 0xAE); }
 void clflush(Address addr) { opModM(addr, REG32(7), 0x0F, 0xAE); }
@@ -2567,6 +2631,15 @@ void vpclmulqdq(Xmm xm1, Xmm xm2, Operand op, uint8 imm) { opAVX_X_X_XM(xm1, xm2
 void vpclmulqdq(Xmm xmm, Operand op, uint8 imm) { opAVX_X_X_XM(xmm, xmm, op, MM_0F3A | PP_66, 0x44, false, 0); db(imm); }
 void vpermilps(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x0C, true, 0); }
 void vpermilpd(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x0D, true, 0); }
+
+//
+void vpsllvd(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x47, true, 0); }
+void vpsllvq(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x47, true, 1); }
+void vpsravd(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x46, true, 0); }
+void vpsrlvd(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x45, true, 0); }
+void vpsrlvq(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x45, true, 1); }
+//
+
 void vcmppd(Xmm xm1, Xmm xm2, Operand op, uint8 imm) { opAVX_X_X_XM(xm1, xm2, op, MM_0F | PP_66, 0xC2, true, -1); db(imm); }
 void vcmppd(Xmm xmm, Operand op, uint8 imm) { opAVX_X_X_XM(xmm, xmm, op, MM_0F | PP_66, 0xC2, true, -1); db(imm); }
 void vcmpps(Xmm xm1, Xmm xm2, Operand op, uint8 imm) { opAVX_X_X_XM(xm1, xm2, op, MM_0F, 0xC2, true, -1); db(imm); }
@@ -2837,6 +2910,16 @@ void vmaskmovps(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, M
 void vmaskmovps(Address addr, Xmm xm1, Xmm xm2) { opAVX_X_X_XM(xm2, xm1, addr, MM_0F38 | PP_66, 0x2E, true, 0); }
 void vmaskmovpd(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, MM_0F38 | PP_66, 0x2D, true, 0); }
 void vmaskmovpd(Address addr, Xmm xm1, Xmm xm2) { opAVX_X_X_XM(xm2, xm1, addr, MM_0F38 | PP_66, 0x2F, true, 0); }
+//
+void vpmaskmovd(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, MM_0F38 | PP_66, 0x8C, true, 0); }
+void vpmaskmovd(Address addr, Xmm xm1, Xmm xm2) { opAVX_X_X_XM(xm2, xm1, addr, MM_0F38 | PP_66, 0x8E, true, 0); }
+void vpmaskmovq(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, MM_0F38 | PP_66, 0x8C, true, 1); }
+void vpmaskmovq(Address addr, Xmm xm1, Xmm xm2) { opAVX_X_X_XM(xm2, xm1, addr, MM_0F38 | PP_66, 0x8E, true, 1); }
+void vpermd(Ymm y1, Ymm y2, Operand op) { opAVX_X_X_XM(y1, y2, op, MM_0F38 | PP_66, 0x36, true, 0); }
+void vpermps(Ymm y1, Ymm y2, Operand op) { opAVX_X_X_XM(y1, y2, op, MM_0F38 | PP_66, 0x16, true, 0); }
+void vpermq(Ymm y, Operand op, uint8 imm) { opAVX_X_XM_IMM(y, op, MM_0F3A | PP_66, 0x00, true, 1, imm); }
+void vpermpd(Ymm y, Operand op, uint8 imm) { opAVX_X_XM_IMM(y, op, MM_0F3A | PP_66, 0x01, true, 1, imm); }
+//
 void cmpeqpd(Xmm x, Operand op) { cmppd(x, op, 0); }
 void vcmpeqpd(Xmm x1, Xmm x2, Operand op) { vcmppd(x1, x2, op, 0); }
 void vcmpeqpd(Xmm x, Operand op) { vcmppd(x, op, 0); }
@@ -3195,12 +3278,22 @@ void vfnmsub213ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, o
 void vfnmsub231ss(Xmm xmm, Xmm op1, Operand op2 = OP) { opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0xBF, false, 0); }
 void vaesimc(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0xDB, false, 0); }
 void vbroadcastf128(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_66, 0x1A, true, 0); }
+void vbroadcasti128(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_66, 0x5A, true, 0); }
 void vbroadcastsd(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_66, 0x19, true, 0); }
 void vbroadcastss(Xmm x, Address addr) { opAVX_X_XM_IMM(x, addr, MM_0F38 | PP_66, 0x18, true, 0); }
+//
+void vpbroadcastb(Xmm x, Operand op) { if (!(op.isXMM || op.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0x78, true, 0); }
+void vpbroadcastw(Xmm x, Operand op) { if (!(op.isXMM || op.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0x79, true, 0); }
+void vpbroadcastd(Xmm x, Operand op) { if (!(op.isXMM || op.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0x58, true, 0); }
+void vpbroadcastq(Xmm x, Operand op) { if (!(op.isXMM || op.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0x59, true, 0); }
+//
 void vextractf128(Operand op, Ymm y, uint8 imm) { opAVX_X_X_XMcvt(y, y.isXMM ? xm0 : ym0, op, op.isXMM, Kind.YMM, MM_0F3A | PP_66, 0x19, true, 0); db(imm); }
+void vextracti128(Operand op, Ymm y, uint8 imm) { opAVX_X_X_XMcvt(y, y.isXMM ? xm0 : ym0, op, op.isXMM, Kind.YMM, MM_0F3A | PP_66, 0x39, true, 0); db(imm); }
 void vextractps(Operand op, Xmm x, uint8 imm) { if (!(op.isREG(32) || op.isMEM) || x.isYMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, op.isREG, Kind.XMM, MM_0F3A | PP_66, 0x17, false, 0); db(imm); }
 void vinsertf128(Ymm y1, Ymm y2, Operand op, uint8 imm) { opAVX_X_X_XMcvt(y1, y2, op, op.isXMM, Kind.YMM, MM_0F3A | PP_66, 0x18, true, 0); db(imm); }
+void vinserti128(Ymm y1, Ymm y2, Operand op, uint8 imm) { opAVX_X_X_XMcvt(y1, y2, op, op.isXMM, Kind.YMM, MM_0F3A | PP_66, 0x38, true, 0); db(imm); }
 void vperm2f128(Ymm y1, Ymm y2, Operand op, uint8 imm) { opAVX_X_X_XM(y1, y2, op, MM_0F3A | PP_66, 0x06, true, 0); db(imm); }
+void vperm2i128(Ymm y1, Ymm y2, Operand op, uint8 imm) { opAVX_X_X_XM(y1, y2, op, MM_0F3A | PP_66, 0x46, true, 0); db(imm); }
 void vlddqu(Xmm x, Address addr) { opAVX_X_X_XM(x, x.isXMM ? xm0 : ym0, addr, MM_0F | PP_F2, 0xF0, true, 0); }
 void vldmxcsr(Address addr) { opAVX_X_X_XM(xm2, xm0, addr, MM_0F, 0xAE, false, -1); }
 void vstmxcsr(Address addr) { opAVX_X_X_XM(xm3, xm0, addr, MM_0F, 0xAE, false, -1); }
@@ -3298,5 +3391,26 @@ version(XBYAK64) {
 	void vcvtsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2D, false, 1); }
 	void vcvttsd2si(Reg64 r,  Operand op) { opAVX_X_X_XM(XMM(r.getIdx), xm0, op, MM_0F | PP_F2, 0x2C, false, 1); }
 }
+
+void andn(Reg32e r1, Reg32e r2, Operand op) { opGpr(r1, r2, op, MM_0F38, 0xf2, true); }
+void mulx(Reg32e r1, Reg32e r2, Operand op) { opGpr(r1, r2, op, MM_0F38 | PP_F2, 0xf6, true); }
+void pdep(Reg32e r1, Reg32e r2, Operand op) { opGpr(r1, r2, op, MM_0F38 | PP_F2, 0xf5, true); }
+void pext(Reg32e r1, Reg32e r2, Operand op) { opGpr(r1, r2, op, MM_0F38 | PP_F3, 0xf5, true); }
+void bextr(Reg32e r1, Operand op, Reg32e r2) { opGpr(r1, op, r2, MM_0F38, 0xf7, false); }
+void bzhi(Reg32e r1, Operand op, Reg32e r2) { opGpr(r1, op, r2, MM_0F38, 0xf5, false); }
+void sarx(Reg32e r1, Operand op, Reg32e r2) { opGpr(r1, op, r2, MM_0F38 | PP_F3, 0xf7, false); }
+void shlx(Reg32e r1, Operand op, Reg32e r2) { opGpr(r1, op, r2, MM_0F38 | PP_66, 0xf7, false); }
+void shrx(Reg32e r1, Operand op, Reg32e r2) { opGpr(r1, op, r2, MM_0F38 | PP_F2, 0xf7, false); }
+void blsi(Reg32e r, Operand op) { opGpr(new Reg32e(3, r.getBit), op, r, MM_0F38, 0xf3, false); }
+void blsmsk(Reg32e r, Operand op) { opGpr(new Reg32e(2, r.getBit), op, r, MM_0F38, 0xf3, false); }
+void blsr(Reg32e r, Operand op) { opGpr(new Reg32e(1, r.getBit), op, r, MM_0F38, 0xf3, false); }
+void vgatherdpd(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x92, 1, 0); }
+void vgatherqpd(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x93, 1, 1); }
+void vgatherdps(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x92, 0, 1); }
+void vgatherqps(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x93, 0, 2); }
+void vpgatherdd(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x90, 0, 1); }
+void vpgatherqd(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x91, 0, 2); }
+void vpgatherdq(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x90, 1, 0); }
+void vpgatherqq(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x91, 1, 1); }
 
 } // CodeGenerator
