@@ -38,6 +38,8 @@ alias ushort uint16;
 alias ubyte uint8;
 alias int size_t;
 
+
+
 enum ERR
 {
 	NONE = 0,
@@ -65,6 +67,10 @@ enum ERR
 	CANT_ALLOC,
 	ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW,
 	BAD_PROTECT_MODE,
+	BAD_PNUM,
+	BAD_TNUM,
+	BAD_VSIB_ADDRESSING,
+	CANT_CONVERT,
 	INTERNAL
 }
 
@@ -97,6 +103,10 @@ class XError : Exception {
 		"can't alloc",
 		"T_SHORT is not supported in AutoGrow",
 		"bad protect mode",
+		"bad pNum",
+		"bad tNum",
+		"bad vsib addressing",
+		"can't convert",
 		"internal error"
 	];
 
@@ -123,6 +133,39 @@ enum LabelType
 	T_AUTO = 2 // T_SHORT if possible
 }
 
+/*
+inline void *AlignedMalloc(size_t size, size_t alignment)
+{
+#ifdef __MINGW32__
+	return __mingw_aligned_malloc(size, alignment);
+#elif defined(_WIN32)
+	return _aligned_malloc(size, alignment);
+#else
+	void *p;
+	int ret = posix_memalign(&p, alignment, size);
+	return (ret == 0) ? p : 0;
+#endif
+}
+
+inline void AlignedFree(void *p)
+{
+#ifdef __MINGW32__
+	__mingw_aligned_free(p);
+#elif defined(_MSC_VER)
+	_aligned_free(p);
+#else
+	free(p);
+#endif
+}
+
+template<class To, class From>
+inline const To CastTo(From p) throw()
+{
+	return (const To)(size_t)(p);
+}
+
+*/
+
 struct inner {
 static:
 	enum { Debug = 1 };
@@ -134,7 +177,7 @@ static:
 	uint32 VerifyInInt32(uint64 x) 
 	{
 version(XBYAK64) {
-		if (!IsInDisp32(x)) throw new Exception( errTbl[Error.OFFSET_IS_TOO_BIG] );
+		if (!IsInDisp32(x)) throw new XError(ERR.OFFSET_IS_TOO_BIG);
 }
 		return cast(uint32)x;
 	}
@@ -148,32 +191,38 @@ version(XBYAK64) {
 }
 
 
+
+void* AlignedMalloc(size_t size, size_t alignment= inner.ALIGN_PAGE_SIZE)
+{
+version(Win32){
+	return new uint8[size];
+}
+version(linux){
+	size_t pageSize = sysconf(_SC_PAGESIZE);
+	int fd = open("/dev/zero", O_RDONLY);
+	return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+}
+}
+
+void AlignedFree(void* p, size_t length)
+{
+version(Win32){
+	/+delete p;+/
+}
+version(linux){
+	 munmap(cast(void*)p, length); 
+}
+}
+
 /*
 	custom allocator
 */
-version(linux){
-	struct Allocator
-	{
-		uint8* alloc(size_t size)
-		{
-			size_t pageSize = sysconf(_SC_PAGESIZE);
-			int fd = open("/dev/zero", O_RDONLY);
-			return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
-		}
-		void free(uint8* p, size_t length) { munmap(cast(void*)p, length); }
-	}
-}else{
-	struct Allocator {
-		uint8[] alloc(size_t size) { return new uint8[size]; }
-		void free(uint8* p, size_t length)
-		{
-			/+delete p;+/
-//			writeln();
-//			writeln("free");
-//			writeln(p);
-//			writeln(length);
-		}
-	}
+
+struct Allocator {
+	uint8* alloc(size_t size) { return cast(uint8*)AlignedMalloc(size); }
+	void free(uint8* p, size_t length) { AlignedFree(p, length); }
+	/* override to return false if you call protect() manually */
+	bool useProtect() { return true; }
 }
 
 // Operand
@@ -216,16 +265,15 @@ Operand OP(int idx=0, Kind kind=Kind.NONE, int bit=0, int ext8bit=0) {
 }
 public class Operand {
 private:
-	uint8 idx_;
+	uint8 idx_; // 0..15, MSB = 1 if spl/bpl/sil/dil
 	uint8 kind_;
-	uint8 bit_; 
-	uint8 ext8bit_; // 1 if spl/bpl/sil/dil, otherwise 0
+	uint16 bit_; 
 public:
-	this(){idx_=0; kind_=0, bit_=0, ext8bit_=0; }
+	this(){idx_=0; kind_=0; bit_=0;}
 	this(int idx, Kind kind, int bit, int ext8bit=0) {
 		idx_ = cast(uint8)(idx | (ext8bit ? 0x80 : 0));
 		kind_ = cast(uint8)kind;
-		bit_ = cast(uint8)bit;
+		bit_ = cast(uint16)bit;
 		assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
 	}
 	Kind getKind() { return cast(Kind)kind_; }
@@ -247,10 +295,11 @@ public:
 
 	override string toString()
 	{
+		int idx = getIdx;
 		if (kind_ == Kind.REG) {
 			if (isExt8bit) {
 				string[] tbl = [ "spl", "bpl", "sil", "dil" ];
-				return tbl[idx_ - 4];
+				return tbl[idx - 4];
 			}
 			string[][] tbl = [
 				[ "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh", "r8b", "r9b", "r10b",  "r11b", "r12b", "r13b", "r14b", "r15b" ],
@@ -258,21 +307,25 @@ public:
 				[ "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d",  "r11d", "r12d", "r13d", "r14d", "r15d" ],
 				[ "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10",  "r11", "r12", "r13", "r14", "r15" ],
 			];
-			return tbl[bit_ == 8 ? 0 : bit_ == 16 ? 1 : bit_ == 32 ? 2 : 3][idx_];
+			return tbl[bit_ == 8 ? 0 : bit_ == 16 ? 1 : bit_ == 32 ? 2 : 3][idx];
 		} else if (isYMM) {
 			string[] tbl = [ "ym0", "ym1", "ym2", "ym3", "ym4", "ym5", "ym6", "ym7", "ym8", "ym9", "ym10", "ym11", "ym12", "ym13", "ym14", "ym15" ];
-			return tbl[idx_];
+			return tbl[idx];
 		} else if (isXMM) {
 			string[] tbl = [ "xm0", "xm1", "xm2", "xm3", "xm4", "xm5", "xm6", "xm7", "xm8", "xm9", "xm10", "xm11", "xm12", "xm13", "xm14", "xm15" ];
-			return tbl[idx_];
+			return tbl[idx];
 		} else if (isMMX) {
 			string[] tbl = [ "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7" ];
-			return tbl[idx_];
+			return tbl[idx];
 		} else if (isFPU) {
 			string[] tbl = [ "st0", "st1", "st2", "st3", "st4", "st5", "st6", "st7" ];
-			return tbl[idx_];
+			return tbl[idx];
 		}
 		throw new XError(ERR.INTERNAL);
+	}
+	override bool opEquals(Object o) {
+		Operand rhs = cast(Operand)o;
+		return idx_ == rhs.idx_ && kind_ == rhs.kind_ && bit_ == rhs.bit_;
 	}
 };
 
@@ -290,6 +343,34 @@ public:
 	uint8 getRex(Reg base = REG) {
 		return cast(uint8)( (hasRex || base.hasRex) ? (0x40 | ((isREG(64) | base.isREG(64)) ? 8 : 0) | (isExtIdx ? 4 : 0)| (base.isExtIdx ? 1 : 0)) : 0);
 	}
+	Reg8 cvt8() {
+		int idx = getIdx;
+		if (isBit(8)) return new Reg8(idx, isExt8bit);
+version(XBYAK32){
+		if (idx >= 4) throw new XError(ERR.CANT_CONVERT);
+}
+		return new Reg8(idx, 4 <= idx && idx < 8);
+	}
+
+	Reg16 cvt16() {
+		int idx = getIdx;
+		if (isBit(8) && (4 <= idx && idx < 8) && !isExt8bit) throw new XError(ERR.CANT_CONVERT);
+		return new Reg16(idx);
+	}
+
+	Reg32 cvt32() {
+		int idx = getIdx;
+		if (isBit(8) && (4 <= idx && idx < 8) && !isExt8bit) throw new XError(ERR.CANT_CONVERT);
+		return new Reg32(idx);
+	}
+	
+version(XBYAK64) {
+	Reg64 cvt64() {
+		int idx = getIdx();
+		if (isBit(8) && (4 <= idx && idx < 8) && !isExt8bit) throw new XError(ERR.CANT_CONVERT);
+		return new Reg64(idx);
+	}
+}
 };
 
 Reg8 REG8(int idx=0, int ext8bit=0){ return new Reg8(idx, ext8bit); }
@@ -408,6 +489,12 @@ public:
 	}
 };
 
+/+
+public class Reg32e : Reg {
+	this(int idx, int bit) { super(idx, Code.REG, bit); }
+}
++/
+
 Reg32 REG32(int idx){ return new Reg32(idx); }
 public class Reg32 : Reg32e {
 	this(int idx) { super(idx, 32); }
@@ -419,20 +506,115 @@ version(XBYAK64) {
 		this(int idx) { super(idx, 64); }
 	};
 	
-	struct RegRip
-	{
+	struct RegRip {
 		uint32 disp_;
 		this(uint disp = 0) { disp_ = disp; }
 		
 		 RegRip opBinary(string op)(uint disp) if (op == "+") {
-			return RegRip(this.disp_ + disp);
+			return RegRip(disp_ + disp);
 		}
 		
 		 RegRip opBinary(string op)(uint disp) if (op == "-") {
-			return RegRip(this.disp_ - disp);
+			return RegRip(disp_ - disp);
 		}
 	};
 }
+
+
+
+class RegExp {
+public:
+	struct SReg {
+		uint16 bit = 9; // 32/64/128/256 none if 0
+		uint16 idx = 7;
+		void set(Reg r) { this.bit = cast(uint16)(r.getBit); this.idx = cast(uint16)(r.getIdx); }
+		int opEquals(ref const SReg rhs) { return bit == rhs.bit && idx == rhs.idx; }
+	};
+	this(size_t disp = 0) { disp_ = disp; scale_ = 0;}
+	this(Reg r, int scale = 1) {
+		disp_ = 0;
+		scale_ = scale;
+		if (!r.isKind(Kind.REG, 32|64) && !r.isKind(Kind.XMM | Kind.YMM)) throw new XError(ERR.BAD_SIZE_OF_REGISTER);
+		if (scale != 1 && scale != 2 && scale != 4 && scale != 8) throw new XError(ERR.BAD_SCALE);
+		if (r.getBit >= 128 || scale != 1) { // xmm/ymm is always index
+			index_.set(r);
+		} else {
+			base_.set(r);
+		}
+	}
+
+	bool isVsib() { return index_.bit >= 128; }
+	bool isYMM() { return index_.bit >= 256; }
+	RegExp optimize() // select smaller size
+	{
+		// [reg * 2] => [reg + reg]
+		if (!isVsib && !base_.bit && index_.bit && scale_ == 2) {
+			RegExp ret = this;
+			ret.base_ = index_;
+			ret.scale_ = 1;
+			return ret;
+		}
+		return this;
+	}
+	override bool opEquals(Object o) {
+		RegExp rhs = cast(RegExp)(o);
+		return base_ == rhs.base_ && index_ == rhs.index_ && disp_ == rhs.disp_;
+	}
+	SReg getBase() { return base_; }
+	SReg getIndex() { return index_; }
+	int getScale() { return scale_; }
+	uint32 getDisp() { return cast(uint32)disp_; }
+
+	void verify()
+	{
+		if (base_.bit >= 128) throw new XError(ERR.BAD_SIZE_OF_REGISTER);
+		if (index_.bit && index_.bit <= 64) {
+			if (index_.idx == Code.ESP) throw new XError(ERR.ESP_CANT_BE_INDEX);
+			if (base_.bit && base_.bit != index_.bit) throw new XError(ERR.BAD_SIZE_OF_REGISTER);
+		}
+	}
+private:
+	/*
+		[base_ + index_ * scale_ + disp_]
+		base : Reg32e, index : Reg32e(w/o esp), Xmm, Ymm
+	*/
+	RegExp opBinary(string op)(RegExp b) if (op == "+")
+	{
+		if (index_.bit && b.index_.bit) throw new XError(ERR.BAD_ADDRESSING);
+		RegExp ret = this;
+		if (!ret.index_.bit) { ret.index_ = b.index_; ret.scale_ = b.scale_; }
+		if (b.base_.bit) {
+			if (ret.base_.bit) {
+				if (ret.index_.bit) throw new XError(ERR.BAD_ADDRESSING);
+				// base + base => base + index * 1
+				ret.index_ = b.base_;
+				// [reg + esp] => [esp + reg]
+				if (ret.index_.idx == Code.ESP) {
+					auto tmp = ret.base_; ret.base_ = ret.index_; ret.index_ = tmp;
+				}
+				ret.scale_ = 1;
+			} else {
+				ret.base_ = b.base_;
+			}
+		}
+		ret.disp_ += b.disp_;
+		return ret;
+	}
+	Reg32e opBinary(string op)(int scale) if (op == "*") {
+		return new RegExp(r, scale);
+	}
+	
+	Reg32e opBinary(string op)(uint disp) if (op == "-") {
+		RegExp ret = this;
+		ret.disp_ -= disp;
+		return ret;
+	}
+			
+	size_t disp_;
+	int scale_;
+	SReg base_;
+	SReg index_;
+};
 	
 // 2nd parameter for constructor of CodeArray(maxSize, userPtr, alloc)
 void* AutoGrow = cast(void*)(1);
@@ -708,7 +890,7 @@ class AddressFrame {
 	{
 		size_t adr = cast(size_t)disp;
 version(XBYAK64){
-		if (adr > 0xFFFFFFFFU) throw new Exception( errTbl[Error.OFFSET_IS_TOO_BIG] );
+		if (adr > 0xFFFFFFFFU) throw new XError(ERR.OFFSET_IS_TOO_BIG);
 }
 		Reg32e r = REG32E( REG, REG, 0, cast(uint32)adr);
 		return opIndex(r);
@@ -1380,7 +1562,7 @@ version(XBYAK64){
 				db(reg1.isREG(8) ? 0xA0 : reg1.isREG ? 0xA1 : reg2.isREG(8) ? 0xA2 : 0xA3);
 				db(addr.getDisp, 8);
 			} else {
-				throw new Exception( errTbl[Error.BAD_COMBINATION]);
+				throw new XError(ERR.BAD_COMBINATION);
 			}
 		} else opRM_RM(reg1, reg2, 0B10001000);
 }else{
@@ -1415,7 +1597,7 @@ version(XBYAK64) {
 			int size = op.getBit / 8; if (size > 4) size = 4;
 			db(cast(uint32)(imm), size);
 		} else {
-			throw new Exception( errTbl[Error.BAD_COMBINATION]);
+			throw new XError(ERR.BAD_COMBINATION);
 		}
 	}
 }
@@ -1541,19 +1723,19 @@ version(XBYAK64){
 
 	void pextrq(Operand op, Xmm xmm, uint8 imm)
 	{
-		if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+		if (!op.isREG(64) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION);
 		opGen(REG64(xmm.getIdx), op, 0x16, 0x66, 0, imm, 0B00111010); // force to 64bit
 	}
 
 	void pinsrq( Xmm xmm, Operand op, uint8 imm)
 	{
-		if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+		if (!op.isREG(64) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION);
 		opGen(REG64(xmm.getIdx), op, 0x22, 0x66, 0, imm, 0B00111010); // force to 64bit
 	}
 
 	void movsxd(Reg64 reg, Operand op)
 	{
-		if (!op.isBit(32)) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+		if (!op.isBit(32)) throw new XError(ERR.BAD_COMBINATION);
 		opModRM(reg, op, op.isREG, op.isMEM, 0x63);
 	}
 } // version(XBYAK64)
@@ -3097,17 +3279,17 @@ version(XBYAK64) {
 	void vmovq(Xmm x,  Reg64 reg) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x6E, false, 1); }
 	void vmovq(Reg64 reg,  Xmm x) { opAVX_X_X_XM(x, xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x7E, false, 1); }
 	void vpextrq(Operand op,  Xmm x, uint8 imm) {
-    if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+    if (!op.isREG(64) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x16, false, 1);
     db(imm);
   }
 	void vpinsrq(Xmm x1,  Xmm x2,  Operand op, uint8 imm) {
-    if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+    if (!op.isREG(64) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1);
     db(imm);
   }
 	void vpinsrq(Xmm x,  Operand op, uint8 imm) {
-    if (!op.isREG(64) && !op.isMEM) throw new Exception( errTbl[Error.BAD_COMBINATION]);
+    if (!op.isREG(64) && !op.isMEM) throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, x, op, !op.isMEM, Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1);
     db(imm);
   }
