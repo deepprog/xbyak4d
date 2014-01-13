@@ -529,9 +529,7 @@ void* AutoGrow = cast(void*)(1);
 
 class CodeArray {
 private:
-	enum {
-		MAX_FIXED_BUF_SIZE = 8
-	}
+
 	enum Type {
 		USER_BUF = 1, // use userPtr(non alignment, non protect)
 		ALLOC_BUF,  // use new(alignment, protect)
@@ -598,7 +596,7 @@ protected:
 	}
 	
 public:
-	this(size_t maxSize = MAX_FIXED_BUF_SIZE, void* userPtr = null, Allocator* allocator = null) {
+	this(size_t maxSize, void* userPtr = null, Allocator* allocator = null) {
 		type_ = userPtr == AutoGrow ? Type.AUTO_GROW : userPtr ? Type.USER_BUF : Type.ALLOC_BUF;
 		alloc_ = allocator ? allocator : &defaultAllocator_;
 		maxSize_ = maxSize;
