@@ -15,7 +15,7 @@ version = XBYAK32;
 
 import std.stdio;
 import std.string : format; 
-import std.algorithm : swap, min;
+import std.algorithm : swap, max, min;
 
 version(Windows){
 	import core.sys.windows.windows;  // VirtualProtect
@@ -498,7 +498,7 @@ private:
 				this.index_ = b.base_;
 				// [reg + esp] => [esp + reg]
 				if (this.index_.idx == Code.ESP) {
-					RegExp tmp = this.base_; this.base_ = this.index_; this.index_ = tmp;
+					swap(this.base_, this.index_);
 				}
 				this.scale_ = 1;
 			} else {
@@ -574,7 +574,7 @@ protected:
 	*/
 	void growMemory()
 	{
-		size_t newSize = maxSize_ * 2; //(std::max<size_t>)(DEFAULT_MAX_CODE_SIZE, maxSize_ * 2);
+		size_t newSize = max(DEFAULT_MAX_CODE_SIZE, maxSize_ * 2);
 		uint8* newTop = alloc_.alloc(newSize + inner.ALIGN_PAGE_SIZE);
 		if (newTop == null) throw new XError(ERR.CANT_ALLOC);
 		foreach (size_t i; 0 .. size_) newTop[i] = top_[i];
@@ -602,7 +602,7 @@ public:
 		type_ = userPtr == AutoGrow ? Type.AUTO_GROW : userPtr ? Type.USER_BUF : Type.ALLOC_BUF;
 		alloc_ = allocator ? allocator : &defaultAllocator_;
 		maxSize_ = maxSize;
-		top_ = type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : alloc_.alloc(maxSize); //std::max<size_t>)(maxSize, 1)
+		top_ = type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : alloc_.alloc(max(maxSize, 1));
 		size_ = 0;
 		if (maxSize_ > 0 && top_ == null) throw new XError(ERR.CANT_ALLOC);
 		if (type_ == Type.ALLOC_BUF && alloc_.useProtect && !protect(top_, maxSize, true))
@@ -1392,11 +1392,7 @@ version(XBYAK64) {
 	{
 		Operand p1 = op1;
 		Operand p2 = op2;
-		if (!isR_R_RM) {
-			auto tmp = p1;
-			p2 = p1;
-			p1 = tmp;
-		}
+		if (!isR_R_RM) { swap(p1, p2); }
 		uint bit = r.getBit;
 		if (p1.getBit != bit || (p2.isREG && p2.getBit != bit)) throw new XError(ERR.BAD_COMBINATION);
 		int w = bit == 64;
@@ -1862,9 +1858,9 @@ version(XBYAK64){
 		db(0xF2);
 		opModRM(reg, op, op.isREG, op.isMEM, 0x0F, 0x38, 0xF0 | (op.isBit(8) ? 0 : 1));
 	}
-		
-//	void rdrand(const Reg& r) { if (r.isBit(8)) throw Error(ERR_BAD_SIZE_OF_REGISTER); opModR(Reg(6, Operand::REG, r.getBit()), r, 0x0f, 0xc7); }
-//	void rorx(const Reg32e& r, const Operand& op, uint8 imm) { opGpr(r, op, Reg32e(0, r.getBit()), MM_0F3A | PP_F2, 0xF0, false); db(imm); }
+	
+	void rdrand(Reg r) { if (r.isBit(8)) throw new XError(ERR.BAD_SIZE_OF_REGISTER); opModR(new Reg(6, Kind.REG, r.getBit), r, 0x0f, 0xc7); }
+	void rorx(Reg32e r, Operand op, uint8 imm) { opGpr(r, op, new Reg32e(0, r.getBit), MM_0F3A | PP_F2, 0xF0, false); db(imm); }
 	
 	enum { NONE = 256 };
 	public:
