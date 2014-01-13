@@ -133,32 +133,6 @@ enum LabelType
 	T_AUTO = 2 // T_SHORT if possible
 }
 
-/*
-inline void *AlignedMalloc(size_t size, size_t alignment)
-{
-#ifdef __MINGW32__
-	return __mingw_aligned_malloc(size, alignment);
-#elif defined(_WIN32)
-	return _aligned_malloc(size, alignment);
-#else
-	void *p;
-	int ret = posix_memalign(&p, alignment, size);
-	return (ret == 0) ? p : 0;
-#endif
-}
-
-inline void AlignedFree(void *p)
-{
-#ifdef __MINGW32__
-	__mingw_aligned_free(p);
-#elif defined(_MSC_VER)
-	_aligned_free(p);
-#else
-	free(p);
-#endif
-}
-*/
-
 /+
 template CastTo(To, From)  {
 	To CastTo(From p){
@@ -190,37 +164,56 @@ version(XBYAK64) {
 
 }
 
-
-
-void* AlignedMalloc(size_t size, size_t alignment= inner.ALIGN_PAGE_SIZE)
+struct Aligned
 {
+static:
+	void*[void*] MemTbl;
+	size_t[void*] SizeTbl;
+	
+	uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16) {
+		return cast(uint8*)((cast(size_t)(addr) + alignedSize - 1) & ~(alignedSize - cast(size_t)(1)));
+	}
+	 
+	void* Malloc(size_t size, size_t alignment= inner.ALIGN_PAGE_SIZE)
+	{
 version(Win32){
-	return new uint8[size];
+		auto m = new uint8[size];
+		SizeTbl[m.ptr] = size;
+		auto ret = getAlignedAddress(m.ptr, alignment);
+		MemTbl[m.ptr] = ret;
+		return ret;
 }
 version(linux){
-	size_t pageSize = sysconf(_SC_PAGESIZE);
-	int fd = open("/dev/zero", O_RDONLY);
-	return cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+		size_t pageSize = sysconf(_SC_PAGESIZE);
+		int fd = open("/dev/zero", O_RDONLY);
+		auto m = cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+		SizeTbl[m.ptr] = size;
+		auto ret = getAlignedAddress(m.ptr, alignment);
+		MemTbl[m.ptr] = ret;		
+		return ret;
 }
-}
+	}
 
-void AlignedFree(void* p, size_t length)
-{
+	void Free(void* p)
+	{
 version(Win32){
-	/+delete p;+/
+		//void* ret = MemTbl[p];
+		//delete ret;;
 }
 version(linux){
-	 munmap(cast(void*)p, length); 
+		void* ret = MemTbl[p];
+		auto size = SizeTbl[p];
+		munmap(ret, size); 
 }
+	}
 }
-
 /*
 	custom allocator
 */
 
 struct Allocator {
-	uint8* alloc(size_t size) { return cast(uint8*)AlignedMalloc(size); }
-	void free(uint8* p, size_t length) { AlignedFree(p, length); }
+	uint8* alloc(size_t size) { return cast(uint8*)Aligned.Malloc(size); }
+	void free(uint8* p) { Aligned.Free(p); }
 	/* override to return false if you call protect() manually */
 	bool useProtect() { return true; }
 }
@@ -545,13 +538,6 @@ private:
 		AUTO_GROW // automatically move and grow memory if necessary
 	}
 	bool isAllocType() { return type_ == Type.ALLOC_BUF || type_ == Type.AUTO_GROW; }
-	Type getType(size_t maxSize, void* userPtr)
-	{
-		if (userPtr == AutoGrow) return Type.AUTO_GROW;
-		if (userPtr) return Type.USER_BUF;
-//		if (maxSize <= MAX_FIXED_BUF_SIZE) return Type.FIXED_BUF;
-		return Type.ALLOC_BUF;
-	}
 	
 	struct AddrInfo {
 		size_t codeOffset; // position to write
@@ -578,8 +564,6 @@ private:
 	Type type_;
 	Allocator defaultAllocator_;
 	Allocator* alloc_;
-	uint8* allocPtr_; // for ALLOC_BUF
-	uint8 buf_[MAX_FIXED_BUF_SIZE]; // for FIXED_BUF
 protected:
 	size_t maxSize_;
 	uint8* top_;
@@ -590,14 +574,12 @@ protected:
 	*/
 	void growMemory()
 	{
-		size_t newSize = maxSize_ * 2;
-		uint8* newAllocPtr = cast(uint8*)alloc_.alloc(newSize + inner.ALIGN_PAGE_SIZE);
-		if (newAllocPtr == null) throw new XError(ERR.CANT_ALLOC);
-		uint8* newTop = getAlignedAddress(newAllocPtr, inner.ALIGN_PAGE_SIZE);  
-		for (size_t i = 0; i < size_; i++) newTop[i] = top_[i];
+		size_t newSize = maxSize_ * 2; //(std::max<size_t>)(DEFAULT_MAX_CODE_SIZE, maxSize_ * 2);
+		uint8* newTop = alloc_.alloc(newSize + inner.ALIGN_PAGE_SIZE);
+		if (newTop == null) throw new XError(ERR.CANT_ALLOC);
+		foreach (size_t i; 0 .. size_) newTop[i] = top_[i];
 		
-		alloc_.free(allocPtr_, maxSize_);
-		allocPtr_ = newAllocPtr;
+		alloc_.free(top_);
 		top_ = newTop;
 		maxSize_ = newSize;
 	}
@@ -612,36 +594,28 @@ protected:
 			uint64 disp = i.getVal(top_);
 			rewrite(i.codeOffset, disp, i.jmpSize);
 		}
-		if (!protect(top_, size_, true)) throw new XError(ERR.CANT_PROTECT);
+		if (alloc_.useProtect && !protect(top_, size_, true)) throw new XError(ERR.CANT_PROTECT);
 	}
 	
 public:
 	this(size_t maxSize = MAX_FIXED_BUF_SIZE, void* userPtr = null, Allocator* allocator = null) {
-		type_ = getType(maxSize, userPtr);
-		alloc_ = allocator != null ? allocator : &defaultAllocator_;
-		allocPtr_ = (type_ == Type.ALLOC_BUF) ? cast(uint8*)(new uint8[maxSize + inner.ALIGN_PAGE_SIZE]) : null;
+		type_ = userPtr == AutoGrow ? Type.AUTO_GROW : userPtr ? Type.USER_BUF : Type.ALLOC_BUF;
+		alloc_ = allocator ? allocator : &defaultAllocator_;
 		maxSize_ = maxSize;
-version(linux)
-{
-		size_t pageSize = sysconf(_SC_PAGESIZE);
-		int fd = open("/dev/zero", O_RDONLY);
-		allocPtr_= cast(uint8*)mmap(null, maxSize_, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
-}
-		top_ = this.isAllocType() ? getAlignedAddress(allocPtr_, inner.ALIGN_PAGE_SIZE) : type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : buf_.ptr;
+		top_ = type_ == Type.USER_BUF ? cast(uint8*)(userPtr) : alloc_.alloc(maxSize); //std::max<size_t>)(maxSize, 1)
 		size_ = 0;
-		
 		if (maxSize_ > 0 && top_ == null) throw new XError(ERR.CANT_ALLOC);
-		if (type_ == Type.ALLOC_BUF && !protect(top_, maxSize, true))
+		if (type_ == Type.ALLOC_BUF && alloc_.useProtect && !protect(top_, maxSize, true))
 		{
-			alloc_.free(allocPtr_, maxSize_);
+			alloc_.free(top_);
 			throw new XError(ERR.CANT_PROTECT);
 		}
 	}
 
 	~this()	{
 		if (isAllocType) {
-			protect(top_, maxSize_, false);
-			alloc_.free(allocPtr_, maxSize_);
+			if(alloc_.useProtect) protect(top_, maxSize_, false);
+			alloc_.free(top_);
 		}
 	}
 
@@ -664,7 +638,7 @@ version(linux)
 	
 	void db(uint8* code, int codeSize)
 	{
-		for(int i=0; i < codeSize; i++) db(code[i]);
+		foreach(i; 0 .. codeSize) db(code[i]);
 	}
 
 	void db(uint64 code, int codeSize)
@@ -1386,7 +1360,133 @@ version(XBYAK64) {
 		db(code1);
 		db(code2 | reg.getIdx);
 	}
+	
+	void opVex(Reg r, Operand p1, Operand p2, int type, int code, int w)
+	{
+		bool x, b;
+		if (p2.isMEM) {
+			Address addr = cast(Address)p2;
+			uint8 rex = addr.getRex;
+			x = (rex & 2) != 0;
+			b = (rex & 1) != 0;
+			if (BIT == 64 && addr.is32bit) db(0x67);
+			if (BIT == 64 && w == -1) w = (rex & 4) ? 1 : 0;
+		} else {
+			x = false;
+			b = (cast(Reg)(p2)).isExtIdx;
+		}
+		if (w == -1) w = 0;
+		vex(r.isExtIdx, p1.getIdx, r.isYMM, type, x, b, w);
+		db(code);
+		if (p2.isMEM) {
+			Address addr = cast(Address)p2;
+			addr.updateRegField(cast(uint8)(r.getIdx));
+			db(addr.getCode, cast(int)(addr.getSize));
+		} else {
+			db(getModRM(3, r.getIdx, p2.getIdx));
+		}
+	}
+	// (r, r, r/m) if isR_R_RM
+	// (r, r/m, r)
+	void opGpr(Reg32e r, Operand op1, Operand op2, int type, uint8 code, bool isR_R_RM)
+	{
+		Operand p1 = op1;
+		Operand p2 = op2;
+		if (!isR_R_RM) {
+			auto tmp = p1;
+			p2 = p1;
+			p1 = tmp;
+		}
+		uint bit = r.getBit;
+		if (p1.getBit != bit || (p2.isREG && p2.getBit != bit)) throw new XError(ERR.BAD_COMBINATION);
+		int w = bit == 64;
+		opVex(r, p1, p2, type, code, w);
+	}
+	// support (x, x, x/m), (y, y, y/m)
+	void opAVX_X_X_XM(Xmm x1, Operand op1, Operand op2, int type, int code0, bool supportYMM, int w = -1)
+	{
+		Xmm x2;
+		Operand op;
+		
+		if (op2.isNone) {
+			x2 = x1;
+			op = op1;
+		} else {
+			if (!(op1.isXMM || (supportYMM && op1.isYMM))) 
+				throw new XError(ERR.BAD_COMBINATION);
+			x2 = cast(Xmm)(op1);
+			op = op2;
+		}
+		// (x1, x2, op)
+		if (!((x1.isXMM && x2.isXMM) || (supportYMM && x1.isYMM && x2.isYMM))) 
+			throw new XError(ERR.BAD_COMBINATION);
+		bool x, b;
+		if (op.isMEM) {
+			Address addr = cast(Address)op;
+			uint8 rex = addr.getRex;
+			x = (rex & 2) != 0;
+			b = (rex & 1) != 0;
+			if (BIT == 64 && addr.is32bit_) db(0x67);
+			if (BIT == 64 && w == -1) w = (rex & 4) ? 1 : 0;
+		} else {
+			x = false;
+			b = ((cast(Reg)(op)).isExtIdx);
+		}
+		if (w == -1) w = 0;
+		vex(x1.isExtIdx, x2.getIdx, x1.isYMM, type, x, b, w);
+		db(code0);
+		if (op.isMEM) {
+			Address addr = cast(Address)(op);
+			addr.updateRegField( (cast(uint8) x1.getIdx) );
+			db(addr.getCode, cast(int)(addr.getSize));
+		} else {
+			db(getModRM(3, x1.getIdx, op.getIdx));
+		}
+	}
+	// if cvt then return pointer to Xmm(idx) (or Ymm(idx)), otherwise return op
+	void opAVX_X_X_XMcvt(Xmm x1, Operand op1, Operand op2, bool cvt, Kind kind, int type, int code0, bool supportYMM, int w = -1)
+	{
+		opAVX_X_X_XM(x1, op1, cvt ? kind == Kind.XMM ? cast(Operand)(XMM(op2.getIdx)) : cast(Operand)(YMM(op2.getIdx)) : op2, type, code0, supportYMM, w);
+	}
 
+	// support (x, x/m, imm), (y, y/m, imm)
+	void opAVX_X_XM_IMM(Xmm x, Operand op, int type, int code, bool supportYMM, int w = -1, int imm = Kind.NONE)
+	{
+		opAVX_X_X_XM( x, (x.isXMM ? xm0 : ym0), op, type, code, supportYMM, w);
+		if (imm != Kind.NONE) db(cast(uint8)imm);
+	}
+	// QQQ:need to refactor
+	void opSp1(Reg reg, Operand op, uint8 pref, uint8 code0, uint8 code1)
+	{
+		if (reg.isBit(8)) throw new XError(ERR.BAD_SIZE_OF_REGISTER);
+		bool is16bit = reg.isREG(16) && (op.isREG(16) || op.isMEM);
+		if (!is16bit && !(reg.isREG(i32e) && (op.isREG(reg.getBit) || op.isMEM))) throw new XError(ERR.BAD_COMBINATION);
+		if (is16bit) db(0x66);
+		db(pref); opModRM(reg.changeBit(i32e == 32 ? 32 : reg.getBit), op, op.isREG, true, code0, code1);
+	}
+	
+	void opGather(Xmm x1, Address addr, Xmm x2, int type, uint8 code, int w, int mode)
+	{
+		if (!addr.isVsib) throw new XError(ERR.BAD_VSIB_ADDRESSING);
+		int y_vx_y = 0;
+		int y_vy_y = 1;
+//		int x_vy_x = 2;
+		bool isAddrYMM = addr.isYMM();
+		if (!x1.isXMM || isAddrYMM || !x2.isXMM) {
+			bool isOK = false;
+			if (mode == y_vx_y) {
+				isOK = x1.isYMM && !isAddrYMM && x2.isYMM;
+			} else if (mode == y_vy_y) {
+				isOK = x1.isYMM && isAddrYMM && x2.isYMM;
+			} else { // x_vy_x
+				isOK = !x1.isYMM && isAddrYMM && !x2.isYMM;
+			}
+			if (!isOK) throw new XError(ERR.BAD_VSIB_ADDRESSING);
+		}
+		addr.setVsib(false);
+		opAVX_X_X_XM(isAddrYMM ? YMM(x1.getIdx) : x1, isAddrYMM ? YMM(x2.getIdx) : x2, addr, type, code, true, w);
+		addr.setVsib(true);
+	}
 	public:
 		uint getVersion() { return xbyak4d.VERSION; }
 		Mmx mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7;
@@ -1756,148 +1856,15 @@ version(XBYAK64){
 		opModM(addr, mmx, 0x0F, 0B11100111);
 	}
 		
-	void popcnt(Reg reg, Operand op)
-	{
-		bool is16bit = reg.isREG(16) && (op.isREG(16) || op.isMEM);
-		if (!is16bit && !(reg.isREG(i32e) && (op.isREG(i32e) || op.isMEM)))
-			throw new XError(ERR.BAD_COMBINATION);
-		if (is16bit) db(0x66);
-		db(0xF3); opModRM(reg.changeBit(i32e == 32 ? 32 : reg.getBit), op, op.isREG, true, 0x0F, 0xB8);
-	}
-
 	void crc32(Reg32e reg, Operand op)
 	{
 		if (reg.isBit(32) && op.isBit(16)) db(0x66);
 		db(0xF2);
 		opModRM(reg, op, op.isREG, op.isMEM, 0x0F, 0x38, 0xF0 | (op.isBit(8) ? 0 : 1));
 	}
-	
-	void opVex(Reg r, Operand p1, Operand p2, int type, int code, int w)
-	{
-		bool x, b;
-		if (p2.isMEM) {
-			Address addr = cast(Address)p2;
-			uint8 rex = addr.getRex;
-			x = (rex & 2) != 0;
-			b = (rex & 1) != 0;
-			if (BIT == 64 && addr.is32bit) db(0x67);
-			if (BIT == 64 && w == -1) w = (rex & 4) ? 1 : 0;
-		} else {
-			x = false;
-			b = (cast(Reg)(p2)).isExtIdx;
-		}
-		if (w == -1) w = 0;
-		vex(r.isExtIdx, p1.getIdx, r.isYMM, type, x, b, w);
-		db(code);
-		if (p2.isMEM) {
-			Address addr = cast(Address)p2;
-			addr.updateRegField(cast(uint8)(r.getIdx));
-			db(addr.getCode, cast(int)(addr.getSize));
-		} else {
-			db(getModRM(3, r.getIdx, p2.getIdx));
-		}
-	}
-	// (r, r, r/m) if isR_R_RM
-	// (r, r/m, r)
-	void opGpr(Reg32e r, Operand op1, Operand op2, int type, uint8 code, bool isR_R_RM)
-	{
-		Operand p1 = op1;
-		Operand p2 = op2;
-		if (!isR_R_RM) {
-			auto tmp = p1;
-			p2 = p1;
-			p1 = tmp;
-		}
-		uint bit = r.getBit;
-		if (p1.getBit != bit || (p2.isREG && p2.getBit != bit)) throw new XError(ERR.BAD_COMBINATION);
-		int w = bit == 64;
-		opVex(r, p1, p2, type, code, w);
-	}
-	// support (x, x, x/m), (y, y, y/m)
-	void opAVX_X_X_XM(Xmm x1, Operand op1, Operand op2, int type, int code0, bool supportYMM, int w = -1)
-	{
-		Xmm x2;
-		Operand op;
 		
-		if (op2.isNone) {
-			x2 = x1;
-			op = op1;
-		} else {
-			if (!(op1.isXMM || (supportYMM && op1.isYMM))) 
-				throw new XError(ERR.BAD_COMBINATION);
-			x2 = cast(Xmm)(op1);
-			op = op2;
-		}
-		// (x1, x2, op)
-		if (!((x1.isXMM && x2.isXMM) || (supportYMM && x1.isYMM && x2.isYMM))) 
-			throw new XError(ERR.BAD_COMBINATION);
-		bool x, b;
-		if (op.isMEM) {
-			Address addr = cast(Address)op;
-			uint8 rex = addr.getRex;
-			x = (rex & 2) != 0;
-			b = (rex & 1) != 0;
-			if (BIT == 64 && addr.is32bit_) db(0x67);
-			if (BIT == 64 && w == -1) w = (rex & 4) ? 1 : 0;
-		} else {
-			x = false;
-			b = ((cast(Reg)(op)).isExtIdx);
-		}
-		if (w == -1) w = 0;
-		vex(x1.isExtIdx, x2.getIdx, x1.isYMM, type, x, b, w);
-		db(code0);
-		if (op.isMEM) {
-			Address addr = cast(Address)(op);
-			addr.updateRegField( (cast(uint8) x1.getIdx) );
-			db(addr.getCode, cast(int)(addr.getSize));
-		} else {
-			db(getModRM(3, x1.getIdx, op.getIdx));
-		}
-	}
-	// if cvt then return pointer to Xmm(idx) (or Ymm(idx)), otherwise return op
-	void opAVX_X_X_XMcvt(Xmm x1, Operand op1, Operand op2, bool cvt, Kind kind, int type, int code0, bool supportYMM, int w = -1)
-	{
-		opAVX_X_X_XM(x1, op1, cvt ? kind == Kind.XMM ? cast(Operand)(XMM(op2.getIdx)) : cast(Operand)(YMM(op2.getIdx)) : op2, type, code0, supportYMM, w);
-	}
-
-	// support (x, x/m, imm), (y, y/m, imm)
-	void opAVX_X_XM_IMM(Xmm x, Operand op, int type, int code, bool supportYMM, int w = -1, int imm = Kind.NONE)
-	{
-		opAVX_X_X_XM( x, (x.isXMM ? xm0 : ym0), op, type, code, supportYMM, w);
-		if (imm != Kind.NONE) db(cast(uint8)imm);
-	}
-// QQQ:need to refactor
-	void opSp1(Reg reg, Operand op, uint8 pref, uint8 code0, uint8 code1)
-	{
-		if (reg.isBit(8)) throw new XError(ERR.BAD_SIZE_OF_REGISTER);
-		bool is16bit = reg.isREG(16) && (op.isREG(16) || op.isMEM);
-		if (!is16bit && !(reg.isREG(i32e) && (op.isREG(reg.getBit) || op.isMEM))) throw new XError(ERR.BAD_COMBINATION);
-		if (is16bit) db(0x66);
-		db(pref); opModRM(reg.changeBit(i32e == 32 ? 32 : reg.getBit), op, op.isREG, true, code0, code1);
-	}
-	
-	void opGather(Xmm x1, Address addr, Xmm x2, int type, uint8 code, int w, int mode)
-	{
-		if (!addr.isVsib) throw new XError(ERR.BAD_VSIB_ADDRESSING);
-		int y_vx_y = 0;
-		int y_vy_y = 1;
-//		int x_vy_x = 2;
-		bool isAddrYMM = addr.isYMM();
-		if (!x1.isXMM || isAddrYMM || !x2.isXMM) {
-			bool isOK = false;
-			if (mode == y_vx_y) {
-				isOK = x1.isYMM && !isAddrYMM && x2.isYMM;
-			} else if (mode == y_vy_y) {
-				isOK = x1.isYMM && isAddrYMM && x2.isYMM;
-			} else { // x_vy_x
-				isOK = !x1.isYMM && isAddrYMM && !x2.isYMM;
-			}
-			if (!isOK) throw new XError(ERR.BAD_VSIB_ADDRESSING);
-		}
-		addr.setVsib(false);
-		opAVX_X_X_XM(isAddrYMM ? YMM(x1.getIdx) : x1, isAddrYMM ? YMM(x2.getIdx) : x2, addr, type, code, true, w);
-		addr.setVsib(true);
-	}
+//	void rdrand(const Reg& r) { if (r.isBit(8)) throw Error(ERR_BAD_SIZE_OF_REGISTER); opModR(Reg(6, Operand::REG, r.getBit()), r, 0x0f, 0xc7); }
+//	void rorx(const Reg32e& r, const Operand& op, uint8 imm) { opGpr(r, op, Reg32e(0, r.getBit()), MM_0F3A | PP_F2, 0xF0, false); db(imm); }
 	
 	enum { NONE = 256 };
 	public:
@@ -2412,11 +2379,9 @@ void shrd(Operand op, Reg reg, uint8 imm) { opShxd(op, reg, imm, 0xAC); }
 void shrd(Operand op, Reg reg, Reg8 cl) { opShxd(op, reg, 0, 0xAC, cl); }
 void bsf(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0xBC); }
 void bsr(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0xBD); }
-/+
 void popcnt(Reg reg, Operand op) { opSp1(reg, op, 0xF3, 0x0F, 0xB8); }
 void tzcnt(Reg reg, Operand op) { opSp1(reg, op, 0xF3, 0x0F, 0xBC); }
 void lzcnt(Reg reg, Operand op) { opSp1(reg, op, 0xF3, 0x0F, 0xBD); }
-+/
 void pshufb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x00, 0x66, NONE, 0x38); }
 void phaddw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x01, 0x66, NONE, 0x38); }
 void phaddd(Mmx mmx, Operand op) { opMMX(mmx, op, 0x02, 0x66, NONE, 0x38); }
@@ -2484,12 +2449,10 @@ void pcmpistrm(Xmm xmm, Operand op, int imm) { opGen(xmm, op, 0x62, 0x66, isXMM_
 void pcmpistri(Xmm xmm, Operand op, int imm) { opGen(xmm, op, 0x63, 0x66, isXMM_XMMorMEM(xmm, op), cast(uint8)imm, 0x3A); }
 void pclmulqdq(Xmm xmm, Operand op, int imm) { opGen(xmm, op, 0x44, 0x66, isXMM_XMMorMEM(xmm, op), cast(uint8)imm, 0x3A); }
 void aeskeygenassist(Xmm xmm, Operand op, int imm) { opGen(xmm, op, 0xDF, 0x66, isXMM_XMMorMEM(xmm, op), cast(uint8)imm, 0x3A); }
-//
 void pclmullqlqdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x00); }
 void pclmulhqlqdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x01); }
 void pclmullqhdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x10); }
 void pclmulhqhdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x11); }
-//
 void ldmxcsr(Address addr) { opModM(addr, REG32(2), 0x0F, 0xAE); }
 void stmxcsr(Address addr) { opModM(addr, REG32(3), 0x0F, 0xAE); }
 void clflush(Address addr) { opModM(addr, REG32(7), 0x0F, 0xAE); }
@@ -2631,15 +2594,11 @@ void vpclmulqdq(Xmm xm1, Xmm xm2, Operand op, uint8 imm) { opAVX_X_X_XM(xm1, xm2
 void vpclmulqdq(Xmm xmm, Operand op, uint8 imm) { opAVX_X_X_XM(xmm, xmm, op, MM_0F3A | PP_66, 0x44, false, 0); db(imm); }
 void vpermilps(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x0C, true, 0); }
 void vpermilpd(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x0D, true, 0); }
-
-//
 void vpsllvd(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x47, true, 0); }
 void vpsllvq(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x47, true, 1); }
 void vpsravd(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x46, true, 0); }
 void vpsrlvd(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x45, true, 0); }
 void vpsrlvq(Xmm xm1, Xmm xm2, Operand op) { opAVX_X_X_XM(xm1, xm2, op, MM_0F38 | PP_66, 0x45, true, 1); }
-//
-
 void vcmppd(Xmm xm1, Xmm xm2, Operand op, uint8 imm) { opAVX_X_X_XM(xm1, xm2, op, MM_0F | PP_66, 0xC2, true, -1); db(imm); }
 void vcmppd(Xmm xmm, Operand op, uint8 imm) { opAVX_X_X_XM(xmm, xmm, op, MM_0F | PP_66, 0xC2, true, -1); db(imm); }
 void vcmpps(Xmm xm1, Xmm xm2, Operand op, uint8 imm) { opAVX_X_X_XM(xm1, xm2, op, MM_0F, 0xC2, true, -1); db(imm); }
@@ -2910,7 +2869,6 @@ void vmaskmovps(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, M
 void vmaskmovps(Address addr, Xmm xm1, Xmm xm2) { opAVX_X_X_XM(xm2, xm1, addr, MM_0F38 | PP_66, 0x2E, true, 0); }
 void vmaskmovpd(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, MM_0F38 | PP_66, 0x2D, true, 0); }
 void vmaskmovpd(Address addr, Xmm xm1, Xmm xm2) { opAVX_X_X_XM(xm2, xm1, addr, MM_0F38 | PP_66, 0x2F, true, 0); }
-//
 void vpmaskmovd(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, MM_0F38 | PP_66, 0x8C, true, 0); }
 void vpmaskmovd(Address addr, Xmm xm1, Xmm xm2) { opAVX_X_X_XM(xm2, xm1, addr, MM_0F38 | PP_66, 0x8E, true, 0); }
 void vpmaskmovq(Xmm xm1, Xmm xm2, Address addr) { opAVX_X_X_XM(xm1, xm2, addr, MM_0F38 | PP_66, 0x8C, true, 1); }
@@ -2919,7 +2877,6 @@ void vpermd(Ymm y1, Ymm y2, Operand op) { opAVX_X_X_XM(y1, y2, op, MM_0F38 | PP_
 void vpermps(Ymm y1, Ymm y2, Operand op) { opAVX_X_X_XM(y1, y2, op, MM_0F38 | PP_66, 0x16, true, 0); }
 void vpermq(Ymm y, Operand op, uint8 imm) { opAVX_X_XM_IMM(y, op, MM_0F3A | PP_66, 0x00, true, 1, imm); }
 void vpermpd(Ymm y, Operand op, uint8 imm) { opAVX_X_XM_IMM(y, op, MM_0F3A | PP_66, 0x01, true, 1, imm); }
-//
 void cmpeqpd(Xmm x, Operand op) { cmppd(x, op, 0); }
 void vcmpeqpd(Xmm x1, Xmm x2, Operand op) { vcmppd(x1, x2, op, 0); }
 void vcmpeqpd(Xmm x, Operand op) { vcmppd(x, op, 0); }
@@ -3281,12 +3238,10 @@ void vbroadcastf128(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_
 void vbroadcasti128(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_66, 0x5A, true, 0); }
 void vbroadcastsd(Ymm y, Address addr) { opAVX_X_XM_IMM(y, addr, MM_0F38 | PP_66, 0x19, true, 0); }
 void vbroadcastss(Xmm x, Address addr) { opAVX_X_XM_IMM(x, addr, MM_0F38 | PP_66, 0x18, true, 0); }
-//
 void vpbroadcastb(Xmm x, Operand op) { if (!(op.isXMM || op.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0x78, true, 0); }
 void vpbroadcastw(Xmm x, Operand op) { if (!(op.isXMM || op.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0x79, true, 0); }
 void vpbroadcastd(Xmm x, Operand op) { if (!(op.isXMM || op.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0x58, true, 0); }
 void vpbroadcastq(Xmm x, Operand op) { if (!(op.isXMM || op.isMEM)) throw new XError(ERR.BAD_COMBINATION); opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0x59, true, 0); }
-//
 void vextractf128(Operand op, Ymm y, uint8 imm) { opAVX_X_X_XMcvt(y, y.isXMM ? xm0 : ym0, op, op.isXMM, Kind.YMM, MM_0F3A | PP_66, 0x19, true, 0); db(imm); }
 void vextracti128(Operand op, Ymm y, uint8 imm) { opAVX_X_X_XMcvt(y, y.isXMM ? xm0 : ym0, op, op.isXMM, Kind.YMM, MM_0F3A | PP_66, 0x39, true, 0); db(imm); }
 void vextractps(Operand op, Xmm x, uint8 imm) { if (!(op.isREG(32) || op.isMEM) || x.isYMM) throw new XError(ERR.BAD_COMBINATION); opAVX_X_X_XMcvt(x, x.isXMM ? xm0 : ym0, op, op.isREG, Kind.XMM, MM_0F3A | PP_66, 0x17, false, 0); db(imm); }
