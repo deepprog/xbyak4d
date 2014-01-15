@@ -10,9 +10,11 @@
 */
 
 module xbyak4d;
-//version = XBYAK64;
+/*
+version = XBYAK64;
+/*/
 version = XBYAK32;
-
+//*/
 import std.stdio;
 import std.string : format; 
 import std.algorithm : swap, max, min;
@@ -115,23 +117,9 @@ public:
 		err_ = cast(int)err;
 		super(errTbl[err_]);
 	}
-	
-	int toInt() {
-		return err_;
-	}
-	
-	override string toString() {
-		return errTbl[err_];
-	}
-	
+	int toInt() { return err_; }
+	string toStr() { return errTbl[err_]; }
 };
-
-enum LabelType
-{
-	T_SHORT = 0, 
-	T_NEAR = 1, 
-	T_AUTO = 2 // T_SHORT if possible
-}
 
 /+
 template CastTo(To, From)  {
@@ -167,9 +155,10 @@ version(XBYAK64) {
 struct Aligned
 {
 static:
+private:
 	void*[void*] MemTbl;
 	size_t[void*] SizeTbl;
-	
+public:
 	uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16) {
 		return cast(uint8*)((cast(size_t)(addr) + alignedSize - 1) & ~(alignedSize - cast(size_t)(1)));
 	}
@@ -178,39 +167,37 @@ static:
 	{
 version(Win32){
 		auto m = new uint8[size];
-		SizeTbl[m.ptr] = size;
-		auto ret = getAlignedAddress(m.ptr, alignment);
-		MemTbl[m.ptr] = ret;
-		return ret;
 }
 version(linux){
 		size_t pageSize = sysconf(_SC_PAGESIZE);
 		int fd = open("/dev/zero", O_RDONLY);
 		auto m = cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+}
 		SizeTbl[m.ptr] = size;
 		auto ret = getAlignedAddress(m.ptr, alignment);
 		MemTbl[m.ptr] = ret;		
 		return ret;
-}
 	}
 
 	void Free(void* p)
 	{
 version(Win32){
 		//void* ret = MemTbl[p];
-		//delete ret;;
+		//delete ret;
 }
 version(linux){
 		void* ret = MemTbl[p];
-		auto size = SizeTbl[p];
+		MemTbl.remove(p);
+		size_t size = SizeTbl[p];
+		SizeTbl.remove(p);
 		munmap(ret, size); 
 }
 	}
 }
+
 /*
 	custom allocator
 */
-
 struct Allocator {
 	uint8* alloc(size_t size) { return cast(uint8*)Aligned.Malloc(size); }
 	void free(uint8* p) { Aligned.Free(p); }
@@ -576,7 +563,6 @@ protected:
 		uint8* newTop = alloc_.alloc(newSize + inner.ALIGN_PAGE_SIZE);
 		if (newTop == null) throw new XError(ERR.CANT_ALLOC);
 		foreach (size_t i; 0 .. size_) newTop[i] = top_[i];
-		
 		alloc_.free(top_);
 		top_ = newTop;
 		maxSize_ = newSize;
@@ -619,7 +605,7 @@ public:
 
 	void resetSize() {	
 		size_ = 0;
-		addrInfoList_.clear();
+		addrInfoList_.clear;
 	}
 
 	void db(int code)
@@ -642,7 +628,7 @@ public:
 	void db(uint64 code, int codeSize)
 	{
 		if (codeSize > 8) throw new XError(ERR.BAD_PARAMETER); 
-		for (int i=0; i < codeSize; i++) db(cast(uint8)(code >> (i*8)));
+		foreach(i; 0 .. codeSize) db(cast(uint8)(code >> (i*8)));
 	}
 	
 	void dw(uint32 code) { db(code, 2); }
@@ -711,23 +697,21 @@ public:
 		@return true(success), false(failure)
 	*/
 	
+	bool protect(void* addr, size_t size, bool canExec)
+	{
 version(Windows) {
-	bool protect(void* addr, size_t size, bool canExec) {
 		DWORD oldProtect;
 		return VirtualProtect(cast(void*)(addr), size, canExec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldProtect) != 0;
-	}
 }
-
 version(linux){
-	bool protect(void* addr, size_t size, bool canExec) {
 		size_t pageSize = sysconf(_SC_PAGESIZE);
 		size_t iaddr = cast(size_t)addr;
 		size_t roundAddr = iaddr & ~(pageSize - cast(size_t)1);
 		int mode = PROT_READ | PROT_WRITE | (canExec ? PROT_EXEC : 0);
 	//	return mprotect(cast(void*)(roundAddr), size + (iaddr - roundAddr), mode) == 0;
 		return true;
-	}
 }
+	}
 
 	/**
 		get aligned memory pointer
@@ -769,7 +753,7 @@ public class Address : Operand {
 			if (size_ >= top_.sizeof) throw new XError(ERR.CODE_IS_TOO_BIG);
 			top_[size_++] = cast(uint8)code;
 		}
-		void dd(uint32 code) { for (int i = 0; i < 4; i++) db(code >> (i * 8)); }
+		void dd(uint32 code) { foreach(i; 0..4) db(code >> (i * 8)); }
 		uint8* getCode() { return top_; }
 		size_t getSize() { return size_; }
 		void updateRegField(uint8 regIdx)
@@ -791,7 +775,7 @@ class AddressFrame {
 private:
 	Address makeAddress(RegExp e)
 	{
-		e.verify();
+		e.verify;
 		bool isVsib = e.isVsib;
 		bool isYMM = e.isYMM;
 		RegExp.SReg base = e.getBase;
@@ -820,7 +804,7 @@ version(XBYAK64) {
 			frame.db((mod << 6) | Code.ESP);
 			/* SIB = [2:3:3] = [SS:index:base(=rm)] */
 			int indexIdx = index.bit ? (index.idx & 7) : Code.ESP;
-			int scale = e.getScale();
+			int scale = e.getScale;
 			int ss = (scale == 8) ? 3 : (scale == 4) ? 2 : (scale == 2) ? 1 : 0;
 			frame.db((ss << 6) | (indexIdx << 3) | baseIdx);
 		} else {
@@ -929,8 +913,8 @@ public:
 		stackPos_ = 1;
 		usedCount_ = 0;
 		localCount_ = 0;
-		definedList_.clear();
-		undefinedList_.clear();
+		definedList_.clear;
+		undefinedList_.clear;
 	}
 
 	void enterLocal() {
@@ -1017,6 +1001,12 @@ public:
 		return format(".%08x", num);
 	}
 };
+
+enum LabelType {
+	T_SHORT, 
+	T_NEAR, 
+	T_AUTO // T_SHORT if possible
+}
 
 public class CodeGenerator : CodeArray {
 
@@ -1154,8 +1144,6 @@ version(XBYAK64){
 				db(shortCode); db(0);
 			}
 			jmp.mode = inner.LabelMode.LasIs;
-			
-			
 			jmp.endOfJmp = size_;
 			label_.addUndefinedLabel(label, jmp);
 		}
@@ -1289,7 +1277,6 @@ version(XBYAK64){
 	void opIncDec(Operand op, int code, int ext)
 	{
 		verifyMemHasSize(op);
-
 version(XBYAK64) {
 		if (op.isREG && !op.isBit(8)) {
 			rex(op);
@@ -1401,7 +1388,6 @@ version(XBYAK64) {
 	{
 		Xmm x2;
 		Operand op;
-		
 		if (op2.isNone) {
 			x2 = x1;
 			op = op1;
@@ -1412,30 +1398,31 @@ version(XBYAK64) {
 			op = op2;
 		}
 		// (x1, x2, op)
-		if (!((x1.isXMM && x2.isXMM) || (supportYMM && x1.isYMM && x2.isYMM))) 
-			throw new XError(ERR.BAD_COMBINATION);
-		bool x, b;
-		if (op.isMEM) {
-			Address addr = cast(Address)op;
-			uint8 rex = addr.getRex;
-			x = (rex & 2) != 0;
-			b = (rex & 1) != 0;
-			if (BIT == 64 && addr.is32bit_) db(0x67);
-			if (BIT == 64 && w == -1) w = (rex & 4) ? 1 : 0;
-		} else {
-			x = false;
-			b = ((cast(Reg)(op)).isExtIdx);
-		}
-		if (w == -1) w = 0;
-		vex(x1.isExtIdx, x2.getIdx, x1.isYMM, type, x, b, w);
-		db(code0);
-		if (op.isMEM) {
-			Address addr = cast(Address)(op);
-			addr.updateRegField( (cast(uint8) x1.getIdx) );
-			db(addr.getCode, cast(int)(addr.getSize));
-		} else {
-			db(getModRM(3, x1.getIdx, op.getIdx));
-		}
+		if (!((x1.isXMM && x2.isXMM) || (supportYMM && x1.isYMM && x2.isYMM))) throw new XError(ERR.BAD_COMBINATION);
+		opVex(x1, x2, op, type, code0, w);
+
+		// bool x, b;
+		// if (op.isMEM) {
+			// Address addr = cast(Address)op;
+			// uint8 rex = addr.getRex;
+			// x = (rex & 2) != 0;
+			// b = (rex & 1) != 0;
+			// if (BIT == 64 && addr.is32bit_) db(0x67);
+			// if (BIT == 64 && w == -1) w = (rex & 4) ? 1 : 0;
+		// } else {
+			// x = false;
+			// b = ((cast(Reg)(op)).isExtIdx);
+		// }
+		// if (w == -1) w = 0;
+		// vex(x1.isExtIdx, x2.getIdx, x1.isYMM, type, x, b, w);
+		// db(code0);
+		// if (op.isMEM) {
+			// Address addr = cast(Address)(op);
+			// addr.updateRegField( (cast(uint8) x1.getIdx) );
+			// db(addr.getCode, cast(int)(addr.getSize));
+		// } else {
+			// db(getModRM(3, x1.getIdx, op.getIdx));
+		// }
 	}
 	// if cvt then return pointer to Xmm(idx) (or Ymm(idx)), otherwise return op
 	void opAVX_X_X_XMcvt(Xmm x1, Operand op1, Operand op2, bool cvt, Kind kind, int type, int code0, bool supportYMM, int w = -1)
