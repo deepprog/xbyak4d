@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.047
- * Date: 2014/01/11
+ * Version: 0.048
+ * Date: 2014/01/17
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -30,7 +30,7 @@ version(linux){
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0047, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0048, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -515,15 +515,12 @@ private:
 void* AutoGrow = cast(void*)(1);
 
 class CodeArray {
-private:
-
 	enum Type {
 		USER_BUF = 1, // use userPtr(non alignment, non protect)
 		ALLOC_BUF,  // use new(alignment, protect)
 		AUTO_GROW // automatically move and grow memory if necessary
 	}
 	bool isAllocType() { return type_ == Type.ALLOC_BUF || type_ == Type.AUTO_GROW; }
-	
 	struct AddrInfo {
 		size_t codeOffset; // position to write
 		size_t jmpAddr; // value to write
@@ -562,7 +559,7 @@ protected:
 		size_t newSize = max(DEFAULT_MAX_CODE_SIZE, maxSize_ * 2);
 		uint8* newTop = alloc_.alloc(newSize + inner.ALIGN_PAGE_SIZE);
 		if (newTop == null) throw new XError(ERR.CANT_ALLOC);
-		foreach (size_t i; 0 .. size_) newTop[i] = top_[i];
+		foreach(i; 0 .. size_) newTop[i] = top_[i];
 		alloc_.free(top_);
 		top_ = newTop;
 		maxSize_ = newSize;
@@ -582,7 +579,8 @@ protected:
 	}
 	
 public:
-	this(size_t maxSize, void* userPtr = null, Allocator* allocator = null) {
+	this(size_t maxSize, void* userPtr = null, Allocator* allocator = null)
+	{
 		type_ = userPtr == AutoGrow ? Type.AUTO_GROW : userPtr ? Type.USER_BUF : Type.ALLOC_BUF;
 		alloc_ = allocator ? allocator : &defaultAllocator_;
 		maxSize_ = maxSize;
@@ -596,7 +594,8 @@ public:
 		}
 	}
 
-	~this()	{
+	~this()
+	{
 		if (isAllocType) {
 			if(alloc_.useProtect) protect(top_, maxSize_, false);
 			alloc_.free(top_);
@@ -874,12 +873,11 @@ class Label {
 	UndefinedList undefinedList_;
 
 	/*
-	@@ --> @@.<num>
-	@b --> @@.<num>
-	@f --> @@.<num + 1>
-	.*** -> .***.<num>
-*/
-
+		@@ --> @@.<num>
+		@b --> @@.<num>
+		@f --> @@.<num + 1>
+		.*** -> .***.<num>
+	*/
 	string convertLabel(string label)
 	{
 		string newLabel = label;
@@ -940,6 +938,7 @@ public:
 		// add label
 		DefinedList item;
 		item[label] = addrOffset;
+		
 		
 		if (addrOffset == 0) throw new XError(ERR.LABEL_IS_REDEFINED);
 		definedList_[label] = addrOffset;
@@ -1401,28 +1400,7 @@ version(XBYAK64) {
 		if (!((x1.isXMM && x2.isXMM) || (supportYMM && x1.isYMM && x2.isYMM))) throw new XError(ERR.BAD_COMBINATION);
 		opVex(x1, x2, op, type, code0, w);
 
-		// bool x, b;
-		// if (op.isMEM) {
-			// Address addr = cast(Address)op;
-			// uint8 rex = addr.getRex;
-			// x = (rex & 2) != 0;
-			// b = (rex & 1) != 0;
-			// if (BIT == 64 && addr.is32bit_) db(0x67);
-			// if (BIT == 64 && w == -1) w = (rex & 4) ? 1 : 0;
-		// } else {
-			// x = false;
-			// b = ((cast(Reg)(op)).isExtIdx);
-		// }
-		// if (w == -1) w = 0;
-		// vex(x1.isExtIdx, x2.getIdx, x1.isYMM, type, x, b, w);
-		// db(code0);
-		// if (op.isMEM) {
-			// Address addr = cast(Address)(op);
-			// addr.updateRegField( (cast(uint8) x1.getIdx) );
-			// db(addr.getCode, cast(int)(addr.getSize));
-		// } else {
-			// db(getModRM(3, x1.getIdx, op.getIdx));
-		// }
+	
 	}
 	// if cvt then return pointer to Xmm(idx) (or Ymm(idx)), otherwise return op
 	void opAVX_X_X_XMcvt(Xmm x1, Operand op1, Operand op2, bool cvt, Kind kind, int type, int code0, bool supportYMM, int w = -1)
@@ -1934,7 +1912,7 @@ version(XBYAK64){
 			}
 		}
 		
-string getVersionString() { return "0.047"; }
+string getVersionString() { return "0.048"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
