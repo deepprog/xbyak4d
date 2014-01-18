@@ -738,15 +738,15 @@ public class Address : Operand {
 			top_[size_++] = cast(uint8)code;
 		}
 		void dd(uint32 code) { foreach(i; 0..4) db(code >> (i * 8)); }
-		uint8* getCode() { return top_; }
+		uint8* getCode() { return cast(uint8*)top_; }
 		size_t getSize() { return size_; }
 		void updateRegField(uint8 regIdx)
 		{
-			*top_ = (*top_ & 0B11000111) | ((regIdx << 3) & 0B00111000);
+			*(this.top_).ptr = (*(this.top_).ptr & 0B11000111) | ((regIdx << 3) & 0B00111000);
 		}
 		void setVsib(bool isVsib) { isVsib_ = isVsib; }
 		bool isVsib() { return isVsib_; }
-		bool isYMM() { return isYMM_; }
+		override bool isYMM() { return isYMM_; }
 		bool is32bit() { verify(); return is32bit_; }	
 		bool isOnlyDisp() { return isOnlyDisp_; } // for mov eax
 		uint64 getDisp() { return disp_; }
@@ -1543,10 +1543,8 @@ version(XBYAK64){
 			code = 0B10100010;
 		}
 version(XBYAK64) {
-		if (addr && addr.is64bitDisp)
-		{
-			if (code)
-			{
+		if (addr && addr.is64bitDisp) {
+			if (code) {
 				rex(reg);
 				db(reg1.isREG(8) ? 0xA0 : reg1.isREG ? 0xA1 : reg2.isREG(8) ? 0xA2 : 0xA3);
 				db(addr.getDisp, 8);
@@ -1554,8 +1552,7 @@ version(XBYAK64) {
 		} else opRM_RM(reg1, reg2, 0B10001000);
 }
 version(XBYAK32){
-		if (code && addr.isOnlyDisp)
-		{
+		if (code && addr.isOnlyDisp) {
 			rex(reg, addr);
 			db(code | (reg.isBit(8) ? 0 : 1));
 			dd(cast(uint32)(addr.getDisp));
@@ -1594,7 +1591,6 @@ version(XBYAK64) {
 		}
 	}
 }
-
 version(XBYAK32) {
 	void mov(Operand op, uint32 imm, bool opti = true)
 	{
@@ -1614,6 +1610,65 @@ version(XBYAK32) {
 		} else {
 			throw new XError(ERR.BAD_COMBINATION);
 		}
+	}
+}
+
+	// QQQ : rewrite this function with putL
+version(XBYAK64) {
+	void mov(Reg64 reg, string label)
+	{
+		if (label.length == 0) {
+			mov(reg, 0, true);
+			return;
+		}
+		int jmpSize = cast(int)size_t.sizeof;
+		size_t dummyAddr = ((0x11223344) << 32) | 55667788;
+	//	const size_t dummyAddr = 0x12345678;
+		if (isAutoGrow && size_ + 16 >= maxSize_) growMemory;
+		size_t offset = 0;
+		if (label_.getOffset(&offset, label)) {
+			if (isAutoGrow) {
+				mov(reg, dummyAddr);
+				save(size_ - jmpSize, offset, jmpSize, inner.LabelMode.LaddTop);
+			} else {
+				mov(reg, cast(size_t)top_ + offset, false); // not to optimize 32-bit imm
+			}
+			return;
+		}
+		mov(reg, dummyAddr);
+		JmpLabel jmp;
+		jmp.endOfJmp = size_;
+		jmp.jmpSize = jmpSize;
+		jmp.mode = isAutoGrow ? inner.LabelMode.LaddTop : inner.LabelMode.Labs;
+		label_.addUndefinedLabel(label, jmp);
+	}
+}
+version(XBYAK32) {
+	void mov(Reg32 reg, string label)
+	{
+		if (label.length == 0) {
+			mov(reg, 0, true);
+			return;
+		}
+		int jmpSize = cast(int)size_t.sizeof;
+		size_t dummyAddr = 0x12345678;
+		if (isAutoGrow && size_ + 16 >= maxSize_) growMemory;
+		size_t offset = 0;
+		if (label_.getOffset(&offset, label)) {
+			if (isAutoGrow) {
+				mov(reg, dummyAddr);
+				save(size_ - jmpSize, offset, jmpSize, inner.LabelMode.LaddTop);
+			} else {
+				mov(reg, cast(size_t)top_ + offset, false); // not to optimize 32-bit imm
+			}
+			return;
+		}
+		mov(reg, dummyAddr);
+		JmpLabel jmp;
+		jmp.endOfJmp = size_;
+		jmp.jmpSize = jmpSize;
+		jmp.mode = isAutoGrow ? inner.LabelMode.LaddTop : inner.LabelMode.Labs;
+		label_.addUndefinedLabel(label, jmp);
 	}
 }
 	/*
@@ -1647,11 +1702,9 @@ version(XBYAK32) {
 version(XBYAK64){
 	void cmpxchg16b(Address addr) { opModM(addr, REG64(1), 0x0F, 0B11000111); }
 }
-
 	void xadd(Operand op, Reg reg) {
 		opModRM(reg, op, (op.isREG && reg.isREG && op.getBit == reg.getBit), op.isMEM, 0x0F, 0B11000000 | (reg.isBit(8) ? 0 : 1));
 	}
-
 	void xchg(Operand op1, Operand op2)
 	{
 		Operand p1 = op1;
