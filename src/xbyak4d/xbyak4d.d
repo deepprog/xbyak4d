@@ -321,30 +321,30 @@ public:
 	}
 	Reg8 cvt8() {
 		int idx = getIdx;
-		if (isBit(8)) return new Reg8(idx, isExt8bit);
+		if (isBit(8)) return REG8(idx, isExt8bit);
 version(XBYAK32){
 		if (idx >= 4) throw new XError(ERR.CANT_CONVERT);
 }
-		return new Reg8(idx, 4 <= idx && idx < 8);
+		return REG8(idx, 4 <= idx && idx < 8);
 	}
 
 	Reg16 cvt16() {
 		int idx = getIdx;
 		if (isBit(8) && (4 <= idx && idx < 8) && !isExt8bit) throw new XError(ERR.CANT_CONVERT);
-		return new Reg16(idx);
+		return REG16(idx);
 	}
 
 	Reg32 cvt32() {
 		int idx = getIdx;
 		if (isBit(8) && (4 <= idx && idx < 8) && !isExt8bit) throw new XError(ERR.CANT_CONVERT);
-		return new Reg32(idx);
+		return REG32(idx);
 	}
 	
 version(XBYAK64) {
 	Reg64 cvt64() {
 		int idx = getIdx;
 		if (isBit(8) && (4 <= idx && idx < 8) && !isExt8bit) throw new XError(ERR.CANT_CONVERT);
-		return new Reg64(idx);
+		return REG64(idx);
 	}
 }
 };
@@ -385,6 +385,8 @@ public:
 	this(int idx) { super(idx, Kind.FPU, 32); }
 };
 	
+
+Reg32e REG32E(int idx, int bit){ return new Reg32e(idx, bit); }
 public class Reg32e : Reg {
 	this(int idx, int bit) { super(idx, Kind.REG, bit); }
 }
@@ -1570,7 +1572,7 @@ version(XBYAK64) {
 			int code = 0B10110000 | ((bit == 8 ? 0 : 1) << 3);
 
 			if (op.isBit(64) && (imm >> 32) == 0) {
-				rex(new Reg32(idx));
+				rex(REG32(idx));
 				bit = 32;
 			} else {
 				rex(op);
@@ -1623,7 +1625,6 @@ version(XBYAK64) {
 		}
 		int jmpSize = cast(int)size_t.sizeof;
 		size_t dummyAddr = ((0x11223344) << 32) | 55667788;
-	//	const size_t dummyAddr = 0x12345678;
 		if (isAutoGrow && size_ + 16 >= maxSize_) growMemory;
 		size_t offset = 0;
 		if (label_.getOffset(&offset, label)) {
@@ -1855,8 +1856,8 @@ version(XBYAK64){
 		opModRM(reg, op, op.isREG, op.isMEM, 0x0F, 0x38, 0xF0 | (op.isBit(8) ? 0 : 1));
 	}
 	
-	void rdrand(Reg r) { if (r.isBit(8)) throw new XError(ERR.BAD_SIZE_OF_REGISTER); opModR(new Reg(6, Kind.REG, r.getBit), r, 0x0f, 0xc7); }
-	void rorx(Reg32e r, Operand op, uint8 imm) { opGpr(r, op, new Reg32e(0, r.getBit), MM_0F3A | PP_F2, 0xF0, false); db(imm); }
+	void rdrand(Reg r) { if (r.isBit(8)) throw new XError(ERR.BAD_SIZE_OF_REGISTER); opModR(REG(6, Kind.REG, r.getBit), r, 0x0f, 0xc7); }
+	void rorx(Reg32e r, Operand op, uint8 imm) { opGpr(r, op, REG32E(0, r.getBit), MM_0F3A | PP_F2, 0xF0, false); db(imm); }
 	enum { NONE = 256 };
 	public:
 		this( size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = cast(void*)null )
@@ -3331,9 +3332,9 @@ void bzhi(Reg32e r1, Operand op, Reg32e r2) { opGpr(r1, op, r2, MM_0F38, 0xf5, f
 void sarx(Reg32e r1, Operand op, Reg32e r2) { opGpr(r1, op, r2, MM_0F38 | PP_F3, 0xf7, false); }
 void shlx(Reg32e r1, Operand op, Reg32e r2) { opGpr(r1, op, r2, MM_0F38 | PP_66, 0xf7, false); }
 void shrx(Reg32e r1, Operand op, Reg32e r2) { opGpr(r1, op, r2, MM_0F38 | PP_F2, 0xf7, false); }
-void blsi(Reg32e r, Operand op) { opGpr(new Reg32e(3, r.getBit), op, r, MM_0F38, 0xf3, false); }
-void blsmsk(Reg32e r, Operand op) { opGpr(new Reg32e(2, r.getBit), op, r, MM_0F38, 0xf3, false); }
-void blsr(Reg32e r, Operand op) { opGpr(new Reg32e(1, r.getBit), op, r, MM_0F38, 0xf3, false); }
+void blsi(Reg32e r, Operand op) { opGpr(REG32E(3, r.getBit), op, r, MM_0F38, 0xf3, false); }
+void blsmsk(Reg32e r, Operand op) { opGpr(REG32E(2, r.getBit), op, r, MM_0F38, 0xf3, false); }
+void blsr(Reg32e r, Operand op) { opGpr(REG32E(1, r.getBit), op, r, MM_0F38, 0xf3, false); }
 void vgatherdpd(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x92, 1, 0); }
 void vgatherqpd(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x93, 1, 1); }
 void vgatherdps(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x92, 0, 1); }
