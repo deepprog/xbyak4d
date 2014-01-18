@@ -133,7 +133,6 @@ static:
 	bool IsInDisp8(uint32 x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
 	bool IsInDisp16(uint32 x) { return 0xFFFF8000 <= x || x <= 0x7FFF; }
 	bool IsInDisp32(uint64 x) { return 0xFFFFFFFF80000000UL <= x || x <= 0x7FFFFFFFU; }
-
 	uint32 VerifyInInt32(uint64 x) 
 	{
 version(XBYAK64) {
@@ -147,7 +146,6 @@ version(XBYAK64) {
 		Labs, // absolute
 		LaddTop // (addr + top) for mov(reg, label) with AutoGrow
 	}
-
 }
 
 struct Aligned
@@ -344,7 +342,7 @@ version(XBYAK32){
 	
 version(XBYAK64) {
 	Reg64 cvt64() {
-		int idx = getIdx();
+		int idx = getIdx;
 		if (isBit(8) && (4 <= idx && idx < 8) && !isExt8bit) throw new XError(ERR.CANT_CONVERT);
 		return new Reg64(idx);
 	}
@@ -405,11 +403,9 @@ version(XBYAK64) {
 	struct RegRip {
 		uint32 disp_;
 		this(uint disp = 0) { disp_ = disp; }
-		
 		RegRip opBinary(string op)(uint disp) if (op == "+") {
 			return RegRip(disp_ + disp);
 		}
-		
 		RegRip opBinary(string op)(uint disp) if (op == "-") {
 			return RegRip(disp_ - disp);
 		}
@@ -457,7 +453,6 @@ public:
 	SReg getIndex() { return index_; }
 	int getScale() { return scale_; }
 	uint32 getDisp() { return cast(uint32)disp_; }
-
 	void verify()
 	{
 		if (base_.bit >= 128) throw new XError(ERR.BAD_SIZE_OF_REGISTER);
@@ -481,11 +476,9 @@ private:
 				// base + base => base + index * 1
 				this.index_ = b.base_;
 				// [reg + esp] => [esp + reg]
-				if (this.index_.idx == Code.ESP) {
-					swap(this.base_, this.index_);
-				}
+				if (this.index_.idx == Code.ESP) { swap(this.base_, this.index_); }
 				this.scale_ = 1;
-			} else {
+			} else { 
 				this.base_ = b.base_;
 			}
 		}
@@ -495,7 +488,6 @@ private:
 	RegExp opBinary(string op)(int scale) if (op == "*") {
 		return new RegExp(r, scale);
 	}
-	
 	RegExp opBinary(string op)(uint disp) if (op == "-") {
 		RegExp ret = this;
 		ret.disp_ -= disp;
@@ -565,8 +557,7 @@ protected:
 	*/
 	void calcJmpAddress()
 	{
-		foreach (i; addrInfoList_)
-		{
+		foreach (i; addrInfoList_) {
 			uint64 disp = i.getVal(top_);
 			rewrite(i.codeOffset, disp, i.jmpSize);
 		}
@@ -588,7 +579,7 @@ public:
 			throw new XError(ERR.CANT_PROTECT);
 		}
 	}
-
+	
 	~this()
 	{
 		if (isAllocType) {
@@ -629,7 +620,6 @@ public:
 	void dd(uint32 code) { db(code, 4); }
 	uint8* getCode() { return top_; }
 	uint8* getCurr() { return cast(uint8*)&top_[size_]; }
-
 	size_t getSize() { return size_; }
 	void setSize(size_t size)
 	{
@@ -665,7 +655,7 @@ public:
 		@param disp [in] offset from the next of jmp
 		@param size [in] write size(1, 2, 4, 8)
 	*/
-
+	
 	void rewrite(size_t offset, uint64 disp, size_t size)
 	{
 		assert(offset < maxSize_);
@@ -999,7 +989,6 @@ version(XBYAK64){
 }else{
 	enum { i32e = 32, BIT = 32 }
 }
-	
 	// (XMM, XMM|MEM)
 	bool isXMM_XMMorMEM(Operand op1, Operand op2)
 	{
