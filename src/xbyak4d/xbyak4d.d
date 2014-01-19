@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.048
- * Date: 2014/01/17
+ * Version: 0.049
+ * Date: 2014/01/19
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -30,7 +30,7 @@ version(linux){
 
 enum:uint {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION = 0x0048, /* 0xABCD = A.BC(D) */
+	VERSION = 0x0049, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong uint64;
@@ -818,7 +818,7 @@ version(XBYAK64){
 		RegExp e = new RegExp(cast(uint32)adr);
 		return opIndex(e);
 	}
-version(XBYAK64){
+version(XBYAK64) {
 	Address opIndex(uint64 disp)
 	{
 		return new Address(64, true, disp, false, true);
@@ -830,7 +830,7 @@ version(XBYAK64){
 		frame.dd(addr.disp_);
 		return frame;
 	}
-} //version(XBYAK64)
+}
 	Address opIndex(RegExp e)
 	{
 		return makeAddress(e.optimize);
@@ -846,9 +846,7 @@ struct JmpLabel {
 class Label {
 	CodeArray base_;
 	int anonymousCount_; // for @@, @f, @b
-	enum {
-		maxStack = 10
-	}
+	enum maxStack = 10;
 	int stack_[maxStack];
 	int stackPos_;
 	int usedCount_;
@@ -972,7 +970,6 @@ public:
 		}
 		return !(undefinedList_.length == 0);
 	}
-
 	string toStr(int num) {
 		return format(".%08x", num);
 	}
@@ -1131,7 +1128,7 @@ version(XBYAK64){
 			if (size_ + 16 >= maxSize_) growMemory;
 			db(longCode);
 			dd(0);
-			save(size_ - 4 , cast(size_t)(addr) - size_, 4, inner.LabelMode.Labs);
+			save(size_ - 4 , cast(size_t)addr - size_, 4, inner.LabelMode.Labs);
 		} else {
 			makeJmp(inner.VerifyInInt32( cast(uint8*)addr - getCurr ), type, shortCode, longCode, 0);
 		}
@@ -1367,9 +1364,8 @@ version(XBYAK64) {
 			x2 = x1;
 			op = op1;
 		} else {
-			if (!(op1.isXMM || (supportYMM && op1.isYMM))) 
-				throw new XError(ERR.BAD_COMBINATION);
-			x2 = cast(Xmm)(op1);
+			if (!(op1.isXMM || (supportYMM && op1.isYMM))) throw new XError(ERR.BAD_COMBINATION);
+			x2 = cast(Xmm)op1;
 			op = op2;
 		}
 		// (x1, x2, op)
@@ -1404,7 +1400,7 @@ version(XBYAK64) {
 		int y_vx_y = 0;
 		int y_vy_y = 1;
 //		int x_vy_x = 2;
-		bool isAddrYMM = addr.isYMM();
+		bool isAddrYMM = addr.isYMM;
 		if (!x1.isXMM || isAddrYMM || !x2.isXMM) {
 			bool isOK = false;
 			if (mode == y_vx_y) {
@@ -1506,7 +1502,6 @@ version(XBYAK64){
 
 	void pop(Operand op)  { opPushPop(op, 0B10001111, 0, 0B01011000); }
 	void push(Operand op) {	opPushPop(op, 0B11111111, 6, 0B01010000); }
-		
 	void push(AddressFrame af, uint32 imm)
 	{
 		if (af.bit_ == 8 && inner.IsInDisp8(imm)) {
@@ -1521,15 +1516,11 @@ version(XBYAK64){
 	/* use "push(word, 4)" if you want "push word 4" */
 	void push(uint32 imm)
 	{
-		if (inner.IsInDisp8(imm)) {
-			push(byte_, imm);
-		} else {
-			push(dword, imm);
-		}
+		if (inner.IsInDisp8(imm)){ push(byte_, imm);}
+		else { push(dword, imm); }
 	}
 
 	void bswap(Reg32e reg) { opModR( REG32(1), reg, 0x0F); }
-		
 	void mov(Operand reg1, Operand reg2)
 	{
 		Reg reg;
@@ -1563,14 +1554,23 @@ version(XBYAK32){
 	}		
 
 version(XBYAK64) {
-	void mov(Operand op, uint64 imm, bool opti = true)
+	void mov(Operand op, uint64 imm, bool opti = true) {
+		mov_32_64(op, imm, opti);
+	}
+}	
+version(XBYAK32) {
+	void mov(Operand op, uint32 imm, bool opti = true) {
+		mov_32_64(op, imm, opti);
+	}
+}
+	void mov_32_64(T)(Operand op, T imm, bool opti = true)
 	{
 		verifyMemHasSize(op);
 		if (op.isREG) {
 			int bit = op.getBit;
 			int idx = op.getIdx;
 			int code = 0B10110000 | ((bit == 8 ? 0 : 1) << 3);
-
+version(XBYAK64) {
 			if (op.isBit(64) && (imm >> 32) == 0) {
 				rex(REG32(idx));
 				bit = 32;
@@ -1582,27 +1582,10 @@ version(XBYAK64) {
 					bit = 32;
 				}
 			}
-			db(code | (op.getIdx & 7));
-			db(imm,  bit / 8);
-		} else if (op.isMEM) {
-			opModM(cast(Address)op, REG(0, Kind.REG, op.getBit), 0B11000110);
-			int size = op.getBit / 8; if (size > 4) size = 4;
-			db(cast(uint32)(imm), size);
-		} else {
-			throw new XError(ERR.BAD_COMBINATION);
-		}
-	}
 }
 version(XBYAK32) {
-	void mov(Operand op, uint32 imm, bool opti = true)
-	{
-		verifyMemHasSize(op);
-		if (op.isREG) {
-			int bit = op.getBit;
-			int idx = op.getIdx;
-			int code = 0B10110000 | ((bit == 8 ? 0 : 1) << 3);
-			
-			rex(op);
+				rex(op);
+}
 			db(code | (op.getIdx & 7));
 			db(imm,  bit / 8);
 		} else if (op.isMEM) {
@@ -1613,7 +1596,6 @@ version(XBYAK32) {
 			throw new XError(ERR.BAD_COMBINATION);
 		}
 	}
-}
 
 	// QQQ : rewrite this function with putL
 version(XBYAK64) {
@@ -1624,7 +1606,7 @@ version(XBYAK64) {
 			return;
 		}
 		int jmpSize = cast(int)size_t.sizeof;
-		size_t dummyAddr = ((0x11223344) << 32) | 55667788;
+		auto dummyAddr = 0x1122334455667788;
 		if (isAutoGrow && size_ + 16 >= maxSize_) growMemory;
 		size_t offset = 0;
 		if (label_.getOffset(&offset, label)) {
@@ -1699,7 +1681,6 @@ version(XBYAK32) {
 	}
 	
 	void cmpxchg8b(Address addr) { opModM(addr, REG32(1), 0x0F, 0B11000111); }
-	
 version(XBYAK64){
 	void cmpxchg16b(Address addr) { opModM(addr, REG64(1), 0x0F, 0B11000111); }
 }
@@ -1932,7 +1913,7 @@ version(XBYAK64){
 			}
 		}
 		
-string getVersionString() { return "0.048"; }
+string getVersionString() { return "0.049"; }
 void packssdw(Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
