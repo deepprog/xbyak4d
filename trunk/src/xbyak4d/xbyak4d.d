@@ -18,6 +18,7 @@ version = XBYAK32;
 import std.stdio;
 import std.string : format; 
 import std.algorithm : swap, max, min;
+import std.conv;
 
 version(Windows){
 	import core.sys.windows.windows;  // VirtualProtect
@@ -119,13 +120,6 @@ public:
 	string toStr() { return errTbl[err_]; }
 };
 
-/+
-template CastTo(To, From)  {
-	To CastTo(From p){
-	return cast(To)(p);
-}
-+/
-
 struct inner {
 static:
 	enum { Debug = 1 };
@@ -162,16 +156,17 @@ public:
 	void* Malloc(size_t size, size_t alignment= inner.ALIGN_PAGE_SIZE)
 	{
 version(Win32){
-		auto m = new uint8[size];
+		uint8[] m = new uint8[size];
+		uint8* mp = m.ptr;
 }
 version(linux){
 		size_t pageSize = sysconf(_SC_PAGESIZE);
 		int fd = open("/dev/zero", O_RDONLY);
-		auto m = cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+		uint8* mp = cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
 }
-		SizeTbl[m.ptr] = size;
-		auto ret = getAlignedAddress(m.ptr, alignment);
-		MemTbl[m.ptr] = ret;		
+		SizeTbl[mp] = size;
+		uint8* ret = getAlignedAddress(mp, alignment);
+		MemTbl[mp] = ret;		
 		return ret;
 	}
 
@@ -385,7 +380,6 @@ public:
 	this(int idx) { super(idx, Kind.FPU, 32); }
 };
 	
-
 Reg32e REG32E(int idx, int bit){ return new Reg32e(idx, bit); }
 public class Reg32e : Reg {
 	this(int idx, int bit) { super(idx, Kind.REG, bit); }
@@ -691,11 +685,13 @@ version(Windows) {
 }
 version(linux){
 		size_t pageSize = sysconf(_SC_PAGESIZE);
-		size_t iaddr = cast(size_t)addr;
-		size_t roundAddr = iaddr & ~(pageSize - cast(size_t)1);
-		int mode = PROT_READ | PROT_WRITE | (canExec ? PROT_EXEC : 0);
+	//	size_t iaddr = cast(size_t)addr;
+	//	size_t roundAddr = iaddr & ~(pageSize - cast(size_t)1);
+	//	int mode = PROT_READ | PROT_WRITE | (canExec ? PROT_EXEC : 0);
 	//	return mprotect(cast(void*)(roundAddr), size + (iaddr - roundAddr), mode) == 0;
-		return true;
+		int fd = open("/dev/zero", O_RDONLY);
+		auto m = cast(uint8*)mmap(addr, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+		return (m == addr);
 }
 	}
 
@@ -1555,15 +1551,15 @@ version(XBYAK32){
 
 version(XBYAK64) {
 	void mov(Operand op, uint64 imm, bool opti = true) {
-		mov_32_64(op, imm, opti);
+		mov_uint32or64!(uint64)(op, imm, opti);
 	}
 }	
 version(XBYAK32) {
 	void mov(Operand op, uint32 imm, bool opti = true) {
-		mov_32_64(op, imm, opti);
+		mov_uint32or64!(uint32)(op, imm, opti);
 	}
 }
-	void mov_32_64(T)(Operand op, T imm, bool opti = true)
+	void mov_uint32or64(T)(Operand op, T imm, bool opti = true) if(is(T==uint32) || is(T==uint64))
 	{
 		verifyMemHasSize(op);
 		if (op.isREG) {
@@ -1599,42 +1595,29 @@ version(XBYAK32) {
 
 	// QQQ : rewrite this function with putL
 version(XBYAK64) {
-	void mov(Reg64 reg, string label)
-	{
-		if (label.length == 0) {
-			mov(reg, 0, true);
-			return;
-		}
-		int jmpSize = cast(int)size_t.sizeof;
-		auto dummyAddr = 0x1122334455667788;
-		if (isAutoGrow && size_ + 16 >= maxSize_) growMemory;
-		size_t offset = 0;
-		if (label_.getOffset(&offset, label)) {
-			if (isAutoGrow) {
-				mov(reg, dummyAddr);
-				save(size_ - jmpSize, offset, jmpSize, inner.LabelMode.LaddTop);
-			} else {
-				mov(reg, cast(size_t)top_ + offset, false); // not to optimize 32-bit imm
-			}
-			return;
-		}
-		mov(reg, dummyAddr);
-		JmpLabel jmp;
-		jmp.endOfJmp = size_;
-		jmp.jmpSize = jmpSize;
-		jmp.mode = isAutoGrow ? inner.LabelMode.LaddTop : inner.LabelMode.Labs;
-		label_.addUndefinedLabel(label, jmp);
+	void mov(Reg64 reg, string label) {
+		mov_Reg32or64!(Reg64)(reg, label);
 	}
 }
 version(XBYAK32) {
-	void mov(Reg32 reg, string label)
+	void mov(Reg32 reg, string label) {
+		mov_Reg32or64!(Reg32)(reg, label);
+	}
+}
+
+	void mov_Reg32or64(T)(T reg, string label) if(is(T==Reg32) || is(T==Reg64))
 	{
 		if (label.length == 0) {
 			mov(reg, 0, true);
 			return;
 		}
 		int jmpSize = cast(int)size_t.sizeof;
-		size_t dummyAddr = 0x12345678;
+version(XBYAK64) {
+		auto dummyAddr = 0x1122334455667788;
+}
+version(XBYAK32) {
+		auto dummyAddr = 0x12345678;
+}
 		if (isAutoGrow && size_ + 16 >= maxSize_) growMemory;
 		size_t offset = 0;
 		if (label_.getOffset(&offset, label)) {
@@ -1653,7 +1636,7 @@ version(XBYAK32) {
 		jmp.mode = isAutoGrow ? inner.LabelMode.LaddTop : inner.LabelMode.Labs;
 		label_.addUndefinedLabel(label, jmp);
 	}
-}
+
 	/*
 		put address of label to buffer
 		@note the put size is 4(32-bit), 8(64-bit)
