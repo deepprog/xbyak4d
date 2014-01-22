@@ -150,7 +150,7 @@ private:
 	size_t[void*] SizeTbl;
 public:
 	uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16) {
-		return cast(uint8*)((cast(size_t)(addr) + alignedSize - 1) & ~(alignedSize - cast(size_t)(1)));
+		return cast(uint8*)((cast(size_t)(addr) + alignedSize - 1) & ~(alignedSize - 1));
 	}
 	 
 	void* Malloc(size_t size, size_t alignment= inner.ALIGN_PAGE_SIZE)
@@ -657,7 +657,7 @@ public:
 		assert(offset < maxSize_);
 		if (size != 1 && size != 2 && size != 4 && size != 8) throw new XError(ERR.BAD_PARAMETER); 
 		uint8* data = top_ + offset;
-		for (size_t i=0; i<size; i++) {
+		foreach (i; 0..size) {
 			data[i] = cast(uint8)(disp >> (i*8));
 		}
 	}
@@ -685,10 +685,6 @@ version(Windows) {
 }
 version(linux){
 		size_t pageSize = sysconf(_SC_PAGESIZE);
-	//	size_t iaddr = cast(size_t)addr;
-	//	size_t roundAddr = iaddr & ~(pageSize - cast(size_t)1);
-	//	int mode = PROT_READ | PROT_WRITE | (canExec ? PROT_EXEC : 0);
-	//	return mprotect(cast(void*)(roundAddr), size + (iaddr - roundAddr), mode) == 0;
 		int fd = open("/dev/zero", O_RDONLY);
 		auto m = cast(uint8*)mmap(addr, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
 		return (m == addr);
@@ -702,7 +698,7 @@ version(linux){
 		@return aligned addr by alingedSize
 	*/
 	uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16) {
-		return cast(uint8*)((cast(size_t)(addr) + alignedSize - 1) & ~(alignedSize - cast(size_t)(1)));
+		return cast(uint8*)((cast(size_t)(addr) + alignedSize - 1) & ~(alignedSize - 1));
 	}
 };
 		
@@ -1843,11 +1839,11 @@ version(XBYAK64){
 	void rorx(Reg32e r, Operand op, uint8 imm) { opGpr(r, op, REG32E(0, r.getBit), MM_0F3A | PP_F2, 0xF0, false); db(imm); }
 	enum { NONE = 256 };
 	public:
-		this( size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = cast(void*)null )
+		this( size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = null )
 		{
 			super(maxSize, userPtr);
 			label_ = new Label;
-			label_.set(cast(CodeArray)this);
+			label_.set(this);
 		}
 
 		void reset()
