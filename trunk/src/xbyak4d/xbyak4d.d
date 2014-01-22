@@ -1414,28 +1414,46 @@ version(XBYAK64) {
 	}
 	public:
 		uint getVersion() { return xbyak4d.VERSION; }
-		Mmx mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7;
-		Xmm xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7;
-		Ymm ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6, ymm7;
-		Xmm xm0, xm1, xm2, xm3, xm4, xm5, xm6, xm7;
-		Ymm ym0, ym1, ym2, ym3, ym4, ym5, ym6, ym7;
-		Reg32 eax, ecx , edx, ebx, esp, ebp, esi, edi;
-		Reg16 ax, cx, dx, bx, sp, bp, si, di;
-		Reg8 al, cl, dl, bl, ah, ch, dh, bh;
-		AddressFrame ptr, byte_, word, dword, qword;
-		Fpu st0, st1, st2, st3, st4, st5, st6, st7;
-
+		enum{
+			mm0 = MMX(0), mm1 = MMX(1), mm2 = MMX(2), mm3 = MMX(3),
+			mm4 = MMX(4), mm5 = MMX(5), mm6 = MMX(6), mm7 = MMX(7),
+			xmm0 = XMM(0), xmm1 = XMM(1), xmm2 = XMM(2), xmm3 = XMM(3),
+			xmm4 = XMM(4), xmm5 = XMM(5), xmm6 = XMM(6), xmm7 = XMM(7),
+			ymm0 = YMM(0), ymm1 = YMM(1), ymm2 = YMM(2), ymm3 = YMM(3), 
+			ymm4 = YMM(4), ymm5 = YMM(5), ymm6 = YMM(6), ymm7 = YMM(7), 
+			xm0 = xmm0, xm1 = xmm1, xm2 = xmm2, xm3 = xmm3,
+			xm4 = xmm4, xm5 = xmm5, xm6 = xmm6, xm7 = xmm7, // for my convenience
+			ym0 = ymm0, ym1 = ymm1, ym2 = ymm2, ym3 = ymm3,
+			ym4 = ymm4, ym5 = ymm5, ym6 = ymm6, ym7 = ymm7, // for my convenience
+			eax = REG32(Code.EAX), ecx = REG32(Code.ECX), edx = REG32(Code.EDX), ebx = REG32(Code.EBX),
+			esp = REG32(Code.ESP), ebp = REG32(Code.EBP), esi = REG32(Code.ESI), edi = REG32(Code.EDI),	
+			ax = REG16(Code.EAX), cx = REG16(Code.ECX), dx = REG16(Code.EDX), bx = REG16(Code.EBX),
+			sp = REG16(Code.ESP), bp = REG16(Code.EBP), si = REG16(Code.ESI), di = REG16(Code.EDI),
+			al = REG8(Code.AL), cl = REG8(Code.CL), dl = REG8(Code.DL), bl = REG8(Code.BL), 
+			ah = REG8(Code.AH), ch = REG8(Code.CH), dh = REG8(Code.DH), bh = REG8(Code.BH), 
+			ptr = new AddressFrame(0), 
+			byte_ = new AddressFrame(8), 
+			word = new AddressFrame(16), 
+			dword = new AddressFrame(32), 
+			qword = new AddressFrame(64), 
+			st0 = FPU(0), st1 = FPU(1), st2 = FPU(2), st3 = FPU(3), 
+			st4 = FPU(4), st5 = FPU(5), st6 = FPU(6), st7 = FPU(7)
+		}
 version(XBYAK64){
-		Reg64 rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15;
-		Reg32 r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d;
-		Reg16 r8w, r9w, r10w, r11w, r12w, r13w, r14w, r15w;
-		Reg8 r8b, r9b, r10b, r11b, r12b, r13b, r14b, r15b;
-		Reg8 spl, bpl, sil, dil;
-		Xmm xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15;
-		Ymm ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15;
-		Xmm xm8, xm9, xm10, xm11, xm12, xm13, xm14, xm15; // for my convenience
-		Ymm ym8, ym9, ym10, ym11, ym12, ym13, ym14, ym15;
-		RegRip rip;
+		enum{
+			rax = REG64(Code.RAX), rcx = REG64(Code.RCX), rdx = REG64(Code.RDX), rbx = REG64(Code.RBX),
+			rsp = REG64(Code.RSP), rbp = REG64(Code.RBP), rsi = REG64(Code.RSI), rdi = REG64(Code.RDI),
+			r8 = REG64(Code.R8), r9 = REG64(Code.R9), r10 = REG64(Code.R10), r11 = REG64(Code.R11), r12 = REG64(Code.R12), r13 = REG64(Code.R13), r14 = REG64(Code.R14), r15 = REG64(Code.R15),
+			r8d = REG32(Code.R8D), r9d = REG32(Code.R9D), r10d = REG32(Code.R10D), r11d = REG32(Code.R11D), r12d = REG32(Code.R12D), r13d = REG32(Code.R13D), r14d = REG32(Code.R14D), r15d = REG32(Code.R15D),
+			r8w = REG16(Code.R8W), r9w = REG16(Code.R9W), r10w = REG16(Code.R10W), r11w = REG16(Code.R11W), r12w = REG16(Code.R12W), r13w = REG16(Code.R13W), r14w = REG16(Code.R14W), r15w = REG16(Code.R15W),
+			r8b = REG8(Code.R8B), r9b = REG8(Code.R9B), r10b = REG8(Code.R10B), r11b = REG8(Code.R11B), r12b = REG8(Code.R12B), r13b = REG8(Code.R13B), r14b = REG8(Code.R14B), r15b = REG8(Code.R15B),
+			spl = REG8(Code.SPL, 1), bpl = REG8(Code.BPL, 1), sil = REG8(Code.SIL, 1), dil = REG8(Code.DIL, 1),
+			xmm8 = XMM(8), xmm9 = XMM(9), xmm10 = XMM(10), xmm11 = XMM(11), xmm12 = XMM(12), xmm13 = XMM(13), xmm14 = XMM(14), xmm15 = XMM(15),
+			ymm8 = YMM(8), ymm9 = YMM(9), ymm10 = YMM(10), ymm11 = YMM(11), ymm12 = YMM(12), ymm13 = YMM(13), ymm14 = YMM(14), ymm15 = YMM(15),
+			xm8 = xmm8, xm9 = xmm9, xm10 = xmm10, xm11 = xmm11, xm12 = xmm12, xm13 = xmm13, xm14 = xmm14, xm15 = xmm15, // for my convenience
+			ym8 = ymm8, ym9 = ymm9, ym10 = ymm10, ym11 = ymm11, ym12 = ymm12, ym13 = ymm13, ym14 = ymm14, ym15 = ymm15, // for my convenience
+			rip = RegRip()
+		}
 }
 	
 	void L(string label) { label_.define(label, getSize); }
@@ -1559,6 +1577,7 @@ version(XBYAK32) {
 		mov_uint32or64!(uint32)(op, imm, opti);
 	}
 }
+
 	void mov_uint32or64(T)(Operand op, T imm, bool opti = true) if(is(T==uint32) || is(T==uint64))
 	{
 		verifyMemHasSize(op);
@@ -1827,46 +1846,8 @@ version(XBYAK64){
 		this( size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = cast(void*)null )
 		{
 			super(maxSize, userPtr);
-			mm0 = MMX(0); mm1 = MMX(1); mm2 = MMX(2); mm3 = MMX(3);
-			mm4 = MMX(4); mm5 = MMX(5); mm6 = MMX(6); mm7 = MMX(7);
-			xmm0 = XMM(0); xmm1 = XMM(1); xmm2 = XMM(2); xmm3 = XMM(3);
-			xmm4 = XMM(4); xmm5 = XMM(5); xmm6 = XMM(6); xmm7 = XMM(7);
-			ymm0 = YMM(0); ymm1 = YMM(1); ymm2 = YMM(2); ymm3 = YMM(3); 
-			ymm4 = YMM(4); ymm5 = YMM(5); ymm6 = YMM(6); ymm7 = YMM(7); 
-			xm0 = xmm0; xm1 = xmm1; xm2 = xmm2; xm3 = xmm3;
-			xm4 = xmm4; xm5 = xmm5; xm6 = xmm6; xm7 = xmm7; // for my convenience
-			ym0 = ymm0; ym1 = ymm1; ym2 = ymm2; ym3 = ymm3;
-			ym4 = ymm4; ym5 = ymm5; ym6 = ymm6; ym7 = ymm7; // for my convenience
-			eax = REG32(Code.EAX); ecx = REG32(Code.ECX); edx = REG32(Code.EDX); ebx = REG32(Code.EBX);
-			esp = REG32(Code.ESP); ebp = REG32(Code.EBP); esi = REG32(Code.ESI); edi = REG32(Code.EDI);	
-			ax = REG16(Code.EAX); cx = REG16(Code.ECX); dx = REG16(Code.EDX); bx = REG16(Code.EBX);
-			sp = REG16(Code.ESP); bp = REG16(Code.EBP); si = REG16(Code.ESI); di = REG16(Code.EDI);
-			al = REG8(Code.AL); cl = REG8(Code.CL); dl = REG8(Code.DL); bl = REG8(Code.BL); 
-			ah = REG8(Code.AH); ch = REG8(Code.CH); ch = REG8(Code.DH); ch = REG8(Code.BH); 
-			ptr = new AddressFrame(0); 
-			byte_ = new AddressFrame(8); 
-			word = new AddressFrame(16); 
-			dword = new AddressFrame(32); 
-			qword = new AddressFrame(64); 
-			st0 = FPU(0); st1 = FPU(1); st2 = FPU(2); st3 = FPU(3); 
-			st4 = FPU(4); st5 = FPU(5); st6 = FPU(6); st7 = FPU(7); 
 			label_ = new Label;
 			label_.set(cast(CodeArray)this);
-
-version(XBYAK64){
-			rax = REG64(Code.RAX); rcx = REG64(Code.RCX); rdx = REG64(Code.RDX); rbx = REG64(Code.RBX);
-			rsp = REG64(Code.RSP); rbp = REG64(Code.RBP); rsi = REG64(Code.RSI); rdi = REG64(Code.RDI);
-			r8 = REG64(Code.R8); r9 = REG64(Code.R9); r10 = REG64(Code.R10); r11 = REG64(Code.R11); r12 = REG64(Code.R12); r13 = REG64(Code.R13); r14 = REG64(Code.R14); r15 = REG64(Code.R15);
-			r8d = REG32(Code.R8D); r9d = REG32(Code.R9D); r10d = REG32(Code.R10D); r11d = REG32(Code.R11D); r12d = REG32(Code.R12D); r13d = REG32(Code.R13D); r14d = REG32(Code.R14D); r15d = REG32(Code.R15D);
-			r8w = REG16(Code.R8W); r9w = REG16(Code.R9W); r10w = REG16(Code.R10W); r11w = REG16(Code.R11W); r12w = REG16(Code.R12W); r13w = REG16(Code.R13W); r14w = REG16(Code.R14W); r15w = REG16(Code.R15W);
-			r8b = REG8(Code.R8B); r9b = REG8(Code.R9B); r10b = REG8(Code.R10B); r11b = REG8(Code.R11B); r12b = REG8(Code.R12B); r13b = REG8(Code.R13B); r14b = REG8(Code.R14B); r15b = REG8(Code.R15B);
-			spl = REG8(Code.SPL, 1); bpl = REG8(Code.BPL, 1); sil = REG8(Code.SIL, 1); dil = REG8(Code.DIL, 1);
-			xmm8 = XMM(8); xmm9 = XMM(9); xmm10 = XMM(10); xmm11 = XMM(11); xmm12 = XMM(12); xmm13 = XMM(13); xmm14 = XMM(14); xmm15 = XMM(15);
-			ymm8 = YMM(8); ymm9 = YMM(9); ymm10 = YMM(10); ymm11 = YMM(11); ymm12 = YMM(12); ymm13 = YMM(13); ymm14 = YMM(14); ymm15 = YMM(15);
-			xm8 = xmm8; xm9 = xmm9; xm10 = xmm10; xm11 = xmm11; xm12 = xmm12; xm13 = xmm13; xm14 = xmm14; xm15 = xmm15; // for my convenience
-			ym8 = ymm8; ym9 = ymm9; ym10 = ymm10; ym11 = ymm11; ym12 = ymm12; ym13 = ymm13; ym14 = ymm14; ym15 = ymm15; // for my convenience
-			rip = RegRip();
-}
 		}
 
 		void reset()
