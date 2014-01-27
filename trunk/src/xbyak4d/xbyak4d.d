@@ -149,32 +149,31 @@ private:
 	void*[void*] MemTbl;
 	size_t[void*] SizeTbl;
 public:
-	uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16) {
-		return cast(uint8*)((cast(size_t)(addr) + alignedSize - 1) & ~(alignedSize - 1));
+	void* getAlignedAddress(void* addr, size_t alignedSize = 16) {
+		size_t mask = alignedSize - 1;
+		return cast(void*)((cast(size_t)addr + mask) & ~mask);
 	}
 	 
 	void* Malloc(size_t size, size_t alignment= inner.ALIGN_PAGE_SIZE)
 	{
 version(Win32){
-		uint8[] m = new uint8[size];
-		uint8* mp = m.ptr;
+		void* mp = core.memory.GC.malloc(size + alignment); 
 }
 version(linux){
 		size_t pageSize = sysconf(_SC_PAGESIZE);
 		int fd = open("/dev/zero", O_RDONLY);
-		uint8* mp = cast(uint8*)mmap(null, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
+		void* mp = mmap(null, size + alignment, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
 }
-		SizeTbl[mp] = size;
-		uint8* ret = getAlignedAddress(mp, alignment);
-		MemTbl[mp] = ret;		
-		return ret;
+		SizeTbl[mp] = size + alignment;
+		MemTbl[mp] = getAlignedAddress(mp, alignment);	
+		return MemTbl[mp];
 	}
 
 	void Free(void* p)
 	{
 version(Win32){
-		//void* ret = MemTbl[p];
-		//delete ret;
+		//core.memory.GC.free(MemTbl[p]);
+		//MemTbl.remove(p);
 }
 version(linux){
 		void* ret = MemTbl[p];
@@ -495,7 +494,7 @@ private:
 	SReg index_;
 };
 	
-// 2nd parameter for constructor of CodeArray(maxSize, userPtr, alloc)
+// 1nd parameter for constructor of CodeArray(userPtr, maxSize, alloc)
 void* AutoGrow = cast(void*)(1);
 
 class CodeArray {
@@ -559,9 +558,9 @@ protected:
 		}
 		if (alloc_.useProtect && !protect(top_, size_, true)) throw new XError(ERR.CANT_PROTECT);
 	}
-	
+
 public:
-	this(size_t maxSize, void* userPtr = null, Allocator* allocator = null)
+	this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator* allocator = null)
 	{
 		type_ = userPtr == AutoGrow ? Type.AUTO_GROW : userPtr ? Type.USER_BUF : Type.ALLOC_BUF;
 		alloc_ = allocator ? allocator : &defaultAllocator_;
@@ -615,7 +614,7 @@ public:
 	void dw(uint32 code) { db(code, 2); }
 	void dd(uint32 code) { db(code, 4); }
 	uint8* getCode() { return top_; }
-	uint8* getCurr() { return cast(uint8*)&top_[size_]; }
+	uint8* getCurr() { return &top_[size_]; }
 	size_t getSize() { return size_; }
 	void setSize(size_t size)
 	{
@@ -698,7 +697,8 @@ version(linux){
 		@return aligned addr by alingedSize
 	*/
 	uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16) {
-		return cast(uint8*)((cast(size_t)(addr) + alignedSize - 1) & ~(alignedSize - 1));
+		size_t mask = alignedSize - 1;
+		return cast(uint8*)((cast(size_t)addr + mask) & ~mask);
 	}
 };
 		
@@ -1839,13 +1839,13 @@ version(XBYAK64){
 	void rorx(Reg32e r, Operand op, uint8 imm) { opGpr(r, op, REG32E(0, r.getBit), MM_0F3A | PP_F2, 0xF0, false); db(imm); }
 	enum { NONE = 256 };
 	public:
-		this( size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = null )
+		this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator* allocator = null)
 		{
-			super(maxSize, userPtr);
+			super(userPtr, maxSize, allocator);
 			label_ = new Label;
 			label_.set(this);
 		}
-
+		
 		void reset()
 		{
 			resetSize;

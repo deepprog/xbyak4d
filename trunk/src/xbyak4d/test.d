@@ -46,6 +46,14 @@ void main(){
 	s2.dump;
 	auto p2=3;
 	printf("f2(%d)=%d\n", p2, f2(p2) );
+	
+	class mem : CodeGenerator{
+			this(){
+				super(AutoGrow);
+				foreach(i; 0 .. 0xffff) db(0);
+			}
+	}
 
-	printf("END test\n");
+		auto mm = new mem();
+		printf("END test\n");
 }
