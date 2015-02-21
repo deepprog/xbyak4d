@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.050
- * Date: 2015/02/19
+ * Date: 2015/02/21
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -1401,14 +1401,20 @@ struct LabelManager
         ClabelUndefList undefList;
     }
 
-    CodeArray   base_;
+    CodeArray       base_;
 // global : stateList_.front(), local : stateList_.back()
-    StateList   stateList_;
-    ClabelState clabelstate_;
+    StateList       stateList_;
+    ClabelState     clabelstate_;
 
-    int         labelId_;
 
-    int         getId(Label label)
+    int             labelId_;
+    ClabelDefList   clabelDefList_;
+    ClabelUndefList clabelUndefList_;
+
+
+
+
+    int getId(Label label)
     {
         if (label.id == 0)
         {
@@ -1458,10 +1464,6 @@ struct LabelManager
         // add label
         stateList_[p].defList[labelId] = SlabelVal(addrOffset);
 
-//       if (addrOffset != 0)
-//       {
-//           throw new XError(ERR.LABEL_IS_REDEFINED);
-//       }
         // search undefined label
         if ((labelId in stateList_[p].undefList) == null)
         {
@@ -1589,16 +1591,13 @@ struct LabelManager
 
     bool hasUndefinedLabel_inner(T)(T list)
     {
-/+
-   #ifndef NDEBUG
+        version (NDEBUG) {
+            foreach (i; list)
+            {
+                stderr.writefln("undefined label:%s", i[0]);
+            }
+        }
 
-                for ( typename T::const_iterator i = list.begin(); i != list.end(); ++i )
-                {
-                        std::cerr << "undefined label:" << i->first << std::endl;
-                }
-
-   #endif
- +/
         return list.length == 0;
     }
 
@@ -1635,17 +1634,15 @@ public:
         base_ = base;
     }
 
-/+
-    void assign(Label& dst, Label& src)
-    {
-        ClabelDefList::const_iterator i = clabelDefList_.find(src.id);
-        if (i == clabelDefList_.end())
-            throw Error(ERR_LABEL_ISNOT_SET_BY_L);
-        define_inner(clabelDefList_, clabelUndefList_, dst.id, i->second.offset);
-        dst.mgr = this;
-    }
- +/
-
+    /+
+        void assign(Label dst, Label src)
+       {
+           if(null ==( src.id in clabelDefList_))
+               throw new XError(ERR.LABEL_ISNOT_SET_BY_L);
+           define_inner(clabelDefList_, clabelUndefList_, dst.id, i[1].offset);
+           dst.mgr = this;
+       }
+     +/
     bool getOffset(size_t* offset, string label)
     {
         if (label == "@b")
@@ -1736,6 +1733,7 @@ enum LabelType
     T_AUTO     // T_SHORT if possible
 }
 
+
 public class CodeGenerator : CodeArray {
 version (XBYAK64)
 {
@@ -1775,6 +1773,11 @@ bool isREG32_XMMorMEM(Operand op1, Operand op2)
 {
     return op1.isREG(i32e) && (op2.isXMM || op2.isMEM);
 }
+bool isREG32_REG32orMEM(Operand op1 = OP(), Operand op2 = OP())
+{
+    return op1.isREG(i32e) && ((op2.isREG(i32e) && op1.getBit() == op2.getBit()) || op2.isMEM());
+}
+
 
 void rex(Operand op1, Operand op2 = REG)
 {
@@ -2665,7 +2668,9 @@ void mov_Reg32or64(T) (T reg, string label) if (is (T == Reg32) || is (T == Reg6
         put address of label to buffer
         @note the put size is 4(32-bit), 8(64-bit)
  */
-void putL(string label)
+
+
+void putL(T)(T label) if (T == string || T == Label)
 {
     const int jmpSize = cast(int) size_t.sizeof;
     if (isAutoGrow && size_ + 16 >= maxSize_)
@@ -2675,7 +2680,7 @@ void putL(string label)
     {
         if (isAutoGrow)
         {
-            db(cast(uint64) (0), jmpSize);
+            db(cast(uint64) 0, jmpSize);
             save(size_ - jmpSize, offset, jmpSize, inner.LabelMode.LaddTop);
         }
         else
@@ -2684,13 +2689,23 @@ void putL(string label)
         }
         return;
     }
-    db(cast(uint64) (0), jmpSize);
+    db(cast(uint64) 0, jmpSize);
     JmpLabel jmp;
     jmp.endOfJmp = size_;
     jmp.jmpSize  = jmpSize;
     jmp.mode     = isAutoGrow ? inner.LabelMode.LaddTop : inner.LabelMode.Labs;
     labelMgr_.addUndefinedLabel(label, jmp);
 }
+
+void adcx(Reg32e reg, Operand op)
+{
+    opGen(reg, op, 0xF6, 0x66, isREG32_REG32orMEM, NONE, 0x38);
+}
+void adox(Reg32e reg, Operand op)
+{
+    opGen(reg, op, 0xF6, 0xF3, isREG32_REG32orMEM, NONE, 0x38);
+}
+
 
 void cmpxchg8b(Address addr)
 {
@@ -2707,6 +2722,12 @@ void xadd(Operand op, Reg reg)
 {
     opModRM(reg, op, (op.isREG && reg.isREG && op.getBit == reg.getBit), op.isMEM, 0x0F, 0B11000000 | (reg.isBit(8) ? 0 : 1));
 }
+
+void cmpxchg(Operand op, Reg reg)
+{
+    opModRM(reg, op, (op.isREG() && reg.isREG() && op.getBit() == reg.getBit()), op.isMEM(), 0x0F, 0xb0 | (reg.isBit(8) ? 0 : 1));
+}
+
 void xchg(Operand op1, Operand op2)
 {
     Operand p1 = op1;
@@ -2929,6 +2950,13 @@ void rdrand(Reg r)
         throw new XError(ERR.BAD_SIZE_OF_REGISTER);
     opModR(REG(6, Kind.REG, r.getBit), r, 0x0f, 0xc7);
 }
+void rdseed(Reg r)
+{
+    if (r.isBit(8))
+        throw new XError(ERR.BAD_SIZE_OF_REGISTER);
+    opModR(REG(7, Kind.REG, r.getBit), r, 0x0f, 0xc7);
+}
+
 void rorx(Reg32e r, Operand op, uint8 imm)
 {
     opGpr(r, op, REG32E(0, r.getBit), MM_0F3A | PP_F2, 0xF0, false); db(imm);
@@ -2982,7 +3010,7 @@ void Align(int x = 16)
 
 string getVersionString()
 {
-    return "0.050";
+    return "0.50";
 }
 void packssdw(Mmx mmx, Operand op)
 {
@@ -3720,11 +3748,7 @@ void cmovo(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 0);
 }
-void jo(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x70, 0x80, 0x0F);
-}
-void jo(Label label, LabelType type = LabelType.T_AUTO)
+void jo(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x70, 0x80, 0x0F);
 }
@@ -3736,11 +3760,7 @@ void cmovno(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 1);
 }
-void jno(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x71, 0x81, 0x0F);
-}
-void jno(Label label, LabelType type = LabelType.T_AUTO)
+void jno(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x71, 0x81, 0x0F);
 }
@@ -3752,11 +3772,7 @@ void cmovb(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 2);
 }
-void jb(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x72, 0x82, 0x0F);
-}
-void jb(Label label, LabelType type = LabelType.T_AUTO)
+void jb(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x72, 0x82, 0x0F);
 }
@@ -3768,11 +3784,7 @@ void cmovc(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 2);
 }
-void jc(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x72, 0x82, 0x0F);
-}
-void jc(Label label, LabelType type = LabelType.T_AUTO)
+void jc(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x72, 0x82, 0x0F);
 }
@@ -3784,11 +3796,7 @@ void cmovnae(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 2);
 }
-void jnae(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x72, 0x82, 0x0F);
-}
-void jnae(Label label, LabelType type = LabelType.T_AUTO)
+void jnae(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x72, 0x82, 0x0F);
 }
@@ -3800,11 +3808,7 @@ void cmovnb(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 3);
 }
-void jnb(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x73, 0x83, 0x0F);
-}
-void jnb(Label label, LabelType type = LabelType.T_AUTO)
+void jnb(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x73, 0x83, 0x0F);
 }
@@ -3816,11 +3820,7 @@ void cmovae(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 3);
 }
-void jae(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x73, 0x83, 0x0F);
-}
-void jae(Label label, LabelType type = LabelType.T_AUTO)
+void jae(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x73, 0x83, 0x0F);
 }
@@ -3832,11 +3832,7 @@ void cmovnc(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 3);
 }
-void jnc(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x73, 0x83, 0x0F);
-}
-void jnc(Label label, LabelType type = LabelType.T_AUTO)
+void jnc(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x73, 0x83, 0x0F);
 }
@@ -3848,11 +3844,7 @@ void cmove(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 4);
 }
-void je(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x74, 0x84, 0x0F);
-}
-void je(Label label, LabelType type = LabelType.T_AUTO)
+void je(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x74, 0x84, 0x0F);
 }
@@ -3864,11 +3856,7 @@ void cmovz(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 4);
 }
-void jz(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x74, 0x84, 0x0F);
-}
-void jz(Label label, LabelType type = LabelType.T_AUTO)
+void jz(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x74, 0x84, 0x0F);
 }
@@ -3880,11 +3868,7 @@ void cmovne(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 5);
 }
-void jne(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x75, 0x85, 0x0F);
-}
-void jne(Label label, LabelType type = LabelType.T_AUTO)
+void jne(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x75, 0x85, 0x0F);
 }
@@ -3896,11 +3880,7 @@ void cmovnz(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 5);
 }
-void jnz(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x75, 0x85, 0x0F);
-}
-void jnz(Label label, LabelType type = LabelType.T_AUTO)
+void jnz(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x75, 0x85, 0x0F);
 }
@@ -3912,11 +3892,7 @@ void cmovbe(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 6);
 }
-void jbe(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x76, 0x86, 0x0F);
-}
-void jbe(Label label, LabelType type = LabelType.T_AUTO)
+void jbe(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x76, 0x86, 0x0F);
 }
@@ -3928,12 +3904,7 @@ void cmovna(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 6);
 }
-
-void jna(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x76, 0x86, 0x0F);
-}
-void jna(Label label, LabelType type = LabelType.T_AUTO)
+void jna(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x76, 0x86, 0x0F);
 }
@@ -3945,11 +3916,7 @@ void cmovnbe(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 7);
 }
-void jnbe(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x77, 0x87, 0x0F);
-}
-void jnbe(Label label, LabelType type = LabelType.T_AUTO)
+void jnbe(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x77, 0x87, 0x0F);
 }
@@ -3961,11 +3928,7 @@ void cmova(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 7);
 }
-void ja(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x77, 0x87, 0x0F);
-}
-void ja(Label label, LabelType type = LabelType.T_AUTO)
+void ja(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x77, 0x87, 0x0F);
 }
@@ -3977,11 +3940,7 @@ void cmovs(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 8);
 }
-void js(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x78, 0x88, 0x0F);
-}
-void js(Label label, LabelType type = LabelType.T_AUTO)
+void js(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x78, 0x88, 0x0F);
 }
@@ -3993,11 +3952,7 @@ void cmovns(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 9);
 }
-void jns(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x79, 0x89, 0x0F);
-}
-void jns(Label label, LabelType type = LabelType.T_AUTO)
+void jns(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x79, 0x89, 0x0F);
 }
@@ -4009,11 +3964,7 @@ void cmovp(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 10);
 }
-void jp(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7A, 0x8A, 0x0F);
-}
-void jp(Label label, LabelType type = LabelType.T_AUTO)
+void jp(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7A, 0x8A, 0x0F);
 }
@@ -4025,11 +3976,7 @@ void cmovpe(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 10);
 }
-void jpe(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7A, 0x8A, 0x0F);
-}
-void jpe(Label label, LabelType type = LabelType.T_AUTO)
+void jpe(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7A, 0x8A, 0x0F);
 }
@@ -4039,13 +3986,10 @@ void setpe(Operand op)
 }
 void cmovnp(Reg32e reg, Operand op)
 {
-    opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, isXMM_MMXorMEM(reg, op), 0B010000000 | 11);
+    opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 11);
 }
-void jnp(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7B, 0x8B, 0x0F);
-}
-void jnp(Label label, LabelType type = LabelType.T_AUTO)
+
+void jnp(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7B, 0x8B, 0x0F);
 }
@@ -4057,11 +4001,7 @@ void cmovpo(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 11);
 }
-void jpo(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7B, 0x8B, 0x0F);
-}
-void jpo(Label label, LabelType type = LabelType.T_AUTO)
+void jpo(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7B, 0x8B, 0x0F);
 }
@@ -4073,11 +4013,7 @@ void cmovl(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 12);
 }
-void jl(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7C, 0x8C, 0x0F);
-}
-void jl(Label label, LabelType type = LabelType.T_AUTO)
+void jl(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7C, 0x8C, 0x0F);
 }
@@ -4089,11 +4025,7 @@ void cmovnge(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 12);
 }
-void jnge(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7C, 0x8C, 0x0F);
-}
-void jnge(Label label, LabelType type = LabelType.T_AUTO)
+void jnge(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7C, 0x8C, 0x0F);
 }
@@ -4105,11 +4037,7 @@ void cmovnl(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 13);
 }
-void jnl(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7D, 0x8D, 0x0F);
-}
-void jnl(Label label, LabelType type = LabelType.T_AUTO)
+void jnl(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7D, 0x8D, 0x0F);
 }
@@ -4121,11 +4049,7 @@ void cmovge(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 13);
 }
-void jge(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7D, 0x8D, 0x0F);
-}
-void jge(Label label, LabelType type = LabelType.T_AUTO)
+void jge(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7D, 0x8D, 0x0F);
 }
@@ -4137,11 +4061,7 @@ void cmovle(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 14);
 }
-void jle(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7E, 0x8E, 0x0F);
-}
-void jle(Label label, LabelType type = LabelType.T_AUTO)
+void jle(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7E, 0x8E, 0x0F);
 }
@@ -4153,11 +4073,7 @@ void cmovng(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 14);
 }
-void jng(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7E, 0x8E, 0x0F);
-}
-void jng(Label label, LabelType type = LabelType.T_AUTO)
+void jng(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7E, 0x8E, 0x0F);
 }
@@ -4169,11 +4085,7 @@ void cmovnle(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 15);
 }
-void jnle(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7F, 0x8F, 0x0F);
-}
-void jnle(Label label, LabelType type = LabelType.T_AUTO)
+void jnle(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7F, 0x8F, 0x0F);
 }
@@ -4185,11 +4097,7 @@ void cmovg(Reg32e reg, Operand op)
 {
     opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 15);
 }
-void jg(string label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0x7F, 0x8F, 0x0F);
-}
-void jg(Label label, LabelType type = LabelType.T_AUTO)
+void jg(T)(T label, LabelType type = LabelType.T_AUTO) if (is (T == string) || is (T == Label))
 {
     opJmp(label, type, 0x7F, 0x8F, 0x0F);
 }
@@ -4199,38 +4107,22 @@ void setg(Operand op)
 }
 version (XBYAK32)
 {
-    void jcxz(string label)
+    void jcxz(T)(T label) if (T == string || T == Label)
     {
         db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
     }
-    void jcxz(Label label)
-    {
-        db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
-    }
-    void jecxz(string label)
-    {
-        opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
-    }
-    void jecxz(Label label)
+    void jecxz(T)(T label) if (T == string || T == Label)
     {
         opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
     }
 }
 else
 {
-    void jecxz(string label)
+    void jecxz(T)(T label) if (T == string || T == Label)
     {
         db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
     }
-    void jecxz(Label label)
-    {
-        db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
-    }
-    void jrcxz(string label)
-    {
-        opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
-    }
-    void jrcxz(Label label)
+    void jrcxz(T)(T label) if (T == string || T == Label)
     {
         opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
     }
@@ -4240,6 +4132,10 @@ version (XBYAK64)
     void cdqe()
     {
         db(0x48); db(0x98);
+    }
+    void cqo()
+    {
+        db(0x48); db(0x99);
     }
 }
 else
@@ -4432,6 +4328,10 @@ void popf()
 void pushf()
 {
     db(0x9C);
+}
+void stac()
+{
+    db(0x0F); db(0x01); db(0xCB);
 }
 void vzeroall()
 {
@@ -4633,6 +4533,7 @@ void add(Operand op, uint32 imm)
 {
     opRM_I(op, imm, 0x00, 0);
 }
+
 void and(Operand op1, Operand op2)
 {
     opRM_RM(op1, op2, 0x20);
@@ -4649,6 +4550,7 @@ void cmp(Operand op, uint32 imm)
 {
     opRM_I(op, imm, 0x38, 7);
 }
+
 void or(Operand op1, Operand op2)
 {
     opRM_RM(op1, op2, 0x08);
@@ -4657,6 +4559,7 @@ void or(Operand op, uint32 imm)
 {
     opRM_I(op, imm, 0x08, 1);
 }
+
 void sbb(Operand op1, Operand op2)
 {
     opRM_RM(op1, op2, 0x18);
@@ -4673,6 +4576,7 @@ void sub(Operand op, uint32 imm)
 {
     opRM_I(op, imm, 0x28, 5);
 }
+
 void xor(Operand op1, Operand op2)
 {
     opRM_RM(op1, op2, 0x30);
@@ -4681,6 +4585,7 @@ void xor(Operand op, uint32 imm)
 {
     opRM_I(op, imm, 0x30, 6);
 }
+
 void dec(Operand op)
 {
     opIncDec(op, 0x48, 1);
@@ -4691,31 +4596,31 @@ void inc(Operand op)
 }
 void bt(Operand op, Reg reg)
 {
-    opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xa3);
+    opModRM(reg, op, op.isREG(16 | 32 | 64) && op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xa3);
 }
 void bt(Operand op, uint8 imm)
 {
     opR_ModM(op, 16 | 32 | 64, 4, 0x0f, 0xba); db(imm);
 }
-void bts(Operand op = OP(), Reg reg = REG())
+void bts(Operand op, Reg reg)
 {
-    opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xab);
+    opModRM(reg, op, op.isREG(16 | 32 | 64) && op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xab);
 }
 void bts(Operand op, uint8 imm)
 {
     opR_ModM(op, 16 | 32 | 64, 5, 0x0f, 0xba); db(imm);
 }
-void btr(Operand op = OP(), Reg reg = REG())
+void btr(Operand op, Reg reg)
 {
-    opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xb3);
+    opModRM(reg, op, op.isREG(16 | 32 | 64) && op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xb3);
 }
-void btr(Operand op = OP(), uint8 imm = 0)
+void btr(Operand op, uint8 imm)
 {
     opR_ModM(op, 16 | 32 | 64, 6, 0x0f, 0xba); db(imm);
 }
 void btc(Operand op, Reg reg)
 {
-    opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xbb);
+    opModRM(reg, op, op.isREG(16 | 32 | 64) && op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xbb);
 }
 void btc(Operand op, uint8 imm)
 {
@@ -4814,17 +4719,17 @@ void shld(Operand op, Reg reg, uint8 imm)
 {
     opShxd(op, reg, imm, 0xA4);
 }
-void shld(Operand op, Reg reg, Reg8 _cl)
+void shld(Operand op, Reg reg, Reg8 cl)
 {
-    opShxd(op, reg, 0, 0xA4, _cl);
+    opShxd(op, reg, 0, 0xA4, cl);
 }
 void shrd(Operand op, Reg reg, uint8 imm)
 {
     opShxd(op, reg, imm, 0xAC);
 }
-void shrd(Operand op, Reg reg, Reg8 _cl)
+void shrd(Operand op, Reg reg, Reg8 cl)
 {
-    opShxd(op, reg, 0, 0xAC, _cl);
+    opShxd(op, reg, 0, 0xAC, cl);
 }
 void bsf(Reg reg, Operand op)
 {
@@ -4908,7 +4813,7 @@ void pabsd(Mmx mmx, Operand op)
 }
 void palignr(Mmx mmx, Operand op, int imm)
 {
-    opMMX(mmx, op, 0x0f, 0x66, cast(uint8) imm, 0x3a);
+    opMMX(mmx, op, 0x0f, 0x66, cast(uint8) (imm), 0x3a);
 }
 void blendvpd(Xmm xmm, Operand op)
 {
@@ -5148,7 +5053,7 @@ void fldcw(Address addr)
 }
 void fstcw(Address addr)
 {
-    opModM(addr, REG32(7), 0x9B, 0xD9);
+    db(0x9B); opModM(addr, REG32(7), 0xD9, NONE);
 }
 void movntpd(Address addr, Xmm reg)
 {
@@ -5486,161 +5391,161 @@ void fxch(Fpu reg)
 {
     opFpu(reg, 0xD9, 0xC8);
 }
-void vaddpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vaddpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x58, true);
 }
-void vaddps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vaddps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x58, true);
 }
-void vaddsd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vaddsd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x58, false);
 }
-void vaddss(Xmm xmm, Operand op1, Operand op2 = OP)
+void vaddss(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x58, false);
 }
-void vsubpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vsubpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5C, true);
 }
-void vsubps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vsubps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5C, true);
 }
-void vsubsd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vsubsd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5C, false);
 }
-void vsubss(Xmm xmm, Operand op1, Operand op2 = OP)
+void vsubss(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5C, false);
 }
-void vmulpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vmulpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x59, true);
 }
-void vmulps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vmulps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x59, true);
 }
-void vmulsd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vmulsd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x59, false);
 }
-void vmulss(Xmm xmm, Operand op1, Operand op2 = OP)
+void vmulss(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x59, false);
 }
-void vdivpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vdivpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5E, true);
 }
-void vdivps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vdivps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5E, true);
 }
-void vdivsd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vdivsd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5E, false);
 }
-void vdivss(Xmm xmm, Operand op1, Operand op2 = OP)
+void vdivss(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5E, false);
 }
-void vmaxpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vmaxpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5F, true);
 }
-void vmaxps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vmaxps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5F, true);
 }
-void vmaxsd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vmaxsd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5F, false);
 }
-void vmaxss(Xmm xmm, Operand op1, Operand op2 = OP)
+void vmaxss(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5F, false);
 }
-void vminpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vminpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x5D, true);
 }
-void vminps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vminps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x5D, true);
 }
-void vminsd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vminsd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F2, 0x5D, false);
 }
-void vminss(Xmm xmm, Operand op1, Operand op2 = OP)
+void vminss(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_F3, 0x5D, false);
 }
-void vandpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vandpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x54, true);
 }
-void vandps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vandps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x54, true);
 }
-void vandnpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vandnpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x55, true);
 }
-void vandnps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vandnps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x55, true);
 }
-void vorpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vorpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x56, true);
 }
-void vorps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vorps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x56, true);
 }
-void vxorpd(Xmm xmm, Operand op1, Operand op2 = OP)
+void vxorpd(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F | PP_66, 0x57, true);
 }
-void vxorps(Xmm xmm, Operand op1, Operand op2 = OP)
+void vxorps(Xmm xmm, Operand op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F, 0x57, true);
 }
-void vblendpd(Xmm xm1, Xmm xm2, Operand op, uint8 imm)
+void vblendpd(Xmm x1, Xmm x2, Operand op, uint8 imm)
 {
-    opAVX_X_X_XM(xm1, xm2, op, MM_0F3A | PP_66, 0x0D, true, 0); db(imm);
+    opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x0D, true, 0); db(imm);
 }
 void vblendpd(Xmm xmm, Operand op, uint8 imm)
 {
     opAVX_X_X_XM(xmm, xmm, op, MM_0F3A | PP_66, 0x0D, true, 0); db(imm);
 }
-void vblendps(Xmm xm1, Xmm xm2, Operand op, uint8 imm)
+void vblendps(Xmm x1, Xmm x2, Operand op, uint8 imm)
 {
-    opAVX_X_X_XM(xm1, xm2, op, MM_0F3A | PP_66, 0x0C, true, 0); db(imm);
+    opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x0C, true, 0); db(imm);
 }
 void vblendps(Xmm xmm, Operand op, uint8 imm)
 {
     opAVX_X_X_XM(xmm, xmm, op, MM_0F3A | PP_66, 0x0C, true, 0); db(imm);
 }
-void vdppd(Xmm xm1, Xmm xm2, Operand op, uint8 imm)
+void vdppd(Xmm x1, Xmm x2, Operand op, uint8 imm)
 {
-    opAVX_X_X_XM(xm1, xm2, op, MM_0F3A | PP_66, 0x41, false, 0); db(imm);
+    opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x41, false, 0); db(imm);
 }
 void vdppd(Xmm xmm, Operand op, uint8 imm)
 {
     opAVX_X_X_XM(xmm, xmm, op, MM_0F3A | PP_66, 0x41, false, 0); db(imm);
 }
-void vdpps(Xmm xm1, Xmm xm2, Operand op, uint8 imm)
+void vdpps(Xmm x1, Xmm x2, Operand op, uint8 imm)
 {
-    opAVX_X_X_XM(xm1, xm2, op, MM_0F3A | PP_66, 0x40, true, 0); db(imm);
+    opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x40, true, 0); db(imm);
 }
 void vdpps(Xmm xmm, Operand op, uint8 imm)
 {
@@ -7986,10 +7891,9 @@ void vcmptrue_usss(Xmm x, Operand op)
 {
     vcmpss(x, op, 31);
 }
-
 void vmovhpd(Xmm x, Operand op1, Operand op2 = OP())
 {
-    if (!op2.isNone() || !op2.isMEM())
+    if (!op2.isNone() && !op2.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x16, false);
 }
@@ -7999,7 +7903,7 @@ void vmovhpd(Address addr, Xmm x)
 }
 void vmovhps(Xmm x, Operand op1, Operand op2 = OP())
 {
-    if (!op2.isNone() || !op2.isMEM())
+    if (!op2.isNone() && !op2.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XM(x, op1, op2, MM_0F, 0x16, false);
 }
@@ -8009,7 +7913,7 @@ void vmovhps(Address addr, Xmm x)
 }
 void vmovlpd(Xmm x, Operand op1, Operand op2 = OP())
 {
-    if (!op2.isNone() || !op2.isMEM())
+    if (!op2.isNone() && !op2.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XM(x, op1, op2, MM_0F | PP_66, 0x12, false);
 }
@@ -8019,7 +7923,7 @@ void vmovlpd(Address addr, Xmm x)
 }
 void vmovlps(Xmm x, Operand op1, Operand op2 = OP())
 {
-    if (!op2.isNone() || !op2.isMEM())
+    if (!op2.isNone() && !op2.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XM(x, op1, op2, MM_0F, 0x12, false);
 }
@@ -8027,7 +7931,6 @@ void vmovlps(Address addr, Xmm x)
 {
     opAVX_X_X_XM(x, xm0, addr, MM_0F, 0x13, false);
 }
-
 void vfmadd132pd(Xmm xmm, Xmm op1, Operand op2 = OP())
 {
     opAVX_X_X_XM(xmm, op1, op2, MM_0F38 | PP_66, 0x98, true, 1);
@@ -8316,7 +8219,6 @@ void vpbroadcastq(Xmm x, Operand op)
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_XM_IMM(x, op, MM_0F38 | PP_66, 0x59, true, 0);
 }
-
 void vextractf128(Operand op, Ymm y, uint8 imm)
 {
     opAVX_X_X_XMcvt(y, y.isXMM() ? xm0 : ym0, op, op.isXMM(), Kind.YMM, MM_0F3A | PP_66, 0x19, true, 0); db(imm);
@@ -8325,7 +8227,6 @@ void vextracti128(Operand op, Ymm y, uint8 imm)
 {
     opAVX_X_X_XMcvt(y, y.isXMM() ? xm0 : ym0, op, op.isXMM(), Kind.YMM, MM_0F3A | PP_66, 0x39, true, 0); db(imm);
 }
-
 void vextractps(Operand op, Xmm x, uint8 imm)
 {
     if (!(op.isREG(32) || op.isMEM()) || x.isYMM())
@@ -8364,10 +8265,9 @@ void vmaskmovdqu(Xmm x1, Xmm x2)
 {
     opAVX_X_X_XM(x1, xm0, x2, MM_0F | PP_66, 0xF7, false, -1);
 }
-
 void vpextrb(Operand op, Xmm x, uint8 imm)
 {
-    if (!op.isREG(i32e) || !op.isMEM())
+    if (!op.isREG(i32e) && !op.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM(), Kind.XMM, MM_0F3A | PP_66, 0x14, false); db(imm);
 }
@@ -8381,47 +8281,46 @@ void vpextrw(Address addr, Xmm x, uint8 imm)
 }
 void vpextrd(Operand op, Xmm x, uint8 imm)
 {
-    if (!op.isREG(32) || !op.isMEM())
+    if (!op.isREG(32) && !op.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM(), Kind.XMM, MM_0F3A | PP_66, 0x16, false, 0); db(imm);
 }
 void vpinsrb(Xmm x1, Xmm x2, Operand op, uint8 imm)
 {
-    if (!op.isREG(32) || !op.isMEM())
+    if (!op.isREG(32) && !op.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM(), Kind.XMM, MM_0F3A | PP_66, 0x20, false); db(imm);
 }
 void vpinsrb(Xmm x, Operand op, uint8 imm)
 {
-    if (!op.isREG(32) || !op.isMEM())
+    if (!op.isREG(32) && !op.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, x, op, !op.isMEM(), Kind.XMM, MM_0F3A | PP_66, 0x20, false); db(imm);
 }
 void vpinsrw(Xmm x1, Xmm x2, Operand op, uint8 imm)
 {
-    if (!op.isREG(32) || !op.isMEM())
+    if (!op.isREG(32) && !op.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM(), Kind.XMM, MM_0F | PP_66, 0xC4, false); db(imm);
 }
 void vpinsrw(Xmm x, Operand op, uint8 imm)
 {
-    if (!op.isREG(32) || !op.isMEM())
+    if (!op.isREG(32) && !op.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, x, op, !op.isMEM(), Kind.XMM, MM_0F | PP_66, 0xC4, false); db(imm);
 }
 void vpinsrd(Xmm x1, Xmm x2, Operand op, uint8 imm)
 {
-    if (!op.isREG(32) || !op.isMEM())
+    if (!op.isREG(32) && !op.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM(), Kind.XMM, MM_0F3A | PP_66, 0x22, false, 0); db(imm);
 }
 void vpinsrd(Xmm x, Operand op, uint8 imm)
 {
-    if (!op.isREG(32) || !op.isMEM())
+    if (!op.isREG(32) && !op.isMEM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, x, op, !op.isMEM(), Kind.XMM, MM_0F3A | PP_66, 0x22, false, 0); db(imm);
 }
-
 void vpmovmskb(Reg32e r, Xmm x)
 {
     bool isYMM = x.isYMM(); opAVX_X_X_XM(isYMM ? YMM(r.getIdx()) : XMM(r.getIdx()), isYMM ? ym0 : xm0, x, MM_0F | PP_66, 0xD7, true);
@@ -8561,13 +8460,13 @@ void vmovq(Xmm x1, Xmm x2)
 
 void vmovhlps(Xmm x1, Xmm x2, Operand op = OP())
 {
-    if (!op.isNone() || !op.isXMM())
+    if (!op.isNone() && !op.isXMM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XM(x1, x2, op, MM_0F, 0x12, false);
 }
 void vmovlhps(Xmm x1, Xmm x2, Operand op = OP())
 {
-    if (!op.isNone() || !op.isXMM())
+    if (!op.isNone() && !op.isXMM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XM(x1, x2, op, MM_0F, 0x16, false);
 }
@@ -8583,7 +8482,6 @@ void vmovmskps(Reg r, Xmm x)
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XM(x.isXMM() ? XMM(r.getIdx()) : YMM(r.getIdx()), x.isXMM() ? xm0 : ym0, x, MM_0F, 0x50, true, 0);
 }
-
 void vmovntdq(Address addr, Xmm x)
 {
     opAVX_X_X_XM(x, x.isXMM() ? xm0 : ym0, addr, MM_0F | PP_66, 0xE7, true);
@@ -8602,7 +8500,7 @@ void vmovntdqa(Xmm x, Address addr)
 }
 void vmovsd(Xmm x1, Xmm x2, Operand op = OP())
 {
-    if (!op.isNone() || !op.isXMM())
+    if (!op.isNone() && !op.isXMM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F2, 0x10, false);
 }
@@ -8616,7 +8514,7 @@ void vmovsd(Address addr, Xmm x)
 }
 void vmovss(Xmm x1, Xmm x2, Operand op = OP())
 {
-    if (!op.isNone() || !op.isXMM())
+    if (!op.isNone() && !op.isXMM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XM(x1, x2, op, MM_0F | PP_F3, 0x10, false);
 }
@@ -8646,25 +8544,25 @@ void vcvttsd2si(Reg32 r, Operand op)
 }
 void vcvtsi2ss(Xmm x, Operand op1, Operand op2 = OP())
 {
-    if (!op2.isNone() || !(op2.isREG(i32e) || op2.isMEM))
+    if (!op2.isNone() && !(op2.isREG(i32e) || op2.isMEM()))
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, op1, op2, op2.isREG(), Kind.XMM, MM_0F | PP_F3, 0x2A, false, (op1.isMEM() || op2.isMEM()) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1);
 }
 void vcvtsi2sd(Xmm x, Operand op1, Operand op2 = OP())
 {
-    if (!op2.isNone() || !(op2.isREG(i32e) || op2.isMEM))
+    if (!op2.isNone() && !(op2.isREG(i32e) || op2.isMEM()))
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, op1, op2, op2.isREG(), Kind.XMM, MM_0F | PP_F2, 0x2A, false, (op1.isMEM() || op2.isMEM()) ? -1 : (op1.isREG(32) || op2.isREG(32)) ? 0 : 1);
 }
 void vcvtps2pd(Xmm x, Operand op)
 {
-    if (!op.isMEM() || !op.isXMM())
+    if (!op.isMEM() && !op.isXMM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, x.isXMM() ? xm0 : ym0, op, !op.isMEM(), x.isXMM() ? Kind.XMM : Kind.YMM, MM_0F, 0x5A, true);
 }
 void vcvtdq2pd(Xmm x, Operand op)
 {
-    if (!op.isMEM() || !op.isXMM())
+    if (!op.isMEM() && !op.isXMM())
         throw new XError(ERR.BAD_COMBINATION);
     opAVX_X_X_XMcvt(x, x.isXMM() ? xm0 : ym0, op, !op.isMEM(), x.isXMM() ? Kind.XMM : Kind.YMM, MM_0F | PP_F3, 0xE6, true);
 }
@@ -8688,13 +8586,13 @@ void vcvttpd2dq(Xmm x, Operand op)
 }
 void vcvtph2ps(Xmm x, Operand op)
 {
-    if (!op.isMEM() || !op.isXMM())
+    if (!op.isMEM() && !op.isXMM())
         throw new XError(ERR.BAD_COMBINATION);
     opVex(x, null, op, MM_0F38 | PP_66, 0x13, 0);
 }
 void vcvtps2ph(Operand op, Xmm x, uint8 imm)
 {
-    if (!op.isMEM() || !op.isXMM())
+    if (!op.isMEM() && !op.isXMM())
         throw new XError(ERR.BAD_COMBINATION);
     opVex(x, null, op, MM_0F3A | PP_66, 0x1d, 0); db(imm);
 }
@@ -8710,19 +8608,19 @@ version (XBYAK64)
     }
     void vpextrq(Operand op, Xmm x, uint8 imm)
     {
-        if (!op.isREG(64) || !op.isMEM())
+        if (!op.isREG(64) && !op.isMEM())
             throw new XError(ERR.BAD_COMBINATION);
         opAVX_X_X_XMcvt(x, xm0, op, !op.isMEM(), Kind.XMM, MM_0F3A | PP_66, 0x16, false, 1); db(imm);
     }
     void vpinsrq(Xmm x1, Xmm x2, Operand op, uint8 imm)
     {
-        if (!op.isREG(64) || !op.isMEM())
-            throw Error(ERR_BAD_COMBINATION);
+        if (!op.isREG(64) && !op.isMEM())
+            throw new XError(ERR.BAD_COMBINATION);
         opAVX_X_X_XMcvt(x1, x2, op, !op.isMEM(), Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm);
     }
     void vpinsrq(Xmm x, Operand op, uint8 imm)
     {
-        if (!op.isREG(64) || !op.isMEM())
+        if (!op.isREG(64) && !op.isMEM())
             throw new XError(ERR.BAD_COMBINATION);
         opAVX_X_X_XMcvt(x, x, op, !op.isMEM(), Kind.XMM, MM_0F3A | PP_66, 0x22, false, 1); db(imm);
     }
@@ -8823,4 +8721,4 @@ void vpgatherqq(Xmm x1, Address addr, Xmm x2)
 {
     opGather(x1, addr, x2, MM_0F38 | PP_66, 0x91, 1, 1);
 }
-} // CodeGenerator
+}// CodeGenerator
