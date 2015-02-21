@@ -2670,7 +2670,7 @@ void mov_Reg32or64(T) (T reg, string label) if (is (T == Reg32) || is (T == Reg6
  */
 
 
-void putL(T)(T label) if (T == string || T == Label)
+void putL(T)(T label) if (is (T == string) || is (T == Label))
 {
     const int jmpSize = cast(int) size_t.sizeof;
     if (isAutoGrow && size_ + 16 >= maxSize_)
@@ -3010,7 +3010,7 @@ void Align(int x = 16)
 
 string getVersionString()
 {
-    return "0.50";
+    return "0.050";
 }
 void packssdw(Mmx mmx, Operand op)
 {
@@ -4107,22 +4107,22 @@ void setg(Operand op)
 }
 version (XBYAK32)
 {
-    void jcxz(T)(T label) if (T == string || T == Label)
+    void jcxz(T)(T label) if (is (T == string) || is (T == Label))
     {
         db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
     }
-    void jecxz(T)(T label) if (T == string || T == Label)
+    void jecxz(T)(T label) if (is (T == string) || is (T == Label))
     {
         opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
     }
 }
 else
 {
-    void jecxz(T)(T label) if (T == string || T == Label)
+    void jecxz(T)(T label) if (is (T == string) || is (T == Label))
     {
         db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
     }
-    void jrcxz(T)(T label) if (T == string || T == Label)
+    void jrcxz(T)(T label) if (is (T == string) || is (T == Label))
     {
         opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
     }
@@ -4596,7 +4596,7 @@ void inc(Operand op)
 }
 void bt(Operand op, Reg reg)
 {
-    opModRM(reg, op, op.isREG(16 | 32 | 64) && op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xa3);
+    opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xa3);
 }
 void bt(Operand op, uint8 imm)
 {
@@ -4604,7 +4604,7 @@ void bt(Operand op, uint8 imm)
 }
 void bts(Operand op, Reg reg)
 {
-    opModRM(reg, op, op.isREG(16 | 32 | 64) && op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xab);
+    opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xab);
 }
 void bts(Operand op, uint8 imm)
 {
@@ -4612,7 +4612,7 @@ void bts(Operand op, uint8 imm)
 }
 void btr(Operand op, Reg reg)
 {
-    opModRM(reg, op, op.isREG(16 | 32 | 64) && op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xb3);
+    opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xb3);
 }
 void btr(Operand op, uint8 imm)
 {
@@ -4620,7 +4620,7 @@ void btr(Operand op, uint8 imm)
 }
 void btc(Operand op, Reg reg)
 {
-    opModRM(reg, op, op.isREG(16 | 32 | 64) && op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xbb);
+    opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit() == reg.getBit(), op.isMEM(), 0x0f, 0xbb);
 }
 void btc(Operand op, uint8 imm)
 {
