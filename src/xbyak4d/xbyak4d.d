@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.050
- * Date: 2015/02/21
+ * Version: 0.051
+ * Date: 2015/05/05
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0050, /* 0xABCD = A.BC(D) */
+    VERSION               = 0x0051, /* 0xABCD = A.BC(D) */
 }
 
 alias ulong  uint64;
@@ -99,7 +99,7 @@ public:
         {
             stderr.writefln("bad err=%d in Xbyak::Error", err_);
             import core.stdc.stdlib;
-			_Exit(1);
+            _Exit(1);
         }
         super(this.what(), file, line, next);
     }
@@ -687,8 +687,8 @@ public:
     };
     this(size_t disp = 0)
     {
-        disp_ = disp;
-		scale_ = 0;
+        disp_  = disp;
+        scale_ = 0;
     }
     this(Reg r, int scale = 1)
     {
@@ -866,10 +866,10 @@ class CodeArray {
     AddrInfoList addrInfoList_;
     Type         type_;
     Allocator    defaultAllocator_;
-    Allocator*	 alloc_;
+    Allocator    * alloc_;
 protected:
     size_t       maxSize_;
-    uint8*		 top_;
+    uint8        * top_;
     size_t       size_;
 
 /*
@@ -879,7 +879,7 @@ protected:
     {
         size_t newSize  = max(DEFAULT_MAX_CODE_SIZE, maxSize_ * 2);
         uint8  * newTop = alloc_.alloc(newSize);
-        if (newTop == null)
+        if (null == newTop)
         {
             throw new XError(ERR.CANT_ALLOC);
         }
@@ -919,7 +919,7 @@ public:
         top_     = type_ == Type.USER_BUF ? cast(uint8*) (userPtr) : alloc_.alloc(max(maxSize, 1));
         size_    = 0;
 
-        if (maxSize_ > 0 && top_ == null)
+        if (maxSize_ > 0 && null == top_)
         {
             throw new XError(ERR.CANT_ALLOC);
         }
@@ -995,7 +995,7 @@ public:
     {
         db(code, 4);
     }
-	void dq(uint64 code)
+    void dq(uint64 code)
     {
         db(code, 8);
     }
@@ -1104,7 +1104,7 @@ public:
         version(Windows)
         {
             DWORD oldProtect;
-			return VirtualProtect(cast(void*)(addr), size, canExec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldProtect) != 0;
+            return VirtualProtect(cast(void*)(addr), size, canExec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldProtect) != 0;
         }
         version(linux)
         {
@@ -1343,17 +1343,17 @@ public:
 
 struct JmpLabel
 {
-    size_t          endOfJmp;	/* offset from top to the end address of jmp */
+    size_t          endOfJmp;   /* offset from top to the end address of jmp */
     int             jmpSize;
     inner.LabelMode mode;
-	uint64			disp;		// dsip for [rip + disp]
-	this(size_t endOfJmp = 0, int jmpSize = 0, inner.LabelMode mode = inner.LabelMode.LasIs, uint64 disp = 0)
-	{
-		this.endOfJmp = endOfJmp;
-		this.jmpSize  = jmpSize;
-		this.mode     = mode;
-		this.disp     = disp;
-	}
+    uint64          disp;                       // dsip for [rip + disp]
+    this(size_t endOfJmp = 0, int jmpSize = 0, inner.LabelMode mode = inner.LabelMode.LasIs, uint64 disp = 0)
+    {
+        this.endOfJmp = endOfJmp;
+        this.jmpSize  = jmpSize;
+        this.mode     = mode;
+        this.disp     = disp;
+    }
 };
 
 class Label
@@ -1363,8 +1363,8 @@ class Label
 public:
     this()
     {
-        mgr = LabelManager();
-        id = 0;
+        mgr = new LabelManager();
+        id  = 0;
     }
 
     int getId()
@@ -1379,16 +1379,16 @@ public:
 };
 
 
-struct LabelManager
+class LabelManager
 {
     // for string label
     struct SlabelVal
     {
+        size_t offset;
         this(size_t offset = 0)
         {
             this.offset = offset;
         }
-        size_t offset;
     }
 
     alias SlabelVal[string] SlabelDefList;
@@ -1405,29 +1405,22 @@ struct LabelManager
 // for Label class
     struct ClabelVal
     {
-        this(size_t offset = 0)
-        {
-            this.offset = offset;
-        }
         size_t offset;
         int    refCount = 1;
+
+        this(size_t offset = 0)
+        {
+            this.offset   = offset;
+            this.refCount = 1;
+        }
     }
 
-    alias ClabelVal[int] ClabelDefList;
-    alias JmpLabel[][int] ClabelUndefList;
-
-    struct ClabelState
-    {
-        ClabelDefList   defList;
-        ClabelUndefList undefList;
-    }
+    alias           ClabelVal[int] ClabelDefList;
+    alias           JmpLabel[][int] ClabelUndefList;
 
     CodeArray       base_;
 // global : stateList_.front(), local : stateList_.back()
     StateList       stateList_;
-    ClabelState     clabelstate_;
-
-
     int             labelId_;
     ClabelDefList   clabelDefList_;
     ClabelUndefList clabelUndefList_;
@@ -1483,7 +1476,7 @@ struct LabelManager
         stateList_[p].defList[labelId] = SlabelVal(addrOffset);
 
         // search undefined label
-        if ((labelId in stateList_[p].undefList) == null)
+        if (null == (labelId in stateList_[p].undefList))
         {
             return;
         }
@@ -1529,25 +1522,24 @@ struct LabelManager
 
     void defineClabel(Label label)
     {
-        label.mgr = this;
         size_t addrOffset = base_.getSize();
         int    labelId    = getId(label);
         // add label
-        clabelstate_.defList[labelId] = ClabelVal(addrOffset);
-      //  ClabelDefList item = ClabelDefList(labelId, ClabelVal(addrOffset));
 
-
-        if (clabelstate_.defList.length == 0)
+        if (null != (labelId in clabelDefList_))
         {
             throw new XError(ERR.LABEL_IS_REDEFINED);
         }
+
+        clabelDefList_[labelId] = ClabelVal(addrOffset);
+
         // search undefined label
-        if ((labelId in clabelstate_.undefList) == null)
+        if (null == (labelId in clabelUndefList_))
         {
             return;
         }
 
-        foreach(JmpLabel jmp; clabelstate_.undefList[labelId])
+        foreach(JmpLabel jmp; clabelUndefList_[labelId])
         {
             size_t offset = jmp.endOfJmp - jmp.jmpSize;
             size_t disp;
@@ -1582,28 +1574,30 @@ struct LabelManager
             {
                 base_.rewrite(offset, disp, jmp.jmpSize);
             }
-            clabelstate_.undefList.remove(labelId);
+            clabelUndefList_.remove(labelId);
         }
+
+        label.mgr = this;
     }
 
     void incRefCount(int id)
     {
-        clabelstate_.defList[id].refCount++;
+        clabelDefList_[id].refCount++;
     }
 
     void decRefCount(int id)
     {
-        auto i = clabelstate_.defList[id];
-        if ((id in clabelstate_.defList) == null)
+        if (null == (id in clabelDefList_))
             return;
 
+        auto i = clabelDefList_[id];
         if (i.refCount == 1)
         {
-            clabelstate_.defList.remove(id);
+            clabelDefList_.remove(id);
         }
         else
         {
-            --i.refCount;
+            i.refCount -= 1;
         }
     }
 
@@ -1621,10 +1615,10 @@ struct LabelManager
     }
 
 public:
-	this(this)
-	{
-		this.reset();
-	}
+    this()
+    {
+        reset();
+    }
     void reset()
     {
         base_    = null;
@@ -1632,8 +1626,6 @@ public:
         stateList_.destroy;
         stateList_ ~= SlabelState();
         stateList_ ~= SlabelState();
-
-        clabelstate_ = ClabelState();
     }
     void enterLocal()
     {
@@ -1693,9 +1685,7 @@ public:
             p = stateList_.length - 1;
         }
 
-        auto i = (label in stateList_[p].defList);
-
-        if (null == i)
+        if (null == (label in stateList_[p].defList))
         {
             return false;
         }
@@ -1706,13 +1696,13 @@ public:
 
     bool getOffset(size_t* offset, Label label)
     {
-        auto i = (*offset in clabelstate_.defList);
+        auto i = (*offset in clabelDefList_);
         if (i != null)
         {
             return false;
         }
 
-        *offset = clabelstate_.defList[label.getId].offset;
+        *offset = clabelDefList_[label.getId].offset;
         return true;
     }
 
@@ -1728,7 +1718,7 @@ public:
 
     void addUndefinedLabel(Label label, JmpLabel jmp)
     {
-        clabelstate_.undefList[label.id] ~= jmp;
+        clabelUndefList_[label.id] ~= jmp;
     }
 
     bool hasUndefSlabel()
@@ -1744,7 +1734,7 @@ public:
 
     bool hasUndefClabel()
     {
-        return(clabelstate_.undefList.length != 0);
+        return(clabelUndefList_.length != 0);
     }
 };
 
@@ -1857,7 +1847,7 @@ public class CodeGenerator : CodeArray {
         }
     }
 
-    LabelManager labelMgr_ = LabelManager();
+    LabelManager labelMgr_ = new LabelManager();
 
     uint8 getModRM(int mod, int r1, int r2)
     {
@@ -1896,7 +1886,8 @@ public class CodeGenerator : CodeArray {
         int longJmpSize    = longHeaderSize + 4;
         if (type != LabelType.T_NEAR && inner.IsInDisp8(disp - shortJmpSize))
         {
-            db(shortCode); db(disp - shortJmpSize);
+            db(shortCode);
+            db(disp - shortJmpSize);
         }
         else
         {
@@ -1922,21 +1913,22 @@ public class CodeGenerator : CodeArray {
         }
         else
         {
-            JmpLabel jmp;
+            int jmpSize = 0;
             if (type == LabelType.T_NEAR)
             {
-                jmp.jmpSize = 4;
+                jmpSize = 4;
                 if (longPref)
                     db(longPref);
-                db(longCode); dd(0);
+                db(longCode);
+                dd(0);
             }
             else
             {
-                jmp.jmpSize = 1;
-                db(shortCode); db(0);
+                jmpSize = 1;
+                db(shortCode);
+                db(0);
             }
-            jmp.mode     = inner.LabelMode.LasIs;
-            jmp.endOfJmp = size_;
+            JmpLabel jmp = JmpLabel(size_, jmpSize, inner.LabelMode.LasIs);
             labelMgr_.addUndefinedLabel(label, jmp);
         }
     }
@@ -3032,7 +3024,7 @@ public:
 
     string getVersionString()
     {
-        return "0.050";
+        return "0.051";
     }
     void packssdw(Mmx mmx, Operand op)
     {
