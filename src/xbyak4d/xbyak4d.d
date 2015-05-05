@@ -269,8 +269,6 @@ struct inner
 }
 // inner
 
-
-
 // custom allocator
 struct Allocator
 {
@@ -282,9 +280,7 @@ struct Allocator
     {
         Aligned.Free(p);
     }
-    ~this()
-    {
-    }
+
     // override to return false if you call protect() manually
     bool useProtect()
     {
@@ -871,7 +867,7 @@ protected:
 
 
 //	allocate new memory and copy old data to the new area
-	void growMemory()
+    void growMemory()
     {
         size_t newSize  = max(DEFAULT_MAX_CODE_SIZE, maxSize_ * 2);
         uint8  * newTop = alloc_.alloc(newSize);
@@ -891,7 +887,7 @@ protected:
     }
 
 //	calc jmp address for AutoGrow mode
-	void calcJmpAddress()
+    void calcJmpAddress()
     {
         foreach(i; addrInfoList_)
         {
@@ -1058,7 +1054,7 @@ public:
 //	@param data [in] address of jmp data
 //	@param disp [in] offset from the next of jmp
 //	@param size [in] write size(1, 2, 4, 8)
-	void rewrite(size_t offset, uint64 disp, size_t size)
+    void rewrite(size_t offset, uint64 disp, size_t size)
     {
         assert(offset < maxSize_);
 
@@ -1107,7 +1103,7 @@ public:
 //	@param addr [in] address
 //	@param alingedSize [in] power of two
 //	@return aligned addr by alingedSize
-	uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16)
+    uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16)
     {
         size_t mask = alignedSize - 1;
         return cast(uint8*) ((cast(size_t) addr + mask) & ~mask);
@@ -1247,7 +1243,7 @@ private:
         {
             mod = mod10;
         }
-        int  baseIdx = base.bit ? (base.idx & 7) : Code.EBP;
+        int baseIdx = base.bit ? (base.idx & 7) : Code.EBP;
 
         // ModR/M = [2:3:3] = [Mod:reg/code:R/M]
         bool hasSIB = index.bit || (base.idx & 7) == Code.ESP;
@@ -1422,102 +1418,25 @@ class LabelManager
         return label.id;
     }
 
-	
-
-    void defineSlabel(string label)
+    SlabelVal setVal(string id, int val)
     {
-        if (label == "@b" || label == "@f")
-        {
-            throw new XError(ERR.BAD_LABEL_STR);
-        }
-
-        if (label == "@@")
-        {
-            if (("@f" in stateList_[0].defList) != null)
-            {
-                stateList_[0].defList.remove("@f");
-                label = "@b";
-            }
-            else
-            {
-                if (("@b" in stateList_[0].defList) != null)
-                {
-                    stateList_[0].defList.remove("@b");
-                }
-                label = "@f";
-            }
-        }
-
-        int p;
-        if (label[0] == '.')
-        {
-            p = stateList_.length - 1;
-        }
-        else
-        {
-            p = 0;
-        }
-
-        string labelId    = label;
-        size_t addrOffset = base_.getSize();
-
-        // add label
-        stateList_[p].defList[labelId] = SlabelVal(addrOffset);
-
-        // search undefined label
-        if (null == (labelId in stateList_[p].undefList))
-        {
-            return;
-        }
-
-        foreach(JmpLabel jmp; stateList_[p].undefList[labelId])
-        {
-            size_t offset = jmp.endOfJmp - jmp.jmpSize;
-            size_t disp;
-            if (jmp.mode == inner.LabelMode.LaddTop)
-            {
-                disp = addrOffset;
-            }
-            else if (jmp.mode == inner.LabelMode.Labs)
-            {
-                disp = cast(size_t) base_.getCurr;
-            }
-            else
-            {
-                disp = addrOffset - jmp.endOfJmp;
-                version(XBYAK64)
-                {
-                    if (jmp.jmpSize <= 4 && !inner.IsInInt32(disp))
-                    {
-                        throw new XError(ERR.OFFSET_IS_TOO_BIG);
-                    }
-                }
-                if (jmp.jmpSize == 1 && !inner.IsInDisp8(cast(uint32) disp))
-                {
-                    throw new XError(ERR.LABEL_IS_TOO_FAR);
-                }
-            }
-            if (base_.isAutoGrow)
-            {
-                base_.save(offset, disp, jmp.jmpSize, jmp.mode);
-            }
-            else
-            {
-                base_.rewrite(offset, disp, jmp.jmpSize);
-            }
-            stateList_[p].undefList.remove(labelId);
-        }
+        return SlabelVal(val);
     }
 
-	void define_inner(ref ClabelDefList deflist, ref ClabelUndefList undeflist, int labelId, size_t addrOffset)
-	{
+    ClabelVal setVal(int id, int val)
+    {
+        return ClabelVal(val);
+    }
+
+    void define_inner(DefList, UndefList, T)(ref DefList deflist, ref UndefList undeflist, T labelId, size_t addrOffset)
+    {
         // add label
         if (null != (labelId in deflist))
         {
             throw new XError(ERR.LABEL_IS_REDEFINED);
         }
 
-        deflist[labelId] = ClabelVal(addrOffset);
+        deflist[labelId] = setVal(labelId, addrOffset);
 
         // search undefined label
         if (null == (labelId in undeflist))
@@ -1633,11 +1552,42 @@ public:
         base_ = base;
     }
 
-	void defineClabel(Label label)
-	{
-		define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize );
-		label.mgr = this;
-	}
+    void defineSlabel(string label)
+    {
+        if (label == "@b" || label == "@f")
+        {
+            throw new XError(ERR.BAD_LABEL_STR);
+        }
+
+        if (label == "@@")
+        {
+            if (("@f" in stateList_[0].defList) != null)
+            {
+                stateList_[0].defList.remove("@f");
+                label = "@b";
+            }
+            else
+            {
+                if (("@b" in stateList_[0].defList) != null)
+                {
+                    stateList_[0].defList.remove("@b");
+                }
+                label = "@f";
+            }
+        }
+        int p = 0;
+        if (label[0] == '.')
+        {
+            p = stateList_.length - 1;
+        }
+        define_inner(stateList_[p].defList, stateList_[p].undefList, label, base_.getSize);
+    }
+
+    void defineClabel(Label label)
+    {
+        define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize);
+        label.mgr = this;
+    }
 
     void assign(Label dst, Label src)
     {
@@ -1646,7 +1596,7 @@ public:
         define_inner(clabelDefList_, clabelUndefList_, dst.id, clabelDefList_[src.id].offset);
         dst.mgr = this;
     }
-   
+
     bool getOffset(size_t* offset, string label)
     {
         if (label == "@b")
@@ -1893,13 +1843,13 @@ public class CodeGenerator : CodeArray {
         if (isAutoGrow && size_ + 16 >= maxSize_)
         {
             // avoid splitting code of jmp
-			growMemory;
+            growMemory;
         }
 
         size_t offset = 0;
-		
-		// label exists
-        if (labelMgr_.getOffset(&offset, label))      
+
+        // label exists
+        if (labelMgr_.getOffset(&offset, label))
         {
             makeJmp(inner.VerifyInInt32(offset - getSize), type, shortCode, longCode, longPref);
         }
@@ -1998,8 +1948,8 @@ public class CodeGenerator : CodeArray {
 
     void opExt(Operand op, Mmx mmx, int code, int imm, bool hasMMX2 = false)
     {
-         // pextrw is special
-		if (hasMMX2 && op.isREG(i32e))          
+        // pextrw is special
+        if (hasMMX2 && op.isREG(i32e))
         {
             if (mmx.isXMM)
                 db(0x66);
@@ -2091,12 +2041,12 @@ public class CodeGenerator : CodeArray {
         uint32 immBit = inner.IsInDisp8(imm) ? 8 : inner.IsInDisp16(imm) ? 16 : 32;
         if (op.getBit < immBit)
             throw new XError(ERR.IMM_IS_TOO_BIG);
-        
-		 // don't use MEM16 if 32/64bit mode
-		if (op.isREG(32 | 64) && immBit == 16)
-            immBit = 32;                                                                           
-        
-		if (op.isREG && op.getIdx == 0 && (op.getBit == immBit || (op.isBit(64) && immBit == 32))) // rax, eax, ax, al
+
+        // don't use MEM16 if 32/64bit mode
+        if (op.isREG(32 | 64) && immBit == 16)
+            immBit = 32;
+
+        if (op.isREG && op.getIdx == 0 && (op.getBit == immBit || (op.isBit(64) && immBit == 32)))         // rax, eax, ax, al
         {
             rex(op);
             db(code | 4 | (immBit == 8 ? 0 : 1));
