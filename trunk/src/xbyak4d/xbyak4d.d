@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0051, /* 0xABCD = A.BC(D) */
+    VERSION               = 0x0051, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -270,9 +270,8 @@ struct inner
 // inner
 
 
-/*
-       custom allocator
- */
+
+// custom allocator
 struct Allocator
 {
     uint8* alloc(size_t size)
@@ -286,7 +285,7 @@ struct Allocator
     ~this()
     {
     }
-    /* override to return false if you call protect() manually */
+    // override to return false if you call protect() manually
     bool useProtect()
     {
         return true;
@@ -771,10 +770,8 @@ public:
         }
     }
 private:
-/*
-        [base_ + index_ * scale_ + disp_]
-        base : Reg32e, index : Reg32e(w/o esp), Xmm, Ymm
- */
+//	[base_ + index_ * scale_ + disp_]
+//	base : Reg32e, index : Reg32e(w/o esp), Xmm, Ymm
     RegExp opBinary(string op) (RegExp b) if (op == "+")
     {
         if (index_.bit && b.index_.bit)
@@ -872,10 +869,9 @@ protected:
     uint8        * top_;
     size_t       size_;
 
-/*
-        allocate new memory and copy old data to the new area
- */
-    void growMemory()
+
+//	allocate new memory and copy old data to the new area
+	void growMemory()
     {
         size_t newSize  = max(DEFAULT_MAX_CODE_SIZE, maxSize_ * 2);
         uint8  * newTop = alloc_.alloc(newSize);
@@ -894,10 +890,8 @@ protected:
         maxSize_ = newSize;
     }
 
-/*
-        calc jmp address for AutoGrow mode
- */
-    void calcJmpAddress()
+//	calc jmp address for AutoGrow mode
+	void calcJmpAddress()
     {
         foreach(i; addrInfoList_)
         {
@@ -1061,13 +1055,10 @@ public:
         }
     }
 
-/*
-        @param data [in] address of jmp data
-        @param disp [in] offset from the next of jmp
-        @param size [in] write size(1, 2, 4, 8)
- */
-
-    void rewrite(size_t offset, uint64 disp, size_t size)
+//	@param data [in] address of jmp data
+//	@param disp [in] offset from the next of jmp
+//	@param size [in] write size(1, 2, 4, 8)
+	void rewrite(size_t offset, uint64 disp, size_t size)
     {
         assert(offset < maxSize_);
 
@@ -1091,14 +1082,11 @@ public:
         return type_ == Type.AUTO_GROW;
     }
 
-/**
-        change exec permission of memory
-        @param addr [in] buffer address
-        @param size [in] buffer size
-        @param canExec [in] true(enable to exec), false(disable to exec)
-        @return true(success), false(failure)
- */
-
+//	change exec permission of memory
+//	@param addr [in] buffer address
+//	@param size [in] buffer size
+//	@param canExec [in] true(enable to exec), false(disable to exec)
+//	@return true(success), false(failure)
     bool protect(void* addr, size_t size, bool canExec)
     {
         version(Windows)
@@ -1115,13 +1103,11 @@ public:
         }
     }
 
-/**
-        get aligned memory pointer
-        @param addr [in] address
-        @param alingedSize [in] power of two
-        @return aligned addr by alingedSize
- */
-    uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16)
+//	get aligned memory pointer
+//	@param addr [in] address
+//	@param alingedSize [in] power of two
+//	@return aligned addr by alingedSize
+	uint8* getAlignedAddress(uint8* addr, size_t alignedSize = 16)
     {
         size_t mask = alignedSize - 1;
         return cast(uint8*) ((cast(size_t) addr + mask) & ~mask);
@@ -1262,7 +1248,8 @@ private:
             mod = mod10;
         }
         int  baseIdx = base.bit ? (base.idx & 7) : Code.EBP;
-        /* ModR/M = [2:3:3] = [Mod:reg/code:R/M] */
+
+        // ModR/M = [2:3:3] = [Mod:reg/code:R/M]
         bool hasSIB = index.bit || (base.idx & 7) == Code.ESP;
         version(XBYAK64)
         {
@@ -1274,7 +1261,8 @@ private:
         if (hasSIB)
         {
             frame.db((mod << 6) | Code.ESP);
-            /* SIB = [2:3:3] = [SS:index:base(=rm)] */
+
+            // SIB = [2:3:3] = [SS:index:base(=rm)]
             int indexIdx = index.bit ? (index.idx & 7) : Code.ESP;
             int scale    = e.getScale;
             int ss       = (scale == 8) ? 3 : (scale == 4) ? 2 : (scale == 2) ? 1 : 0;
@@ -1343,7 +1331,7 @@ public:
 
 struct JmpLabel
 {
-    size_t          endOfJmp;   /* offset from top to the end address of jmp */
+    size_t          endOfJmp;   // offset from top to the end address of jmp
     int             jmpSize;
     inner.LabelMode mode;
     uint64          disp;                       // dsip for [rip + disp]
@@ -1434,6 +1422,7 @@ class LabelManager
         return label.id;
     }
 
+	
 
     void defineSlabel(string label)
     {
@@ -1520,26 +1509,23 @@ class LabelManager
         }
     }
 
-    void defineClabel(Label label)
-    {
-        size_t addrOffset = base_.getSize();
-        int    labelId    = getId(label);
+	void define_inner(ref ClabelDefList deflist, ref ClabelUndefList undeflist, int labelId, size_t addrOffset)
+	{
         // add label
-
-        if (null != (labelId in clabelDefList_))
+        if (null != (labelId in deflist))
         {
             throw new XError(ERR.LABEL_IS_REDEFINED);
         }
 
-        clabelDefList_[labelId] = ClabelVal(addrOffset);
+        deflist[labelId] = ClabelVal(addrOffset);
 
         // search undefined label
-        if (null == (labelId in clabelUndefList_))
+        if (null == (labelId in undeflist))
         {
             return;
         }
 
-        foreach(JmpLabel jmp; clabelUndefList_[labelId])
+        foreach(JmpLabel jmp; undeflist[labelId])
         {
             size_t offset = jmp.endOfJmp - jmp.jmpSize;
             size_t disp;
@@ -1574,10 +1560,8 @@ class LabelManager
             {
                 base_.rewrite(offset, disp, jmp.jmpSize);
             }
-            clabelUndefList_.remove(labelId);
+            undeflist.remove(labelId);
         }
-
-        label.mgr = this;
     }
 
     void incRefCount(int id)
@@ -1649,15 +1633,20 @@ public:
         base_ = base;
     }
 
-    /+
+	void defineClabel(Label label)
+	{
+		define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize );
+		label.mgr = this;
+	}
+
     void assign(Label dst, Label src)
     {
         if (null == (src.id in clabelDefList_))
             throw new XError(ERR.LABEL_ISNOT_SET_BY_L);
-        define_inner(clabelDefList_, clabelUndefList_, dst.id, i[1].offset);
+        define_inner(clabelDefList_, clabelUndefList_, dst.id, clabelDefList_[src.id].offset);
         dst.mgr = this;
     }
-    +/
+   
     bool getOffset(size_t* offset, string label)
     {
         if (label == "@b")
@@ -1903,11 +1892,14 @@ public class CodeGenerator : CodeArray {
     {
         if (isAutoGrow && size_ + 16 >= maxSize_)
         {
-            growMemory;                                    /* avoid splitting code of jmp */
+            // avoid splitting code of jmp
+			growMemory;
         }
 
         size_t offset = 0;
-        if (labelMgr_.getOffset(&offset, label))           /* label exists */
+		
+		// label exists
+        if (labelMgr_.getOffset(&offset, label))      
         {
             makeJmp(inner.VerifyInInt32(offset - getSize), type, shortCode, longCode, longPref);
         }
@@ -1951,7 +1943,7 @@ public class CodeGenerator : CodeArray {
         }
     }
 
-/* preCode is for SSSE3/SSE4 */
+//	preCode is for SSSE3/SSE4
     void opGen(Operand reg, Operand op, int code, int pref, bool isValid, int imm8 = Kind.NONE, int preCode = Kind.NONE)
     {
         if (isValid)
@@ -2006,7 +1998,8 @@ public class CodeGenerator : CodeArray {
 
     void opExt(Operand op, Mmx mmx, int code, int imm, bool hasMMX2 = false)
     {
-        if (hasMMX2 && op.isREG(i32e))           /* pextrw is special */
+         // pextrw is special
+		if (hasMMX2 && op.isREG(i32e))          
         {
             if (mmx.isXMM)
                 db(0x66);
@@ -2098,9 +2091,12 @@ public class CodeGenerator : CodeArray {
         uint32 immBit = inner.IsInDisp8(imm) ? 8 : inner.IsInDisp16(imm) ? 16 : 32;
         if (op.getBit < immBit)
             throw new XError(ERR.IMM_IS_TOO_BIG);
-        if (op.isREG(32 | 64) && immBit == 16)
-            immBit = 32;                                                                           /* don't use MEM16 if 32/64bit mode */
-        if (op.isREG && op.getIdx == 0 && (op.getBit == immBit || (op.isBit(64) && immBit == 32))) // rax, eax, ax, al
+        
+		 // don't use MEM16 if 32/64bit mode
+		if (op.isREG(32 | 64) && immBit == 16)
+            immBit = 32;                                                                           
+        
+		if (op.isREG && op.getIdx == 0 && (op.getBit == immBit || (op.isBit(64) && immBit == 32))) // rax, eax, ax, al
         {
             rex(op);
             db(code | 4 | (immBit == 8 ? 0 : 1));
@@ -2500,7 +2496,7 @@ public:
         }
     }
 
-/* use "push(word, 4)" if you want "push word 4" */
+// use "push(word, 4)" if you want "push word 4"
     void push(uint32 imm)
     {
         if (inner.IsInDisp8(imm))
@@ -2680,12 +2676,8 @@ public:
         labelMgr_.addUndefinedLabel(label, jmp);
     }
 
-/*
-        put address of label to buffer
-        @note the put size is 4(32-bit), 8(64-bit)
- */
-
-
+//	put address of label to buffer
+//	@note the put size is 4(32-bit), 8(64-bit)
     void putL(T)(T label) if (is(T == string) || is(T == Label))
     {
         const int jmpSize = cast(int) size_t.sizeof;
