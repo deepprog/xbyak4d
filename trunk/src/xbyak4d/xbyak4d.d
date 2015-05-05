@@ -1,6 +1,6 @@
 /**
  * xbyak for the D programming language
- * Version: 0.052
+ * Version: 0.053
  * Date: 2015/05/05
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -35,16 +35,17 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0052, // 0xABCD = A.BC(D)
+    VERSION               = 0x0053, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
-alias long   int64;
+alias long   sint64;
 alias uint   uint32;
 alias ushort uint16;
 alias ubyte  uint8;
 alias int    size_t;
 
+// MIE_ALIGN
 T MIE_PACK(T)(T x, T y, T z, T W)
 {
     return x * 64 + y * 16 + z * 4 + w;
@@ -97,7 +98,7 @@ public:
         err_ = cast(int) err;
         if (err_ < 0 || err_ > ERR.INTERNAL)
         {
-            stderr.writefln("bad err=%d in Xbyak::Error", err_);
+            stderr.writefln("bad err=%d in xbyak4d.XError", err_);
             import core.stdc.stdlib;
             _Exit(1);
         }
@@ -161,6 +162,7 @@ string ConvertErrorToString(XError err)
 struct Aligned
 {
     static :
+
 private:
     void*[void*] MemTbl;
     size_t[void*] SizeTbl;
@@ -250,12 +252,12 @@ struct inner
     {
         return ~cast(uint64)(0x7fffffffu) <= x || x <= 0x7FFFFFFFU;
     }
-   
+
     uint32 VerifyInInt32(uint64 x)
     {
         version(XBYAK64)
         {
-            if (!IsInDisp32(x))
+            if (!IsInInt32(x))
                 throw new XError(ERR.OFFSET_IS_TOO_BIG);
         }
         return cast(uint32) x;
@@ -649,18 +651,18 @@ version(XBYAK64)
 
     struct RegRip
     {
-        uint64 disp_;
+        sint64 disp_;
         Label  label_;
-        this(int64 disp = 0, Label label = new Label)
+        this(sint64 disp = 0, Label label = new Label)
         {
             disp_  = disp;
             label_ = label;
         }
-        RegRip opBinary(string op) (int64 disp) if (op == "+")
+        RegRip opBinary(string op) (sint64 disp) if (op == "+")
         {
             return RegRip(disp_ + disp, label_);
         }
-        RegRip opBinary(string op) (int64 disp) if (op == "-")
+        RegRip opBinary(string op) (sint64 disp) if (op == "-")
         {
             return RegRip(disp_ - disp, label_);
         }
@@ -679,6 +681,8 @@ public:
     {
         uint16 bit = 9;         // 32/64/128/256 none if 0
         uint16 idx = 7;
+
+
         void   set(Reg r)
         {
             this.bit = cast(uint16) (r.getBit);
@@ -1146,12 +1150,12 @@ public:
         size_        = 0;
         rex_         = 0;
         disp_        = disp;
+        label_       = new Label();
         isOnlyDisp_  = isOnlyDisp;
         is64bitDisp_ = is64bitDisp;
         is32bit_     = is32bit;
         isVsib_      = isVsib;
         isYMM_       = isYMM;
-        label_       = new Label();
     }
 
     void db(int code)
@@ -1334,7 +1338,7 @@ public:
         {
             Address frame = new Address(bit_, true, addr.disp_, false);
             frame.db(0x05);
-            if (addr.Label_)
+            if (addr.label_)
             {
                 frame.setLabel(addr.label_);
             }
@@ -1357,6 +1361,7 @@ struct JmpLabel
     int             jmpSize;
     inner.LabelMode mode;
     uint64          disp;                       // dsip for [rip + disp]
+
     this(size_t endOfJmp = 0, int jmpSize = 0, inner.LabelMode mode = inner.LabelMode.LasIs, uint64 disp = 0)
     {
         this.endOfJmp = endOfJmp;
@@ -1540,7 +1545,7 @@ class LabelManager
             }
         }
 
-        return list.length == 0;
+        return !list.empty();
     }
 
 public:
@@ -1587,14 +1592,14 @@ public:
 
         if (label == "@@")
         {
-            if (("@f" in stateList_[0].defList) != null)
+            if (null != ("@f" in stateList_[0].defList))
             {
                 stateList_[0].defList.remove("@f");
                 label = "@b";
             }
             else
             {
-                if (("@b" in stateList_[0].defList) != null)
+                if (null != ("@b" in stateList_[0].defList))
                 {
                     stateList_[0].defList.remove("@b");
                 }
@@ -1661,8 +1666,7 @@ public:
 
     bool getOffset(size_t* offset, Label label)
     {
-        auto i = (*offset in clabelDefList_);
-        if (i != null)
+        if (null != (*offset in clabelDefList_))
         {
             return false;
         }
@@ -1691,7 +1695,7 @@ public:
         foreach(i; stateList_)
         {
             auto ikey = i.undefList.keys;
-            if (ikey.length != 0)
+            if (!ikey.empty)
                 return true;
         }
         return false;
@@ -1699,10 +1703,34 @@ public:
 
     bool hasUndefClabel()
     {
-        return(clabelUndefList_.length != 0);
+        return 0 != clabelUndefList_.length;
     }
 };
 
+/*
+Label::Label(Label& rhs)
+{
+    id  = rhs.id;
+    mgr = rhs.mgr;
+    if (mgr)
+        mgr.incRefCount(id);
+}
+Label Label::operator = (Label & rhs)
+{
+    if (id)
+        throw new XError(ERR.LABEL_IS_ALREADY_SET_BY_L);
+    id  = rhs.id;
+    mgr = rhs.mgr;
+    if (mgr)
+        mgr.incRefCount(id);
+    return *this;
+}
+Label::~this()
+{
+    if (id && mgr)
+        mgr.decRefCount(id);
+}
+*/
 
 enum LabelType
 {
@@ -1716,13 +1744,13 @@ public class CodeGenerator : CodeArray {
     version(XBYAK64)
     {
         enum { i32e = 64 | 32, BIT = 64 }
-        const size_t dummyAddr = (size_t(0x11223344) << 32) | 55667788;
+        size_t dummyAddr = cast(size_t)(0x11223344 << 31) | 55667788;
         alias Reg64  NativeReg;
     }
     else
     {
         enum { i32e = 32, BIT = 32 }
-        const size_t dummyAddr = 0x12345678;
+        size_t dummyAddr = 0x12345678;
         alias Reg32  NativeReg;
     }
 // (XMM, XMM|MEM)
@@ -1759,7 +1787,6 @@ public class CodeGenerator : CodeArray {
     {
         return op1.isREG(i32e) && ((op2.isREG(i32e) && op1.getBit() == op2.getBit()) || op2.isMEM());
     }
-
 
     void rex(Operand op1, Operand op2 = REG)
     {
@@ -1865,7 +1892,9 @@ public class CodeGenerator : CodeArray {
                 throw new XError(ERR.LABEL_IS_TOO_FAR);
             if (longPref)
                 db(longPref);
-            db(longCode); dd(disp - longJmpSize);
+
+            db(longCode);
+            dd(disp - longJmpSize);
         }
     }
 
@@ -1892,6 +1921,7 @@ public class CodeGenerator : CodeArray {
                 jmpSize = 4;
                 if (longPref)
                     db(longPref);
+
                 db(longCode);
                 dd(0);
             }
@@ -1991,7 +2021,8 @@ public class CodeGenerator : CodeArray {
         {
             if (mmx.isXMM)
                 db(0x66);
-            opModR(cast(Reg) op, mmx, 0x0F, 0B11000101); db(imm);
+            opModR(cast(Reg) op, mmx, 0x0F, 0B11000101);
+            db(imm);
         }
         else
         {
@@ -2151,7 +2182,14 @@ public class CodeGenerator : CodeArray {
         if (op.isBit(32))
             throw new XError(ERR.BAD_COMBINATION);
 
-        int  w    = op.isBit(16);
+        int w = op.isBit(16);
+
+        version(XBYAK64)
+        {
+            if (op.isHigh8bit())
+                throw new XError(ERR.BAD_COMBINATION);
+        }
+
         bool cond = reg.isREG && (reg.getBit > op.getBit);
         opModRM(reg, op, cond && op.isREG, cond && op.isMEM, 0x0F, code | w);
     }
@@ -2383,6 +2421,15 @@ public:
         labelMgr_.defineClabel(label);
     }
 
+//	assign src to dst
+//		require
+//		dst : does not used by L()
+//		src : used by L()
+    void assignL(Label dst, Label src)
+    {
+        labelMgr_.assign(dst, src);
+    }
+
     void inLocalLabel()
     {
         labelMgr_.enterLocal;
@@ -2440,7 +2487,8 @@ public:
     {
         if (imm)
         {
-            db(0B11000010); dw(imm);
+            db(0B11000010);
+            dw(imm);
         }
         else
         {
@@ -2647,31 +2695,13 @@ public:
 
 //	put address of label to buffer
 //	@note the put size is 4(32-bit), 8(64-bit)
-    void putL(T)(T label) if (is(T == string) || is(T == Label))
+    void putL(string label)
     {
-        const int jmpSize = cast(int) size_t.sizeof;
-        if (isAutoGrow && size_ + 16 >= maxSize_)
-            growMemory;
-        size_t offset = 0;
-        if (labelMgr_.getOffset(&offset, label))
-        {
-            if (isAutoGrow)
-            {
-                db(cast(uint64) 0, jmpSize);
-                save(size_ - jmpSize, offset, jmpSize, inner.LabelMode.LaddTop);
-            }
-            else
-            {
-                db(cast(size_t) top_ + offset, jmpSize);
-            }
-            return;
-        }
-        db(cast(uint64) 0, jmpSize);
-        JmpLabel jmp;
-        jmp.endOfJmp = size_;
-        jmp.jmpSize  = jmpSize;
-        jmp.mode     = isAutoGrow ? inner.LabelMode.LaddTop : inner.LabelMode.Labs;
-        labelMgr_.addUndefinedLabel(label, jmp);
+        putL_inner(label);
+    }
+    void putL(Label label)
+    {
+        putL_inner(label);
     }
 
     void adcx(Reg32e reg, Operand op)
@@ -2731,6 +2761,10 @@ public:
     }
 
     void call(string label)
+    {
+        opJmp(label, LabelType.T_NEAR, 0, 0B11101000, 0);
+    }
+    void call(Label label)
     {
         opJmp(label, LabelType.T_NEAR, 0, 0B11101000, 0);
     }
@@ -2958,6 +2992,14 @@ public:
         return labelMgr_.hasUndefSlabel() || labelMgr_.hasUndefClabel();
     }
 
+// call ready() to complete generating code on AutoGrow
+    void ready()
+    {
+        if (hasUndefinedLabel())
+            throw new XError(ERR.LABEL_IS_NOT_FOUND);
+        calcJmpAddress();
+    }
+
     override uint8* getCode()
     {
         assert(!hasUndefinedLabel);
@@ -2985,7 +3027,7 @@ public:
 
     string getVersionString()
     {
-        return "0.052";
+        return "0.053";
     }
     void packssdw(Mmx mmx, Operand op)
     {
