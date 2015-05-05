@@ -1,6 +1,6 @@
 /**
  * xbyak for the D programming language
- * Version: 0.053
+ * Version: 0.054
  * Date: 2015/05/05
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0053, // 0xABCD = A.BC(D)
+    VERSION               = 0x0054, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -1382,6 +1382,32 @@ public:
         id  = 0;
     }
 
+    this(Label rhs)
+    {
+        id  = rhs.id;
+        mgr = rhs.mgr;
+        if (mgr)
+            mgr.incRefCount(id);
+    }
+    override bool opEquals(Object o)
+    {
+        if (id)
+            throw new XError(ERR.LABEL_IS_ALREADY_SET_BY_L);
+
+        Label rhs = cast(Label) o;
+        id  = rhs.id;
+        mgr = rhs.mgr;
+        if (mgr)
+            mgr.incRefCount(id);
+        return this.id == rhs.id;
+    }
+
+    ~this()
+    {
+        if (id && mgr)
+            mgr.decRefCount(id);
+    }
+
     int getId()
     {
         return id;
@@ -1707,31 +1733,6 @@ public:
     }
 };
 
-/*
-Label::Label(Label& rhs)
-{
-    id  = rhs.id;
-    mgr = rhs.mgr;
-    if (mgr)
-        mgr.incRefCount(id);
-}
-Label Label::operator = (Label & rhs)
-{
-    if (id)
-        throw new XError(ERR.LABEL_IS_ALREADY_SET_BY_L);
-    id  = rhs.id;
-    mgr = rhs.mgr;
-    if (mgr)
-        mgr.incRefCount(id);
-    return *this;
-}
-Label::~this()
-{
-    if (id && mgr)
-        mgr.decRefCount(id);
-}
-*/
-
 enum LabelType
 {
     T_SHORT,
@@ -1744,14 +1745,14 @@ public class CodeGenerator : CodeArray {
     version(XBYAK64)
     {
         enum { i32e = 64 | 32, BIT = 64 }
-        size_t dummyAddr = cast(size_t)(0x11223344 << 31) | 55667788;
-        alias Reg64  NativeReg;
+        size_t      dummyAddr = cast(size_t)(0x11223344 << 31) | 55667788;
+        alias Reg64 NativeReg;
     }
     else
     {
         enum { i32e = 32, BIT = 32 }
-        size_t dummyAddr = 0x12345678;
-        alias Reg32  NativeReg;
+        size_t      dummyAddr = 0x12345678;
+        alias Reg32 NativeReg;
     }
 // (XMM, XMM|MEM)
     bool isXMM_XMMorMEM(Operand op1, Operand op2)
@@ -3027,7 +3028,7 @@ public:
 
     string getVersionString()
     {
-        return "0.053";
+        return "0.054";
     }
     void packssdw(Mmx mmx, Operand op)
     {
