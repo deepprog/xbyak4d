@@ -1,6 +1,6 @@
 /**
  * xbyak for the D programming language
- * Version: 0.051
+ * Version: 0.052
  * Date: 2015/05/05
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0051, // 0xABCD = A.BC(D)
+    VERSION               = 0x0052, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -246,10 +246,11 @@ struct inner
     {
         return 0xFFFF8000 <= x || x <= 0x7FFF;
     }
-    bool IsInDisp32(uint64 x)
+    bool IsInInt32(uint64 x)
     {
-        return 0xFFFFFFFF80000000UL <= x || x <= 0x7FFFFFFFU;
+        return ~cast(uint64)(0x7fffffffu) <= x || x <= 0x7FFFFFFFU;
     }
+   
     uint32 VerifyInInt32(uint64 x)
     {
         version(XBYAK64)
@@ -648,18 +649,26 @@ version(XBYAK64)
 
     struct RegRip
     {
-        uint32 disp_;
-        this(uint disp = 0)
+        uint64 disp_;
+        Label  label_;
+        this(int64 disp = 0, Label label = new Label)
         {
-            disp_ = disp;
+            disp_  = disp;
+            label_ = label;
         }
-        RegRip opBinary(string op) (uint disp) if (op == "+")
+        RegRip opBinary(string op) (int64 disp) if (op == "+")
         {
-            return RegRip(disp_ + disp);
+            return RegRip(disp_ + disp, label_);
         }
-        RegRip opBinary(string op) (uint disp) if (op == "-")
+        RegRip opBinary(string op) (int64 disp) if (op == "-")
         {
-            return RegRip(disp_ - disp);
+            return RegRip(disp_ - disp, label_);
+        }
+        RegRip opBinary(string op) (Label label) if (op == "+")
+        {
+            if (label_)
+                throw XError(ERR.BAD_ADDRESSING);
+            return RegRip(disp_ + disp, label);
         }
     };
 }
@@ -1115,6 +1124,7 @@ public class Address : Operand {
     uint8  size_;
     uint8  rex_;
     uint64 disp_;
+    Label  label_;
     bool   isOnlyDisp_;
     bool   is64bitDisp_;
     bool   is32bit_;
@@ -1141,6 +1151,7 @@ public:
         is32bit_     = is32bit;
         isVsib_      = isVsib;
         isYMM_       = isYMM;
+        label_       = new Label();
     }
 
     void db(int code)
@@ -1210,6 +1221,14 @@ public:
     void setRex(uint8 rex)
     {
         rex_ = rex;
+    }
+    void setLabel(Label label)
+    {
+        label_ = label;
+    }
+    Label getLabel()
+    {
+        return label_;
     }
 };
 
@@ -1314,8 +1333,15 @@ public:
         Address opIndex(RegRip addr)
         {
             Address frame = new Address(bit_, true, addr.disp_, false);
-            frame.db(0B00000101);
-            frame.dd(addr.disp_);
+            frame.db(0x05);
+            if (addr.Label_)
+            {
+                frame.setLabel(addr.label_);
+            }
+            else
+            {
+                frame.dd(inner.VerifyInInt32(addr.disp_));
+            }
             return frame;
         }
     }
@@ -1458,7 +1484,7 @@ class LabelManager
             }
             else
             {
-                disp = addrOffset - jmp.endOfJmp;
+                disp = addrOffset - jmp.endOfJmp + cast(size_t) jmp.disp;
                 version(XBYAK64)
                 {
                     if (jmp.jmpSize <= 4 && !inner.IsInInt32(disp))
@@ -1690,10 +1716,14 @@ public class CodeGenerator : CodeArray {
     version(XBYAK64)
     {
         enum { i32e = 64 | 32, BIT = 64 }
+        const size_t dummyAddr = (size_t(0x11223344) << 32) | 55667788;
+        alias Reg64  NativeReg;
     }
     else
     {
         enum { i32e = 32, BIT = 32 }
+        const size_t dummyAddr = 0x12345678;
+        alias Reg32  NativeReg;
     }
 // (XMM, XMM|MEM)
     bool isXMM_XMMorMEM(Operand op1, Operand op2)
@@ -1815,7 +1845,8 @@ public class CodeGenerator : CodeArray {
         if (code2 != Kind.NONE)
             db(code2);
         addr.updateRegField(cast(uint8) reg.getIdx);
-        db(addr.getCode, cast(int) addr.getSize);
+        // db(addr.getCode, cast(int) addr.getSize);
+        opAddr(addr);
     }
 
     void makeJmp(uint32 disp, LabelType type, uint8 shortCode, uint8 longCode, uint8 longPref)
@@ -1892,7 +1923,14 @@ public class CodeGenerator : CodeArray {
             makeJmp(inner.VerifyInInt32(cast(uint8*) addr - getCurr), type, shortCode, longCode, 0);
         }
     }
-
+    void opAddr(Address addr)
+    {
+        db(addr.getCode, cast(int) addr.getSize);
+        if (addr.getLabel)        // [rip + Label]
+        {
+            putL_inner(addr.getLabel, true, addr.getDisp);
+        }
+    }
 //	preCode is for SSSE3/SSE4
     void opGen(Operand reg, Operand op, int code, int pref, bool isValid, int imm8 = Kind.NONE, int preCode = Kind.NONE)
     {
@@ -2133,7 +2171,8 @@ public class CodeGenerator : CodeArray {
         rex(addr, st0);
         db(code);
         addr.updateRegField(ext);
-        db(addr.getCode, cast(int) addr.getSize);
+        //db(addr.getCode, cast(int) addr.getSize);
+        opAddr(addr);
     }
 
 // use code1 if reg1 == st0
@@ -2183,7 +2222,8 @@ public class CodeGenerator : CodeArray {
         {
             Address addr = cast(Address) p2;
             addr.updateRegField(cast(uint8) (r.getIdx));
-            db(addr.getCode, cast(int) (addr.getSize));
+            //   db(addr.getCode, cast(int) (addr.getSize));
+            opAddr(addr);
         }
         else
         {
@@ -2509,60 +2549,78 @@ public:
         }
     }
 
-    version(XBYAK64)
+private:
+//	mov(r, imm) = db(imm, mov_imm(r, imm))
+    int mov_imm(Reg reg, size_t imm)
     {
-        void mov(Operand op, uint64 imm, bool opti = true)
+        int       bit  = reg.getBit();
+        const int idx  = reg.getIdx();
+        int       code = 0b10110000 | ((bit == 8 ? 0 : 1) << 3);
+        if (bit == 64 && (imm & ~cast(size_t)(0xffffffffu)) == 0)
         {
-            mov_uint32or64 !(uint64) (op, imm, opti);
+            rex(REG32(idx));
+            bit = 32;
         }
-    }
-    version(XBYAK32)
-    {
-        void mov(Operand op, uint32 imm, bool opti = true)
+        else
         {
-            mov_uint32or64 !(uint32) (op, imm, opti);
+            rex(reg);
+            if (bit == 64 && inner.IsInInt32(imm))
+            {
+                db(0b11000111);
+                code = 0b11000000;
+                bit  = 32;
+            }
         }
+        db(code | (idx & 7));
+        return bit / 8;
     }
 
-    void mov_uint32or64(T) (Operand op, T imm, bool opti = true) if (is(T == uint32) || is(T == uint64))
+    void putL_inner(T)(T label, bool relative = false, uint64 disp = 0)
+    {
+        const int jmpSize = relative ? 4 : cast(int) size_t.sizeof;
+        if (isAutoGrow() && size_ + 16 >= maxSize_)
+            growMemory();
+        size_t offset = 0;
+        if (labelMgr_.getOffset(&offset, label))
+        {
+            if (relative)
+            {
+                db(inner.VerifyInInt32(offset + disp - size_ - jmpSize), jmpSize);
+            }
+            else if (isAutoGrow())
+            {
+                db(uint64(0), jmpSize);
+                save(size_ - jmpSize, offset, jmpSize, inner.LabelMode.LaddTop);
+            }
+            else
+            {
+                db(cast(size_t) top_ + offset, jmpSize);
+            }
+            return;
+        }
+        db(uint64(0), jmpSize);
+        JmpLabel jmp = JmpLabel(size_, jmpSize, (relative ? inner.LabelMode.LasIs : isAutoGrow() ? inner.LabelMode.LaddTop : inner.LabelMode.Labs), disp);
+        labelMgr_.addUndefinedLabel(label, jmp);
+    }
+
+
+public:
+
+    void mov(Operand op, size_t imm)
     {
         verifyMemHasSize(op);
-        if (op.isREG)
+        if (op.isREG())
         {
-            int bit  = op.getBit;
-            int idx  = op.getIdx;
-            int code = 0B10110000 | ((bit == 8 ? 0 : 1) << 3);
-            version(XBYAK64)
-            {
-                if (op.isBit(64) && (imm >> 32) == 0)
-                {
-                    rex(REG32(idx));
-                    bit = 32;
-                }
-                else
-                {
-                    rex(op);
-                    if (opti && bit == 64 && inner.IsInDisp32(imm))
-                    {
-                        db(0B11000111);
-                        code = 0B11000000;
-                        bit  = 32;
-                    }
-                }
-            }
-            version(XBYAK32)
-            {
-                rex(op);
-            }
-            db(code | (op.getIdx & 7));
-            db(imm, bit / 8);
+            const int size = mov_imm(cast(Reg)(op), imm);
+            db(imm, size);
         }
-        else if (op.isMEM)
+        else if (op.isMEM())
         {
-            opModM(cast(Address) op, REG(0, Kind.REG, op.getBit), 0B11000110);
-            int size = op.getBit / 8; if (size > 4)
+            opModM(cast(Address)(op), REG(0, Kind.REG, op.getBit), 0b11000110);
+            int size = op.getBit / 8;
+            if (size > 4)
                 size = 4;
-            db(cast(uint32) (imm), size);
+            db(cast(uint32)(imm), size);
         }
         else
         {
@@ -2570,60 +2628,21 @@ public:
         }
     }
 
-// QQQ : rewrite this function with putL
-    version(XBYAK64)
-    {
-        void mov(Reg64 reg, string label)
-        {
-            mov_Reg32or64 !(Reg64) (reg, label);
-        }
-    }
-    version(XBYAK32)
-    {
-        void mov(Reg32 reg, string label)
-        {
-            mov_Reg32or64 !(Reg32) (reg, label);
-        }
-    }
-
-    void mov_Reg32or64(T) (T reg, string label) if (is(T == Reg32) || is(T == Reg64))
+    void mov(NativeReg reg, string label)
     {
         if (label.length == 0)
         {
-            mov(reg, 0, true);
+            mov(cast(Operand)(reg), 0);             // call imm
             return;
         }
-        int jmpSize = cast(int) size_t.sizeof;
-        version(XBYAK64)
-        {
-            auto dummyAddr = 0x1122334455667788;
-        }
-        version(XBYAK32)
-        {
-            auto dummyAddr = 0x12345678;
-        }
-        if (isAutoGrow && size_ + 16 >= maxSize_)
-            growMemory;
-        size_t offset = 0;
-        if (labelMgr_.getOffset(&offset, label))
-        {
-            if (isAutoGrow)
-            {
-                mov(reg, dummyAddr);
-                save(size_ - jmpSize, offset, jmpSize, inner.LabelMode.LaddTop);
-            }
-            else
-            {
-                mov(reg, cast(size_t) top_ + offset, false);                // not to optimize 32-bit imm
-            }
-            return;
-        }
-        mov(reg, dummyAddr);
-        JmpLabel jmp;
-        jmp.endOfJmp = size_;
-        jmp.jmpSize  = jmpSize;
-        jmp.mode     = isAutoGrow ? inner.LabelMode.LaddTop : inner.LabelMode.Labs;
-        labelMgr_.addUndefinedLabel(label, jmp);
+        mov_imm(reg, dummyAddr);
+        putL(label);
+    }
+
+    void mov(NativeReg reg, Label label)
+    {
+        mov_imm(reg, dummyAddr);
+        putL(label);
     }
 
 //	put address of label to buffer
@@ -2966,7 +2985,7 @@ public:
 
     string getVersionString()
     {
-        return "0.051";
+        return "0.052";
     }
     void packssdw(Mmx mmx, Operand op)
     {
