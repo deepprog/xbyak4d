@@ -1,6 +1,6 @@
 /**
  * xbyak for the D programming language
- * Version: 0.055
+ * Version: 0.056
  * Date: 2015/05/06
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0055, // 0xABCD = A.BC(D)
+    VERSION               = 0x0056, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -1745,7 +1745,7 @@ public class CodeGenerator : CodeArray {
     version(XBYAK64)
     {
         enum { i32e = 64 | 32, BIT = 64 }
-        size_t      dummyAddr = cast(size_t)(0x11223344 << 31) | 55667788;
+        size_t      dummyAddr = cast(size_t)((0x11223344 << 31) << 1) | 55667788;
         alias Reg64 NativeReg;
     }
     else
@@ -2260,7 +2260,6 @@ public class CodeGenerator : CodeArray {
         {
             Address addr = cast(Address) p2;
             addr.updateRegField(cast(uint8) (r.getIdx));
-            //   db(addr.getCode, cast(int) (addr.getSize));
             opAddr(addr);
         }
         else
@@ -3027,7 +3026,7 @@ public:
 
     string getVersionString()
     {
-        return "0.055";
+        return "0.056";
     }
     void packssdw(Mmx mmx, Operand op)
     {
@@ -3765,7 +3764,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM, 0x0F, 0B01000000 | 0);
     }
-    void jo(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jo(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x70, 0x80, 0x0F);
     }
@@ -3777,7 +3777,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 1);
     }
-    void jno(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jno(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x71, 0x81, 0x0F);
     }
@@ -3789,7 +3790,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 2);
     }
-    void jb(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jb(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x72, 0x82, 0x0F);
     }
@@ -3801,7 +3803,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 2);
     }
-    void jc(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jc(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x72, 0x82, 0x0F);
     }
@@ -3813,7 +3816,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 2);
     }
-    void jnae(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jnae(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x72, 0x82, 0x0F);
     }
@@ -3825,7 +3829,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 3);
     }
-    void jnb(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jnb(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x73, 0x83, 0x0F);
     }
@@ -3837,7 +3842,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 3);
     }
-    void jae(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jae(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x73, 0x83, 0x0F);
     }
@@ -3849,7 +3855,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 3);
     }
-    void jnc(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jnc(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x73, 0x83, 0x0F);
     }
@@ -3861,7 +3868,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 4);
     }
-    void je(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void je(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x74, 0x84, 0x0F);
     }
@@ -3873,7 +3881,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 4);
     }
-    void jz(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jz(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x74, 0x84, 0x0F);
     }
@@ -3885,7 +3894,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 5);
     }
-    void jne(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jne(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x75, 0x85, 0x0F);
     }
@@ -3897,7 +3907,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 5);
     }
-    void jnz(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jnz(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x75, 0x85, 0x0F);
     }
@@ -3909,7 +3920,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 6);
     }
-    void jbe(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jbe(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x76, 0x86, 0x0F);
     }
@@ -3921,7 +3933,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 6);
     }
-    void jna(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jna(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x76, 0x86, 0x0F);
     }
@@ -3933,7 +3946,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 7);
     }
-    void jnbe(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jnbe(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x77, 0x87, 0x0F);
     }
@@ -3945,7 +3959,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 7);
     }
-    void ja(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void ja(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x77, 0x87, 0x0F);
     }
@@ -3957,7 +3972,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 8);
     }
-    void js(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void js(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x78, 0x88, 0x0F);
     }
@@ -3969,7 +3985,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 9);
     }
-    void jns(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jns(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x79, 0x89, 0x0F);
     }
@@ -3981,7 +3998,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 10);
     }
-    void jp(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jp(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7A, 0x8A, 0x0F);
     }
@@ -3993,7 +4011,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 10);
     }
-    void jpe(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jpe(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7A, 0x8A, 0x0F);
     }
@@ -4006,7 +4025,8 @@ public:
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 11);
     }
 
-    void jnp(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jnp(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7B, 0x8B, 0x0F);
     }
@@ -4018,7 +4038,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 11);
     }
-    void jpo(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jpo(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7B, 0x8B, 0x0F);
     }
@@ -4030,7 +4051,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 12);
     }
-    void jl(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jl(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7C, 0x8C, 0x0F);
     }
@@ -4042,7 +4064,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 12);
     }
-    void jnge(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jnge(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7C, 0x8C, 0x0F);
     }
@@ -4054,7 +4077,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 13);
     }
-    void jnl(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jnl(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7D, 0x8D, 0x0F);
     }
@@ -4066,7 +4090,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 13);
     }
-    void jge(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jge(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7D, 0x8D, 0x0F);
     }
@@ -4078,7 +4103,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 14);
     }
-    void jle(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jle(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7E, 0x8E, 0x0F);
     }
@@ -4090,7 +4116,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 14);
     }
-    void jng(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jng(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7E, 0x8E, 0x0F);
     }
@@ -4102,7 +4129,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 15);
     }
-    void jnle(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jnle(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7F, 0x8F, 0x0F);
     }
@@ -4114,7 +4142,8 @@ public:
     {
         opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 15);
     }
-    void jg(T)(T label, LabelType type = LabelType.T_AUTO) if (is(T == string) || is(T == Label))
+    void jg(T)(T label, LabelType type = LabelType.T_AUTO)
+    if (is(T == string) || is(T == Label))
     {
         opJmp(label, type, 0x7F, 0x8F, 0x0F);
     }
@@ -4124,22 +4153,26 @@ public:
     }
     version(XBYAK32)
     {
-        void jcxz(T)(T label) if (is(T == string) || is(T == Label))
+        void jcxz(T)(T label)
+        if (is(T == string) || is(T == Label))
         {
             db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
         }
-        void jecxz(T)(T label) if (is(T == string) || is(T == Label))
+        void jecxz(T)(T label)
+        if (is(T == string) || is(T == Label))
         {
             opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
         }
     }
     else
     {
-        void jecxz(T)(T label) if (is(T == string) || is(T == Label))
+        void jecxz(T)(T label)
+        if (is(T == string) || is(T == Label))
         {
             db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
         }
-        void jrcxz(T)(T label) if (is(T == string) || is(T == Label))
+        void jrcxz(T)(T label)
+        if (is(T == string) || is(T == Label))
         {
             opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0);
         }
