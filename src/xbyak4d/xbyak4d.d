@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.056
- * Date: 2015/05/06
+ * Version: 0.057
+ * Date: 2015/05/07
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -10,7 +10,7 @@
  */
 
 module xbyak4d;
-/*
+//*
    version = XBYAK64;
    /*/
 version = XBYAK32;
@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0056, // 0xABCD = A.BC(D)
+    VERSION               = 0x0057, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -1745,7 +1745,7 @@ public class CodeGenerator : CodeArray {
     version(XBYAK64)
     {
         enum { i32e = 64 | 32, BIT = 64 }
-        size_t      dummyAddr = cast(size_t)((0x11223344 << 31) << 1) | 55667788;
+        size_t      dummyAddr = cast(size_t)(0x11223344UL << 32) | 55667788;
         alias Reg64 NativeReg;
     }
     else
@@ -2846,14 +2846,14 @@ public:
         {
             if (!op.isREG(64) && !op.isMEM)
                 throw new XError(ERR.BAD_COMBINATION);
-            opGen(REG64(xmm.getIdx), op, 0x16, 0x66, 0, imm, 0B00111010);     // force to 64bit
+            opGen(REG64(xmm.getIdx), op, 0x16, 0x66, null, imm, 0B00111010);     // force to 64bit
         }
 
         void pinsrq(Xmm xmm, Operand op, uint8 imm)
         {
             if (!op.isREG(64) && !op.isMEM)
                 throw new XError(ERR.BAD_COMBINATION);
-            opGen(REG64(xmm.getIdx), op, 0x22, 0x66, 0, imm, 0B00111010);     // force to 64bit
+            opGen(REG64(xmm.getIdx), op, 0x22, 0x66, null, imm, 0B00111010);     // force to 64bit
         }
 
         void movsxd(Reg64 reg, Operand op)
@@ -3026,7 +3026,7 @@ public:
 
     string getVersionString()
     {
-        return "0.056";
+        return "0.057";
     }
     void packssdw(Mmx mmx, Operand op)
     {
