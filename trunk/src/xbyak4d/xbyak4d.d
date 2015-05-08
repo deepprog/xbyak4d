@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.057
- * Date: 2015/05/07
+ * Version: 0.058
+ * Date: 2015/05/08
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -11,10 +11,10 @@
 
 module xbyak4d;
 //*
-   version = XBYAK64;
-   /*/
-version = XBYAK32;
-//*/
+version = XBYAK64;
+/*/
+   version = XBYAK32;
+   //*/
 import std.stdio;
 import std.array;
 import std.string    : format;
@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0057, // 0xABCD = A.BC(D)
+    VERSION               = 0x0058, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -1084,7 +1084,7 @@ public:
     }
     void save(size_t offset, size_t val, int size, inner.LabelMode mode)
     {
-        addrInfoList_ ~= AddrInfo(offset, val, size, mode);
+        addrInfoList_  ~= AddrInfo(offset, val, size, mode);
     }
     bool isAutoGrow()
     {
@@ -1540,6 +1540,17 @@ class LabelManager
         }
     }
 
+    bool getOffset_inner(DefList, T)(ref DefList defList, size_t * offset, T label)
+    {
+        if (null == (label in defList))
+        {
+            return false;
+        }
+
+        *offset = defList[label].offset;
+        return true;
+    }
+
     void incRefCount(int id)
     {
         clabelDefList_[id].refCount++;
@@ -1584,8 +1595,7 @@ public:
         base_    = null;
         labelId_ = 1;
         stateList_.destroy;
-        stateList_ ~= SlabelState();
-        stateList_ ~= SlabelState();
+        stateList_ = [SlabelState(), SlabelState()];
     }
     void enterLocal()
     {
@@ -1615,29 +1625,27 @@ public:
         {
             throw new XError(ERR.BAD_LABEL_STR);
         }
-
+		
+		auto st = &stateList_[0];
         if (label == "@@")
         {
-            if (null != ("@f" in stateList_[0].defList))
+            if (null != ("@f" in st.defList))
             {
-                stateList_[0].defList.remove("@f");
+                st.defList.remove("@f");
                 label = "@b";
             }
             else
             {
-                if (null != ("@b" in stateList_[0].defList))
+                if (null != ("@b" in st.defList))
                 {
-                    stateList_[0].defList.remove("@b");
+                    st.defList.remove("@b");
                 }
                 label = "@f";
             }
         }
-        int p = 0;
-        if (label[0] == '.')
-        {
-            p = stateList_.length - 1;
-        }
-        define_inner(stateList_[p].defList, stateList_[p].undefList, label, base_.getSize);
+
+        st = label[0] == '.' ? &stateList_[$ - 1] : &stateList_[0];
+        define_inner(st.defList, st.undefList, label, base_.getSize);
     }
 
     void defineClabel(Label label)
@@ -1656,59 +1664,39 @@ public:
 
     bool getOffset(size_t* offset, string label)
     {
+        auto st = &stateList_[0];
         if (label == "@b")
         {
-            if (null != ("@f" in stateList_[0].defList))
+            if (null != ("@f" in st.defList))
             {
                 label = "@f";
             }
-            else if (null == ("@b" in stateList_[0].defList))
+            else if (null == ("@b" in st.defList))
             {
                 throw new XError(ERR.LABEL_IS_NOT_FOUND);
             }
         }
         else if (label == "@f")
         {
-            if (null != ("@f" in stateList_[0].defList))
+            if (null != ("@f" in st.defList))
             {
                 label = "@b";
             }
         }
 
-        int p = 0;
-        if (label[0] == '.')
-        {
-            p = stateList_.length - 1;
-        }
-
-        if (null == (label in stateList_[p].defList))
-        {
-            return false;
-        }
-
-        *offset = stateList_[p].defList[label].offset;
-        return true;
+        st = label[0] == '.' ? &stateList_[$ - 1] : &stateList_[0];
+        return getOffset_inner(st.defList, offset, label);
     }
 
     bool getOffset(size_t* offset, Label label)
     {
-        if (null != (*offset in clabelDefList_))
-        {
-            return false;
-        }
-
-        *offset = clabelDefList_[label.getId].offset;
-        return true;
+        return getOffset_inner(clabelDefList_, offset, getId(label));
     }
 
     void addUndefinedLabel(string label, JmpLabel jmp)
     {
-        int p = 0;
-        if (label[0] == '.')
-        {
-            p = stateList_.length - 1;
-        }
-        stateList_[p].undefList[label] ~= jmp;
+        auto st = label[0] == '.' ? &stateList_[$ - 1] : &stateList_[0];
+        st.undefList[label] ~= jmp;
     }
 
     void addUndefinedLabel(Label label, JmpLabel jmp)
@@ -1718,10 +1706,9 @@ public:
 
     bool hasUndefSlabel()
     {
-        foreach(i; stateList_)
+        foreach(st; stateList_)
         {
-            auto ikey = i.undefList.keys;
-            if (!ikey.empty)
+            if (0 != st.undefList.length)
                 return true;
         }
         return false;
@@ -1865,7 +1852,7 @@ public class CodeGenerator : CodeArray {
     void opModM(Address addr, Reg reg, int code0, int code1 = Kind.NONE, int code2 = Kind.NONE)
     {
         if (addr.is64bitDisp)
-            new XError(ERR.CANT_USE_64BIT_DISP);
+            throw new XError(ERR.CANT_USE_64BIT_DISP);
         rex(addr, reg);
         db(code0 | (reg.isBit(8) ? 0 : 1));
         if (code1 != Kind.NONE)
@@ -3003,7 +2990,7 @@ public:
     {
         assert(!hasUndefinedLabel);
         if (hasUndefinedLabel)
-            new XError(ERR.LABEL_IS_NOT_FOUND);
+            throw new XError(ERR.LABEL_IS_NOT_FOUND);
         return this.top_;
     }
 
@@ -3026,7 +3013,7 @@ public:
 
     string getVersionString()
     {
-        return "0.057";
+        return "0.058";
     }
     void packssdw(Mmx mmx, Operand op)
     {
