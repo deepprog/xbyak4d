@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.058
- * Date: 2015/05/08
+ * Version: 0.059
+ * Date: 2015/05/09
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -11,10 +11,10 @@
 
 module xbyak4d;
 //*
-version = XBYAK64;
-/*/
-   version = XBYAK32;
-   //*/
+   version = XBYAK64;
+   /*/
+version = XBYAK32;
+//*/
 import std.stdio;
 import std.array;
 import std.string    : format;
@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0058, // 0xABCD = A.BC(D)
+    VERSION               = 0x0059, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -889,10 +889,7 @@ protected:
             throw new XError(ERR.CANT_ALLOC);
         }
 
-        foreach(i; 0..size_)
-        {
-            newTop[i] = top_[i];
-        }
+        newTop[0..size_] = top_[0..size_];
 
         alloc_.free(top_);
         top_     = newTop;
@@ -1360,7 +1357,7 @@ struct JmpLabel
     size_t          endOfJmp;   // offset from top to the end address of jmp
     int             jmpSize;
     inner.LabelMode mode;
-    uint64          disp;                       // dsip for [rip + disp]
+    uint64          disp;                       // disp for [rip + disp]
 
     this(size_t endOfJmp = 0, int jmpSize = 0, inner.LabelMode mode = inner.LabelMode.LasIs, uint64 disp = 0)
     {
@@ -1475,16 +1472,6 @@ class LabelManager
         return label.id;
     }
 
-    SlabelVal setVal(string id, int val)
-    {
-        return SlabelVal(val);
-    }
-
-    ClabelVal setVal(int id, int val)
-    {
-        return ClabelVal(val);
-    }
-
     void define_inner(DefList, UndefList, T)(ref DefList deflist, ref UndefList undeflist, T labelId, size_t addrOffset)
     {
         // add label
@@ -1493,15 +1480,10 @@ class LabelManager
             throw new XError(ERR.LABEL_IS_REDEFINED);
         }
 
-        deflist[labelId] = setVal(labelId, addrOffset);
+        deflist[labelId] = typeof(deflist[labelId])(addrOffset);
 
         // search undefined label
-        if (null == (labelId in undeflist))
-        {
-            return;
-        }
-
-        foreach(JmpLabel jmp; undeflist[labelId])
+        foreach(JmpLabel jmp; undeflist.get(labelId, null))
         {
             size_t offset = jmp.endOfJmp - jmp.jmpSize;
             size_t disp;
@@ -1540,7 +1522,7 @@ class LabelManager
         }
     }
 
-    bool getOffset_inner(DefList, T)(ref DefList defList, size_t * offset, T label)
+    bool getOffset_inner(DefList, T)(DefList defList, size_t * offset, T label)
     {
         if (null == (label in defList))
         {
@@ -1625,8 +1607,8 @@ public:
         {
             throw new XError(ERR.BAD_LABEL_STR);
         }
-		
-		auto st = &stateList_[0];
+
+        auto st = &stateList_[0];
         if (label == "@@")
         {
             if (null != ("@f" in st.defList))
@@ -3013,7 +2995,7 @@ public:
 
     string getVersionString()
     {
-        return "0.058";
+        return "0.059";
     }
     void packssdw(Mmx mmx, Operand op)
     {
