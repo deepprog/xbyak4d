@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.059
- * Date: 2015/05/09
+ * Version: 0.060
+ * Date: 2015/05/10
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -10,7 +10,7 @@
  */
 
 module xbyak4d;
-//*
+/*
    version = XBYAK64;
    /*/
 version = XBYAK32;
@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0059, // 0xABCD = A.BC(D)
+    VERSION               = 0x0060, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -901,8 +901,7 @@ protected:
     {
         foreach(i; addrInfoList_)
         {
-            uint64 disp = i.getVal(top_);
-            rewrite(i.codeOffset, disp, i.jmpSize);
+            rewrite(i.codeOffset, i.getVal(top_), i.jmpSize);
         }
         if (alloc_.useProtect && !protect(top_, size_, true))
         {
@@ -1453,11 +1452,13 @@ class LabelManager
         }
     }
 
-    alias           ClabelVal[int] ClabelDefList;
-    alias           JmpLabel[][int] ClabelUndefList;
+    alias     ClabelVal[int] ClabelDefList;
+    alias     JmpLabel[][int] ClabelUndefList;
 
-    CodeArray       base_;
-// global : stateList_.front(), local : stateList_.back()
+    CodeArray base_;
+
+// global : stateList_[0]
+// local  : stateList_[1]
     StateList       stateList_;
     int             labelId_;
     ClabelDefList   clabelDefList_;
@@ -1558,13 +1559,12 @@ class LabelManager
     {
         version(NDEBUG)
         {
-            foreach(i; list)
+            foreach(key; list.byKey)
             {
-                stderr.writefln("undefined label:%s", i[0]);
+                stderr.writefln("undefined label:%s", key);
             }
         }
-
-        return !list.empty();
+        return 0 != list.length;
     }
 
 public:
@@ -1603,13 +1603,13 @@ public:
 
     void defineSlabel(string label)
     {
-        if (label == "@b" || label == "@f")
+        if ("@b" == label || "@f" == label)
         {
             throw new XError(ERR.BAD_LABEL_STR);
         }
 
         auto st = &stateList_[0];
-        if (label == "@@")
+        if ("@@" == label)
         {
             if (null != ("@f" in st.defList))
             {
@@ -1647,7 +1647,7 @@ public:
     bool getOffset(size_t* offset, string label)
     {
         auto st = &stateList_[0];
-        if (label == "@b")
+        if ("@b" == label)
         {
             if (null != ("@f" in st.defList))
             {
@@ -1658,7 +1658,7 @@ public:
                 throw new XError(ERR.LABEL_IS_NOT_FOUND);
             }
         }
-        else if (label == "@f")
+        else if ("@f" == label)
         {
             if (null != ("@f" in st.defList))
             {
@@ -1690,7 +1690,7 @@ public:
     {
         foreach(st; stateList_)
         {
-            if (0 != st.undefList.length)
+            if (hasUndefinedLabel_inner(st.undefList))
                 return true;
         }
         return false;
@@ -1698,7 +1698,7 @@ public:
 
     bool hasUndefClabel()
     {
-        return 0 != clabelUndefList_.length;
+        return hasUndefinedLabel_inner(clabelUndefList_);
     }
 }
 
@@ -1881,7 +1881,7 @@ public class CodeGenerator : CodeArray {
         // label exists
         if (labelMgr_.getOffset(&offset, label))
         {
-            makeJmp(inner.VerifyInInt32(offset - getSize), type, shortCode, longCode, longPref);
+            makeJmp(inner.VerifyInInt32(offset - size_), type, shortCode, longCode, longPref);
         }
         else
         {
@@ -1914,6 +1914,7 @@ public class CodeGenerator : CodeArray {
                 throw new XError(ERR.ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW);
             if (size_ + 16 >= maxSize_)
                 growMemory;
+
             db(longCode);
             dd(0);
             save(size_ - 4, cast(size_t) addr - size_, 4, inner.LabelMode.Labs);
@@ -2995,7 +2996,7 @@ public:
 
     string getVersionString()
     {
-        return "0.059";
+        return "0.060";
     }
     void packssdw(Mmx mmx, Operand op)
     {
