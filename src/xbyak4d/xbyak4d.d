@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.060
- * Date: 2015/05/10
+ * Date: 2015/05/11
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -10,11 +10,11 @@
  */
 
 module xbyak4d;
-/*
-   version = XBYAK64;
-   /*/
-version = XBYAK32;
-//*/
+//*
+version = XBYAK64;
+/*/
+   version = XBYAK32;
+   //*/
 import std.stdio;
 import std.array;
 import std.string    : format;
@@ -35,7 +35,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0060, // 0xABCD = A.BC(D)
+    VERSION               = 0x0061, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -500,6 +500,18 @@ public:
     {
         return cast(uint8) ((hasRex || base.hasRex) ? (0x40 | ((isREG(64) | base.isREG(64)) ? 8 : 0) | (isExtIdx ? 4 : 0) | (base.isExtIdx ? 1 : 0)) : 0);
     }
+
+    RegExp opBinary(string op) (int scale) if (op == "+")
+    {
+// ???
+        return new RegExp(this, scale);
+    }
+
+    RegExp opBinary(string op) (int scale) if (op == "*")
+    {
+        return new RegExp(this, scale);
+    }
+
     Reg8 cvt8()
     {
         int idx = getIdx;
@@ -634,6 +646,13 @@ public class Reg32 : Reg32e {
     {
         super(idx, 32);
     }
+/**	ptr [esp + esp]
+        RegExp opBinary(string op) (Reg32 b) if (op == "+")
+    {
+                throw new XError(ERR.BAD_ADDRESSING);
+                return new RegExp;
+        }
+ **/
 }
 
 version(XBYAK64)
@@ -669,7 +688,7 @@ version(XBYAK64)
         RegRip opBinary(string op) (Label label) if (op == "+")
         {
             if (label_)
-                throw XError(ERR.BAD_ADDRESSING);
+                throw new XError(ERR.BAD_ADDRESSING);
             return RegRip(disp_ + disp, label);
         }
     }
@@ -681,7 +700,6 @@ public:
     {
         uint16 bit = 9;         // 32/64/128/256 none if 0
         uint16 idx = 7;
-
 
         void   set(Reg r)
         {
@@ -700,16 +718,20 @@ public:
     }
     this(Reg r, int scale = 1)
     {
+        //static assert(scale != 1 && scale != 2 && scale != 4 && scale != 8);
+
         disp_  = 0;
         scale_ = scale;
         if (!r.isKind(Kind.REG, 32 | 64) && !r.isKind(Kind.XMM | Kind.YMM))
         {
             throw new XError(ERR.BAD_SIZE_OF_REGISTER);
         }
+
         if (scale != 1 && scale != 2 && scale != 4 && scale != 8)
         {
             throw new XError(ERR.BAD_SCALE);
         }
+
         if (r.getBit >= 128 || scale != 1)               // xmm/ymm is always index
         {
             index_.set(r);
@@ -812,11 +834,11 @@ private:
             }
         }
         this.disp_ += b.disp_;
-        return ret;
+        return this;
     }
     RegExp opBinary(string op) (int scale) if (op == "*")
     {
-        return new RegExp(r, scale);
+        return new RegExp(cast(Reg)this, scale);
     }
     RegExp opBinary(string op) (uint disp) if (op == "-")
     {
@@ -1589,7 +1611,7 @@ public:
         {
             throw new XError(ERR.UNDER_LOCAL_LABEL);
         }
-        if (stateList_[$ - 1].undefList.length == 0)
+        if (stateList_[1].undefList.length == 0)
         {
             throw new XError(ERR.LABEL_IS_NOT_FOUND);
         }
@@ -1626,7 +1648,7 @@ public:
             }
         }
 
-        st = label[0] == '.' ? &stateList_[$ - 1] : &stateList_[0];
+        st = label[0] == '.' ? &stateList_[1] : &stateList_[0];
         define_inner(st.defList, st.undefList, label, base_.getSize);
     }
 
@@ -1666,7 +1688,7 @@ public:
             }
         }
 
-        st = label[0] == '.' ? &stateList_[$ - 1] : &stateList_[0];
+        st = label[0] == '.' ? &stateList_[1] : &stateList_[0];
         return getOffset_inner(st.defList, offset, label);
     }
 
@@ -1677,7 +1699,7 @@ public:
 
     void addUndefinedLabel(string label, JmpLabel jmp)
     {
-        auto st = label[0] == '.' ? &stateList_[$ - 1] : &stateList_[0];
+        auto st = label[0] == '.' ? &stateList_[1] : &stateList_[0];
         st.undefList[label] ~= jmp;
     }
 
@@ -1842,7 +1864,6 @@ public class CodeGenerator : CodeArray {
         if (code2 != Kind.NONE)
             db(code2);
         addr.updateRegField(cast(uint8) reg.getIdx);
-        // db(addr.getCode, cast(int) addr.getSize);
         opAddr(addr);
     }
 
@@ -2179,7 +2200,6 @@ public class CodeGenerator : CodeArray {
         rex(addr, st0);
         db(code);
         addr.updateRegField(ext);
-        //db(addr.getCode, cast(int) addr.getSize);
         opAddr(addr);
     }
 
@@ -2996,7 +3016,7 @@ public:
 
     string getVersionString()
     {
-        return "0.060";
+        return "0.061";
     }
     void packssdw(Mmx mmx, Operand op)
     {
