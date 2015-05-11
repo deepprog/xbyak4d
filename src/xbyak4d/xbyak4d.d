@@ -1,6 +1,6 @@
 /**
  * xbyak for the D programming language
- * Version: 0.060
+ * Version: 0.061
  * Date: 2015/05/11
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -20,6 +20,11 @@ import std.array;
 import std.string    : format;
 import std.algorithm : swap, max, min;
 import std.conv;
+
+unittest
+{
+    import test.bad_address;
+}
 
 version(Windows)
 {
@@ -718,7 +723,7 @@ public:
     }
     this(Reg r, int scale = 1)
     {
-        //static assert(scale != 1 && scale != 2 && scale != 4 && scale != 8);
+//        static assert(scale != 1 && scale != 2 && scale != 4 && scale != 8);
 
         disp_  = 0;
         scale_ = scale;
