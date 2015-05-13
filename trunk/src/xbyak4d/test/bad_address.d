@@ -2,8 +2,9 @@ module test.bad_address;
 
 unittest
 {
-    import xbyak4d;
+    import std.stdio;
     import std.exception;
+	import xbyak4d;
 
     class Code : CodeGenerator
     {
@@ -11,7 +12,7 @@ unittest
         {
             static assert(!__traits(compiles, mov(eax, ptr [esp + esp])));
             static assert(!__traits(compiles, mov(eax, ptr [ax])));             // not support
-            assertThrown(mov(eax, ptr [esp * 4]));
+			assertThrown(mov(eax, ptr [esp * 4]));
             assertThrown(mov(eax, ptr [eax * 16]));
             static assert(!__traits(compiles, mov(eax, ptr [eax + eax + eax])));
             assertThrown(mov(eax, ptr [eax * 2 + ecx * 4]));
@@ -25,5 +26,5 @@ unittest
             }
         }
     }
-    auto c = new Code;
+    auto c = new Code();
 }

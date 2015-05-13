@@ -10,7 +10,7 @@
  */
 
 module xbyak4d;
-//*
+/*
 version = XBYAK64;
 /*/
    version = XBYAK32;
@@ -23,7 +23,8 @@ import std.conv;
 
 unittest
 {
-    import test.bad_address;
+//    import test.bad_address;
+//	import test.address;
 }
 
 version(Windows)
@@ -479,7 +480,7 @@ Reg REG(int idx = 0, Kind kind = Kind.NONE, int bit = 0, int ext8bit = 0)
 {
     return new Reg(idx, kind, bit, ext8bit);
 }
-public class Reg : Operand {
+public class Reg : RegExp {
 private:
     bool hasRex()
     {
@@ -504,17 +505,6 @@ public:
     uint8 getRex(Reg base = REG)
     {
         return cast(uint8) ((hasRex || base.hasRex) ? (0x40 | ((isREG(64) | base.isREG(64)) ? 8 : 0) | (isExtIdx ? 4 : 0) | (base.isExtIdx ? 1 : 0)) : 0);
-    }
-
-    RegExp opBinary(string op) (int scale) if (op == "+")
-    {
-// ???
-        return new RegExp(this, scale);
-    }
-
-    RegExp opBinary(string op) (int scale) if (op == "*")
-    {
-        return new RegExp(this, scale);
     }
 
     Reg8 cvt8()
@@ -640,6 +630,34 @@ public class Reg32e : Reg {
     {
         super(idx, Kind.REG, bit);
     }
+
+	RegExp opBinary(string op) (Reg32e b) if (op == "+")
+    {
+		RegExp ret_A = new RegExp(this);
+		RegExp ret_B = new RegExp(b);
+		return ret_A + ret_B;
+	}
+	
+	RegExp opBinary(string op) (RegExp b) if (op == "+")
+    {
+		RegExp ret_A = new RegExp(this);
+		return ret_A + b;
+	}
+
+	RegExp opBinary(string op) (int scale) if (op == "*")
+    {
+        return cast(RegExp)this * scale;
+    }
+    
+	RegExp opBinary(string op) (uint disp) if (op == "+")
+    {
+			return cast(RegExp) + disp;
+	}
+	
+	RegExp opBinary(string op) (uint disp) if (op == "-")
+    {
+		return cast(RegExp) - disp;
+	}
 }
 
 Reg32 REG32(int idx)
@@ -651,13 +669,6 @@ public class Reg32 : Reg32e {
     {
         super(idx, 32);
     }
-/**	ptr [esp + esp]
-        RegExp opBinary(string op) (Reg32 b) if (op == "+")
-    {
-                throw new XError(ERR.BAD_ADDRESSING);
-                return new RegExp;
-        }
- **/
 }
 
 version(XBYAK64)
@@ -699,7 +710,7 @@ version(XBYAK64)
     }
 }
 
-class RegExp {
+class RegExp : Operand{
 public:
     struct SReg
     {
@@ -716,7 +727,13 @@ public:
             return bit == rhs.bit && idx == rhs.idx;
         }
     }
-    this(size_t disp = 0)
+    
+	this(int idx, Kind kind, int bit = 0, int ext8bit = 0)
+    {
+        super(idx, kind, bit, ext8bit);
+    }
+	
+	this(size_t disp = 0)
     {
         disp_  = disp;
         scale_ = 0;
@@ -746,18 +763,18 @@ public:
             base_.set(r);
         }
     }
-    bool isVsib()
+    bool index_isVsib()
     {
         return index_.bit >= 128;
     }
-    bool isYMM()
+    bool index_isYMM()
     {
         return index_.bit >= 256;
     }
     RegExp optimize()     // select smaller size
     {
         // [reg * 2] => [reg + reg]
-        if (!isVsib && !base_.bit && index_.bit && scale_ == 2)
+        if (!index_isVsib && !base_.bit && index_.bit && scale_ == 2)
         {
             RegExp ret = this;
             ret.base_  = index_;
@@ -810,7 +827,7 @@ private:
 //	base : Reg32e, index : Reg32e(w/o esp), Xmm, Ymm
     RegExp opBinary(string op) (RegExp b) if (op == "+")
     {
-        if (index_.bit && b.index_.bit)
+        if (this.index_.bit && b.index_.bit)
         {
             throw new XError(ERR.BAD_ADDRESSING);
         }
@@ -851,6 +868,14 @@ private:
         ret.disp_ -= disp;
         return ret;
     }
+
+	RegExp opBinary(string op) (uint disp) if (op == "+")
+    {
+        RegExp ret = this;
+        ret.disp_ += disp;
+        return ret;
+    }
+
     size_t disp_;
     int    scale_;
     SReg   base_;
@@ -1264,8 +1289,8 @@ private:
     Address makeAddress(RegExp e)
     {
         e.verify;
-        bool        isVsib = e.isVsib;
-        bool        isYMM  = e.isYMM;
+        bool        isVsib = e.index_isVsib;
+        bool        isYMM  = e.index_isYMM;
         RegExp.SReg base   = e.getBase;
         RegExp.SReg index  = e.getIndex;
         uint32      disp   = e.getDisp;
