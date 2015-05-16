@@ -9,29 +9,27 @@ unittest
     import xbyak4d;
 
 
-	void a()
-	{
-		asm
-		{
-			naked;
-			mov ECX, int ptr[EAX + EAX + 0];
-		}
-	}
+    void a()
+    {
+        asm
+        {
+            naked;
+            mov ECX, int ptr[EAX + EAX + 0];
+        }
+    }
 
-
-
-    class  Code : CodeGenerator
+    class Code : CodeGenerator
     {
         this()
         {
-        	mov(ecx, ptr[eax + eax + 0]);
-			mov(ecx, ptr[eax + eax + 1]);
+            mov(ecx, ptr[eax + eax + 0]);
+            mov(ecx, ptr[eax + eax + 1]);
             mov(ecx, ptr[eax + eax + 1000]);
             mov(ecx, ptr[eax + eax - 1]);
             mov(ecx, ptr[eax + eax - 1000]);
             mov(ecx, ptr[eax + eax * 1 + 0]);
             mov(ecx, ptr[eax + eax * 1 + 1]);
-            mov(ecx, ptr[eax + eax * 1 + 1000]);
+	        mov(ecx, ptr[eax + eax * 1 + 1000]);
             mov(ecx, ptr[eax + eax * 1 - 1]);
             mov(ecx, ptr[eax + eax * 1 - 1000]);
             mov(ecx, ptr[eax + eax * 2 + 0]);
@@ -49,7 +47,7 @@ unittest
             mov(ecx, ptr[eax + eax * 8 + 1000]);
             mov(ecx, ptr[eax + eax * 8 - 1]);
             mov(ecx, ptr[eax + eax * 8 - 1000]);
-			mov(ecx, ptr[eax + ecx + 0]);
+            mov(ecx, ptr[eax + ecx + 0]);
             mov(ecx, ptr[eax + ecx + 1]);
             mov(ecx, ptr[eax + ecx + 1000]);
             mov(ecx, ptr[eax + ecx - 1]);
@@ -124,8 +122,34 @@ unittest
             mov(ecx, ptr[eax + ebx * 8 + 1000]);
             mov(ecx, ptr[eax + ebx * 8 - 1]);
             mov(ecx, ptr[eax + ebx * 8 - 1000]);
-		}
-	}
-	auto c = new Code();
-	c.dump();
+
+            version(XBYAK64)
+            {
+                vgatherdpd(ymm7, ptr[xmm0], ymm4);
+                vgatherdpd(ymm7, ptr[xmm0 * 1], ymm4);
+                vgatherdpd(ymm7, ptr[xmm0 + 4], ymm4);
+                vgatherdpd(ymm7, ptr[xmm0 + eax], ymm4);
+                vgatherdpd(ymm7, ptr[xmm0 * 4 + ecx], ymm4);
+                vgatherdpd(ymm7, ptr[xmm3 * 8 + edi + 123], ymm4);
+                vgatherdpd(ymm7, ptr[xmm2 * 2 + 5], ymm4);
+                vgatherdpd(ymm7, ptr[eax + xmm0], ymm4);
+                vgatherdpd(ymm7, ptr[esp + xmm4], ymm4);
+
+                vgatherqpd(ymm7, ptr[ymm0], ymm4);
+                vgatherqpd(ymm7, ptr[ymm0 * 1], ymm4);
+                vgatherqpd(ymm7, ptr[ymm0 + 4], ymm4);
+                vgatherqpd(ymm7, ptr[ymm0 + eax], ymm4);
+                vgatherqpd(ymm7, ptr[ymm0 * 4 + ecx], ymm4);
+                vgatherqpd(ymm7, ptr[ymm3 * 8 + edi + 123], ymm4);
+                vgatherqpd(ymm7, ptr[ymm2 * 2 + 5], ymm4);
+                vgatherqpd(ymm7, ptr[eax + ymm0], ymm4);
+                vgatherqpd(ymm7, ptr[esp + ymm4], ymm4);
+                vgatherdpd(ymm7, ptr[xmm0 + r11], ymm4);
+                vgatherdpd(ymm7, ptr[r13 + xmm15], ymm4);
+                vgatherdpd(ymm7, ptr[123 + rsi + xmm2 * 4], ymm4);
+            }
+        }
+    }
+    auto c = new Code();
+    //c.dump();
 }
