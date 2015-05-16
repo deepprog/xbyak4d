@@ -10,7 +10,7 @@
  */
 
 module xbyak4d;
-/*
+//*
 version = XBYAK64;
 /*/
    version = XBYAK32;
@@ -24,7 +24,7 @@ import std.conv;
 unittest
 {
     import test.bad_address;
-	import test.address;
+    import test.address;
 }
 
 version(Windows)
@@ -256,7 +256,7 @@ struct inner
     }
     bool IsInInt32(uint64 x)
     {
-        return ~cast(uint64)(0x7fffffffu) <= x || x <= 0x7FFFFFFFU;
+        return ~cast(uint64) (0x7fffffffu) <= x || x <= 0x7FFFFFFFU;
     }
 
     uint32 VerifyInInt32(uint64 x)
@@ -631,18 +631,25 @@ public class Reg32e : Reg {
         super(idx, Kind.REG, bit);
     }
 
-	RegExp opBinary(string op) (Reg32e b) if (op == "+")
-    {
-		auto ret = new RegExp(this);
-		return ret + new RegExp(b);
-	}
-	
-	RegExp opBinary(string op) (RegExp b) if (op == "+")
-    {
-		auto ret = new RegExp(this);
-		return ret + b;
-	}
 
+    RegExp opBinary(string op) (Reg32e b) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + new RegExp(b);
+    }
+
+    RegExp opBinary(string op) (RegExp b) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + b;
+    }
+	
+	RegExp opBinaryRight(string op) (int disp) if (op == "+")
+	{
+		auto ret = new RegExp(this);
+		return  ret + disp;
+	}
+    
 	RegExp opBinary(string op) (int scale) if (op == "*")
     {
         return new RegExp(this, scale);
@@ -666,7 +673,8 @@ version(XBYAK64)
     {
         return new Reg64(idx);
     }
-    public class Reg64 : Reg32e {
+    public class Reg64 : Reg32e
+    {
         this(int idx)
         {
             super(idx, 64);
@@ -699,7 +707,7 @@ version(XBYAK64)
     }
 }
 
-class RegExp : Operand{
+class RegExp : Operand {
 public:
     struct SReg
     {
@@ -707,12 +715,12 @@ public:
         uint16 idx = 7;
 
         this(uint16 b = 0, uint16 i = 0)
-		{
-			bit = b;
-			idx = i;
-		}
-		
-		void   set(Reg r)
+        {
+            bit = b;
+            idx = i;
+        }
+
+        void set(Reg r)
         {
             this.bit = cast(uint16) (r.getBit);
             this.idx = cast(uint16) (r.getIdx);
@@ -722,22 +730,21 @@ public:
             return bit == rhs.bit && idx == rhs.idx;
         }
     }
-    
-	this(int idx, Kind kind, int bit = 0, int ext8bit = 0)
+
+    this(int idx, Kind kind, int bit = 0, int ext8bit = 0)
     {
         super(idx, kind, bit, ext8bit);
     }
-	
-	this(size_t disp = 0)
+
+    this(size_t disp = 0)
     {
         disp_  = disp;
         scale_ = 0;
     }
-    
-	this(Reg r, int scale = 1)
+
+    this(Reg r, int scale = 1)
     {
 //        static assert(scale != 1 && scale != 2 && scale != 4 && scale != 8);
-
         disp_  = 0;
         scale_ = scale;
         if (!r.isKind(Kind.REG, 32 | 64) && !r.isKind(Kind.XMM | Kind.YMM))
@@ -767,8 +774,8 @@ public:
     {
         return index_.bit >= 256;
     }
-    
-	RegExp optimize()     // select smaller size
+
+    RegExp optimize()         // select smaller size
     {
         // [reg * 2] => [reg + reg]
         if (!index_isVsib && !base_.bit && index_.bit && scale_ == 2)
@@ -823,24 +830,24 @@ private:
 //	[base_ + index_ * scale_ + disp_]
 //	base : Reg32e, index : Reg32e(w/o esp), Xmm, Ymm
 
-	RegExp opBinary(string op) (RegExp b) if (op == "+")
+    RegExp opBinary(string op) (RegExp b) if (op == "+")
     {
-       if (0 != this.index_.bit && 0 != b.index_.bit)
+        if (0 != this.index_.bit && 0 != b.index_.bit)
         {
-		   throw new XError(ERR.BAD_ADDRESSING);
+            throw new XError(ERR.BAD_ADDRESSING);
         }
-		RegExp ret = this;
-		
+        RegExp ret = this;
+
         if (0 == ret.index_.bit)
         {
             ret.index_ = b.index_;
-			ret.scale_ = b.scale_;
+            ret.scale_ = b.scale_;
         }
-        if (b.base_.bit)
+        if (0 != b.base_.bit)
         {
-            if (ret.base_.bit)
+            if (0 != ret.base_.bit)
             {
-                if (ret.index_.bit)
+                if (0 != ret.index_.bit)
                     throw new XError(ERR.BAD_ADDRESSING);
                 // base + base => base + index * 1
                 ret.index_ = b.base_;
@@ -871,8 +878,8 @@ private:
         ret.disp_ -= disp;
         return ret;
     }
-
-	RegExp opBinary(string op) (uint disp) if (op == "+")
+   
+    RegExp opBinary(string op) (uint disp) if (op == "+")
     {
         RegExp ret = this;
         ret.disp_ += disp;
@@ -880,9 +887,9 @@ private:
     }
 
     size_t disp_;
-    int    scale_;
-    SReg   base_ = SReg(0,0);
-    SReg   index_ = SReg(0,0);
+    int  scale_;
+    SReg base_  = SReg(0, 0);
+    SReg index_ = SReg(0, 0);
 }
 
 // 1nd parameter for constructor of CodeArray(userPtr, maxSize, alloc)
@@ -1092,7 +1099,7 @@ public:
         uint8  * p     = CodeArray.getCode();
         size_t bufSize = getSize();
         size_t remain  = bufSize;
-        for (int i = 0; i < 4 ; i++)
+        for (int i = 0; i < 4; i++)
         {
             size_t disp = 16;
             if (remain < 16)
@@ -1135,7 +1142,7 @@ public:
     }
     void save(size_t offset, size_t val, int size, inner.LabelMode mode)
     {
-        addrInfoList_  ~= AddrInfo(offset, val, size, mode);
+        addrInfoList_ ~= AddrInfo(offset, val, size, mode);
     }
     bool isAutoGrow()
     {
@@ -1152,7 +1159,7 @@ public:
         version(Windows)
         {
             DWORD oldProtect;
-            return VirtualProtect(cast(void*)(addr), size, canExec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldProtect) != 0;
+            return VirtualProtect(cast(void*) (addr), size, canExec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldProtect) != 0;
         }
         version(linux)
         {
@@ -1405,8 +1412,6 @@ public:
     {
         return makeAddress(e.optimize);
     }
-
-	
 }
 
 struct JmpLabel
@@ -1476,7 +1481,7 @@ public:
 
 class LabelManager
 {
-    // for string label
+// for string label
     struct SlabelVal
     {
         size_t offset;
@@ -1772,7 +1777,7 @@ public class CodeGenerator : CodeArray {
     version(XBYAK64)
     {
         enum { i32e = 64 | 32, BIT = 64 }
-        size_t      dummyAddr = cast(size_t)(0x11223344UL << 32) | 55667788;
+        size_t      dummyAddr = cast(size_t) (0x11223344UL << 32) | 55667788;
         alias Reg64 NativeReg;
     }
     else
@@ -2629,7 +2634,7 @@ private:
         int       bit  = reg.getBit();
         const int idx  = reg.getIdx();
         int       code = 0B10110000 | ((bit == 8 ? 0 : 1) << 3);
-        if (bit == 64 && (imm & ~cast(size_t)(0xffffffffu)) == 0)
+        if (bit == 64 && (imm & ~cast(size_t) (0xffffffffu)) == 0)
         {
             rex(REG32(idx));
             bit = 32;
@@ -2684,16 +2689,16 @@ public:
         verifyMemHasSize(op);
         if (op.isREG())
         {
-            const int size = mov_imm(cast(Reg)(op), imm);
+            const int size = mov_imm(cast(Reg) (op), imm);
             db(imm, size);
         }
         else if (op.isMEM())
         {
-            opModM(cast(Address)(op), REG(0, Kind.REG, op.getBit), 0B11000110);
+            opModM(cast(Address) (op), REG(0, Kind.REG, op.getBit), 0B11000110);
             int size = op.getBit / 8;
             if (size > 4)
                 size = 4;
-            db(cast(uint32)(imm), size);
+            db(cast(uint32) (imm), size);
         }
         else
         {
@@ -2705,7 +2710,7 @@ public:
     {
         if (label.length == 0)
         {
-            mov(cast(Operand)(reg), 0);             // call imm
+            mov(cast(Operand) (reg), 0);            // call imm
             return;
         }
         mov_imm(reg, dummyAddr);
