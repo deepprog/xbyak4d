@@ -8,11 +8,23 @@ unittest
     import std.exception;
     import xbyak4d;
 
+
+	void a()
+	{
+		asm
+		{
+			naked;
+			mov ECX, int ptr[EAX + EAX + 0];
+		}
+	}
+
+
+
     class  Code : CodeGenerator
     {
         this()
         {
-            mov(ecx, ptr[eax + eax + 0]);
+        	mov(ecx, ptr[eax + eax + 0]);
 			mov(ecx, ptr[eax + eax + 1]);
             mov(ecx, ptr[eax + eax + 1000]);
             mov(ecx, ptr[eax + eax - 1]);
@@ -37,7 +49,6 @@ unittest
             mov(ecx, ptr[eax + eax * 8 + 1000]);
             mov(ecx, ptr[eax + eax * 8 - 1]);
             mov(ecx, ptr[eax + eax * 8 - 1000]);
-     
 			mov(ecx, ptr[eax + ecx + 0]);
             mov(ecx, ptr[eax + ecx + 1]);
             mov(ecx, ptr[eax + ecx + 1000]);
@@ -113,7 +124,8 @@ unittest
             mov(ecx, ptr[eax + ebx * 8 + 1000]);
             mov(ecx, ptr[eax + ebx * 8 - 1]);
             mov(ecx, ptr[eax + ebx * 8 - 1000]);
-        }
+		}
 	}
 	auto c = new Code();
+	c.dump();
 }

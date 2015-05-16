@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.061
- * Date: 2015/05/11
+ * Version: 0.062
+ * Date: 2015/05/16
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -23,8 +23,8 @@ import std.conv;
 
 unittest
 {
-//    import test.bad_address;
-//	import test.address;
+    import test.bad_address;
+	import test.address;
 }
 
 version(Windows)
@@ -41,7 +41,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0061, // 0xABCD = A.BC(D)
+    VERSION               = 0x0062, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -633,31 +633,20 @@ public class Reg32e : Reg {
 
 	RegExp opBinary(string op) (Reg32e b) if (op == "+")
     {
-		RegExp ret_A = new RegExp(this);
-		RegExp ret_B = new RegExp(b);
-		return ret_A + ret_B;
+		auto ret = new RegExp(this);
+		return ret + new RegExp(b);
 	}
 	
 	RegExp opBinary(string op) (RegExp b) if (op == "+")
     {
-		RegExp ret_A = new RegExp(this);
-		return ret_A + b;
+		auto ret = new RegExp(this);
+		return ret + b;
 	}
 
 	RegExp opBinary(string op) (int scale) if (op == "*")
     {
-        return cast(RegExp)this * scale;
+        return new RegExp(this, scale);
     }
-    
-	RegExp opBinary(string op) (uint disp) if (op == "+")
-    {
-			return cast(RegExp) + disp;
-	}
-	
-	RegExp opBinary(string op) (uint disp) if (op == "-")
-    {
-		return cast(RegExp) - disp;
-	}
 }
 
 Reg32 REG32(int idx)
@@ -717,7 +706,13 @@ public:
         uint16 bit = 9;         // 32/64/128/256 none if 0
         uint16 idx = 7;
 
-        void   set(Reg r)
+        this(uint16 b = 0, uint16 i = 0)
+		{
+			bit = b;
+			idx = i;
+		}
+		
+		void   set(Reg r)
         {
             this.bit = cast(uint16) (r.getBit);
             this.idx = cast(uint16) (r.getIdx);
@@ -738,7 +733,8 @@ public:
         disp_  = disp;
         scale_ = 0;
     }
-    this(Reg r, int scale = 1)
+    
+	this(Reg r, int scale = 1)
     {
 //        static assert(scale != 1 && scale != 2 && scale != 4 && scale != 8);
 
@@ -771,7 +767,8 @@ public:
     {
         return index_.bit >= 256;
     }
-    RegExp optimize()     // select smaller size
+    
+	RegExp optimize()     // select smaller size
     {
         // [reg * 2] => [reg + reg]
         if (!index_isVsib && !base_.bit && index_.bit && scale_ == 2)
@@ -825,43 +822,49 @@ public:
 private:
 //	[base_ + index_ * scale_ + disp_]
 //	base : Reg32e, index : Reg32e(w/o esp), Xmm, Ymm
-    RegExp opBinary(string op) (RegExp b) if (op == "+")
+
+	RegExp opBinary(string op) (RegExp b) if (op == "+")
     {
-        if (this.index_.bit && b.index_.bit)
+       if (0 != this.index_.bit && 0 != b.index_.bit)
         {
-            throw new XError(ERR.BAD_ADDRESSING);
+		   throw new XError(ERR.BAD_ADDRESSING);
         }
-        if (!this.index_.bit)
+		RegExp ret = this;
+		
+        if (0 == ret.index_.bit)
         {
-            this.index_ = b.index_; this.scale_ = b.scale_;
+            ret.index_ = b.index_;
+			ret.scale_ = b.scale_;
         }
         if (b.base_.bit)
         {
-            if (this.base_.bit)
+            if (ret.base_.bit)
             {
-                if (this.index_.bit)
+                if (ret.index_.bit)
                     throw new XError(ERR.BAD_ADDRESSING);
                 // base + base => base + index * 1
-                this.index_ = b.base_;
+                ret.index_ = b.base_;
                 // [reg + esp] => [esp + reg]
-                if (this.index_.idx == Code.ESP)
+                if (ret.index_.idx == Code.ESP)
                 {
-                    swap(this.base_, this.index_);
+                    swap(ret.base_, ret.index_);
                 }
-                this.scale_ = 1;
+                ret.scale_ = 1;
             }
             else
             {
-                this.base_ = b.base_;
+                ret.base_ = b.base_;
             }
         }
-        this.disp_ += b.disp_;
-        return this;
+        ret.disp_ += b.disp_;
+        return ret;
     }
+
     RegExp opBinary(string op) (int scale) if (op == "*")
     {
         return new RegExp(cast(Reg)this, scale);
     }
+
     RegExp opBinary(string op) (uint disp) if (op == "-")
     {
         RegExp ret = this;
@@ -878,8 +881,8 @@ private:
 
     size_t disp_;
     int    scale_;
-    SReg   base_;
-    SReg   index_;
+    SReg   base_ = SReg(0,0);
+    SReg   index_ = SReg(0,0);
 }
 
 // 1nd parameter for constructor of CodeArray(userPtr, maxSize, alloc)
@@ -1086,10 +1089,10 @@ public:
 
     void dump()
     {
-        uint8  * p     = getCode;
-        size_t bufSize = getSize;
+        uint8  * p     = CodeArray.getCode();
+        size_t bufSize = getSize();
         size_t remain  = bufSize;
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 4 ; i++)
         {
             size_t disp = 16;
             if (remain < 16)
@@ -1397,10 +1400,13 @@ public:
             return frame;
         }
     }
+
     Address opIndex(RegExp e)
     {
         return makeAddress(e.optimize);
     }
+
+	
 }
 
 struct JmpLabel
@@ -3046,7 +3052,7 @@ public:
 
     string getVersionString()
     {
-        return "0.061";
+        return "0.062";
     }
     void packssdw(Mmx mmx, Operand op)
     {
