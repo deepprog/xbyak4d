@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.062
- * Date: 2015/05/16
+ * Date: 2015/05/17
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -585,7 +585,7 @@ public:
     }
 }
 
-Xmm XMM(int idx, Kind kind = Kind.MMX, int bit = 128)
+Xmm XMM(int idx, Kind kind = Kind.XMM, int bit = 128)
 {
     return new Xmm(idx, kind, bit);
 }
@@ -643,14 +643,14 @@ public class Reg32e : Reg {
         auto ret = new RegExp(this);
         return ret + b;
     }
-	
-	RegExp opBinaryRight(string op) (int disp) if (op == "+")
-	{
-		auto ret = new RegExp(this);
-		return  ret + disp;
-	}
-    
-	RegExp opBinary(string op) (int scale) if (op == "*")
+
+    RegExp opBinaryRight(string op) (int disp) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + disp;
+    }
+
+    RegExp opBinary(string op) (int scale) if (op == "*")
     {
         return new RegExp(this, scale);
     }
@@ -747,7 +747,11 @@ public:
 //        static assert(scale != 1 && scale != 2 && scale != 4 && scale != 8);
         disp_  = 0;
         scale_ = scale;
-        if (!r.isKind(Kind.REG, 32 | 64) && !r.isKind(Kind.XMM | Kind.YMM))
+
+        bool Reg32or64 = r.isKind(Kind.REG, 32 | 64);
+        bool XMMorYMM  = r.isKind(Kind.XMM | Kind.YMM);
+
+        if (!Reg32or64 && !XMMorYMM)
         {
             throw new XError(ERR.BAD_SIZE_OF_REGISTER);
         }
@@ -878,7 +882,7 @@ private:
         ret.disp_ -= disp;
         return ret;
     }
-   
+
     RegExp opBinary(string op) (uint disp) if (op == "+")
     {
         RegExp ret = this;
@@ -887,9 +891,9 @@ private:
     }
 
     size_t disp_;
-    int  scale_;
-    SReg base_  = SReg(0, 0);
-    SReg index_ = SReg(0, 0);
+    int    scale_;
+    SReg   base_  = SReg(0, 0);
+    SReg   index_ = SReg(0, 0);
 }
 
 // 1nd parameter for constructor of CodeArray(userPtr, maxSize, alloc)
@@ -1405,6 +1409,18 @@ public:
                 frame.dd(inner.VerifyInInt32(addr.disp_));
             }
             return frame;
+        }
+
+        Address opIndex(Xmm xmm)
+        {
+            auto ret = new RegExp(xmm);
+            return makeAddress(ret.optimize);
+        }
+
+        Address opIndex(Ymm ymm)
+        {
+            auto ret = new RegExp(ymm);
+            return makeAddress(ret.optimize);
         }
     }
 
@@ -2364,8 +2380,11 @@ public class CodeGenerator : CodeArray {
 
     void opGather(Xmm x1, Address addr, Xmm x2, int type, uint8 code, int w, int mode)
     {
-        if (!addr.isVsib)
+        auto addr_isVsib = addr.isVsib();
+        if (!addr_isVsib)
+        {
             throw new XError(ERR.BAD_VSIB_ADDRESSING);
+        }
         int  y_vx_y = 0;
         int  y_vy_y = 1;
 //		int x_vy_x = 2;
