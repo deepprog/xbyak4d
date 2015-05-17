@@ -1,6 +1,6 @@
 /**
  * xbyak for the D programming language
- * Version: 0.062
+ * Version: 0.063
  * Date: 2015/05/17
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -41,7 +41,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0062, // 0xABCD = A.BC(D)
+    VERSION               = 0x0063, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -595,6 +595,29 @@ public:
     {
         super(idx, kind, bit);
     }
+
+    RegExp opBinary(string op) (Xmm b) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + new RegExp(b);
+    }
+
+    RegExp opBinary(string op) (RegExp b) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + b;
+    }
+
+    RegExp opBinary(string op) (int disp) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + disp;
+    }
+
+    RegExp opBinary(string op) (int scale) if (op == "*")
+    {
+        return new RegExp(this, scale);
+    }
 }
 
 Ymm YMM(int idx)
@@ -606,6 +629,28 @@ public:
     this(int idx)
     {
         super(idx, Kind.YMM, 256);
+    }
+    RegExp opBinary(string op) (Ymm b) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + new RegExp(b);
+    }
+
+    RegExp opBinary(string op) (RegExp b) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + b;
+    }
+
+    RegExp opBinary(string op) (int disp) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + disp;
+    }
+
+    RegExp opBinary(string op) (int scale) if (op == "*")
+    {
+        return new RegExp(this, scale);
     }
 }
 
@@ -633,6 +678,18 @@ public class Reg32e : Reg {
 
 
     RegExp opBinary(string op) (Reg32e b) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + new RegExp(b);
+    }
+
+    RegExp opBinary(string op) (Xmm b) if (op == "+")
+    {
+        auto ret = new RegExp(this);
+        return ret + new RegExp(b);
+    }
+
+    RegExp opBinary(string op) (Ymm b) if (op == "+")
     {
         auto ret = new RegExp(this);
         return ret + new RegExp(b);
@@ -3076,7 +3133,7 @@ public:
 
     string getVersionString()
     {
-        return "0.062";
+        return "0.063";
     }
     void packssdw(Mmx mmx, Operand op)
     {
