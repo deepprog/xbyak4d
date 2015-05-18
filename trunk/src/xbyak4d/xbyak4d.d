@@ -676,7 +676,6 @@ public class Reg32e : Reg {
         super(idx, Kind.REG, bit);
     }
 
-
     RegExp opBinary(string op) (Reg32e b) if (op == "+")
     {
         auto ret = new RegExp(this);
@@ -928,22 +927,17 @@ private:
         return ret;
     }
 
-    RegExp opBinary(string op) (int scale) if (op == "*")
-    {
-        return new RegExp(cast(Reg)this, scale);
-    }
-
-    RegExp opBinary(string op) (uint disp) if (op == "-")
-    {
-        RegExp ret = this;
-        ret.disp_ -= disp;
-        return ret;
-    }
-
-    RegExp opBinary(string op) (uint disp) if (op == "+")
+    RegExp opBinary(string op) (int disp) if (op == "+")
     {
         RegExp ret = this;
         ret.disp_ += disp;
+        return ret;
+    }
+
+    RegExp opBinary(string op) (int disp) if (op == "-")
+    {
+        RegExp ret = this;
+        ret.disp_ -= disp;
         return ret;
     }
 
