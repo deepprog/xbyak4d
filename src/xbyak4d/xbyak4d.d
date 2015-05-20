@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.064
- * Date: 2015/05/20
+ * Date: 2015/05/21
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -546,21 +546,6 @@ public:
             return REG64(idx);
         }
     }
-
-	RegExp opBinary(string op) (Reg b) if (op == "+")
-    {
-        return new RegExp(this) + new RegExp(b);
-    }
-
-	RegExp opBinary(string op) (int scale) if (op == "*")
-    {
-        return new RegExp(this, scale);
-    }
-
-	RegExp opBinaryRight(string op) (int disp) if (op == "+")
-    {
-        return new RegExp(this) + disp;
-    }
 }
 
 Reg8 REG8(int idx = 0, int ext8bit = 0)
@@ -602,6 +587,11 @@ public:
 	RegExp opBinary(string op) (Reg32e b) if (op == "+")
     {
 		return new RegExp(this) + new RegExp(b);
+    }
+	
+	RegExp opBinaryRight(string op) (Reg32e b) if (op == "+")
+    {
+        return this + new RegExp(b);
     }
 
 	RegExp opBinary(string op) (int scale) if (op == "*")
@@ -661,19 +651,9 @@ public class Reg32e : Reg {
         super(idx, Kind.REG, bit);
     }
 	
-	RegExp opBinary(string op) (RegExp b) if (op == "+")
-    {
-	return new RegExp(this) + b;
-    }
-
 	RegExp opBinary(string op) (Reg32e b) if (op == "+")
     {
 		return new RegExp(this) + new RegExp(b);
-    }
-
-    RegExp opBinary(string op) (Mmx b) if (op == "+")
-    {
-	return new RegExp(this) + new RegExp(b);
     }
 
 	RegExp opBinary(string op) (int scale) if (op == "*")
@@ -898,6 +878,11 @@ private:
     }
 
 	RegExp opBinary(string op) (Reg32e b) if (op == "+")
+    {
+        return this + new RegExp(b);
+    }
+
+	RegExp opBinaryRight(string op) (Reg32e b) if (op == "+")
     {
         return this + new RegExp(b);
     }
