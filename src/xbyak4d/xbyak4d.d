@@ -584,24 +584,24 @@ public:
         super(idx, kind, bit);
     }
 
-	RegExp opBinary(string op) (Reg32e b) if (op == "+")
+    RegExp opBinary(string op) (Reg32e b) if (op == "+")
     {
-		return new RegExp(this) + new RegExp(b);
+        return new RegExp(this) + new RegExp(b);
     }
 
-	RegExp opBinaryRight(string op) (Reg32e b) if (op == "+")
+    RegExp opBinaryRight(string op) (Reg32e b) if (op == "+")
     {
-		return new RegExp(this) + new RegExp(b);
+        return new RegExp(this) + new RegExp(b);
     }
 
-	RegExp opBinary(string op) (int scale) if (op == "*")
+    RegExp opBinary(string op) (int scale) if (op == "*")
     {
         return new RegExp(this, scale);
     }
 
-	RegExp opBinary(string op) (int disp) if (op == "+")
+    RegExp opBinary(string op) (int disp) if (op == "+")
     {
-		return new RegExp(this) + disp;
+        return new RegExp(this) + disp;
     }
 }
 
@@ -650,18 +650,18 @@ public class Reg32e : Reg {
     {
         super(idx, Kind.REG, bit);
     }
-	
-	RegExp opBinary(string op) (Reg32e b) if (op == "+")
+
+    RegExp opBinary(string op) (Reg32e b) if (op == "+")
     {
-		return new RegExp(this) + new RegExp(b);
+        return new RegExp(this) + new RegExp(b);
     }
 
-	RegExp opBinary(string op) (int scale) if (op == "*")
+    RegExp opBinary(string op) (int scale) if (op == "*")
     {
         return new RegExp(this, scale);
     }
-    
-	RegExp opBinaryRight(string op) (int disp) if (op == "+")
+
+    RegExp opBinaryRight(string op) (int disp) if (op == "+")
     {
         return new RegExp(this) + disp;
     }
@@ -718,7 +718,7 @@ version(XBYAK64)
     }
 }
 
-class RegExp{
+class RegExp {
 public:
     struct SReg
     {
@@ -877,17 +877,17 @@ private:
         return ret;
     }
 
-	RegExp opBinary(string op) (Reg32e b) if (op == "+")
+    RegExp opBinary(string op) (Reg32e b) if (op == "+")
     {
         return this + new RegExp(b);
     }
 
-	RegExp opBinaryRight(string op) (Reg32e b) if (op == "+")
+    RegExp opBinaryRight(string op) (Reg32e b) if (op == "+")
     {
         return this + new RegExp(b);
     }
-	
-	RegExp opBinary(string op) (int disp) if (op == "+")
+
+    RegExp opBinary(string op) (int disp) if (op == "+")
     {
         RegExp ret = this;
         ret.disp_ += disp;
@@ -1428,17 +1428,17 @@ public:
         return makeAddress(e.optimize);
     }
 
-	Address opIndex(Reg32e reg)
-	{
-		auto ret = new RegExp(reg);
-		return makeAddress(ret.optimize);
-	}
+    Address opIndex(Reg32e reg)
+    {
+        auto ret = new RegExp(reg);
+        return makeAddress(ret.optimize);
+    }
 
-	Address opIndex(Mmx mmx)
-	{
-		auto ret = new RegExp(mmx);
-		return makeAddress(ret.optimize);
-	}
+    Address opIndex(Mmx mmx)
+    {
+        auto ret = new RegExp(mmx);
+        return makeAddress(ret.optimize);
+    }
 }
 
 struct JmpLabel
