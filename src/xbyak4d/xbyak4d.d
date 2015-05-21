@@ -1,6 +1,6 @@
 /**
  * xbyak for the D programming language
- * Version: 0.064
+ * Version: 0.065
  * Date: 2015/05/21
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
@@ -41,7 +41,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0064, // 0xABCD = A.BC(D)
+    VERSION               = 0x0065, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -583,15 +583,15 @@ public:
     {
         super(idx, kind, bit);
     }
-	
+
 	RegExp opBinary(string op) (Reg32e b) if (op == "+")
     {
 		return new RegExp(this) + new RegExp(b);
     }
-	
+
 	RegExp opBinaryRight(string op) (Reg32e b) if (op == "+")
     {
-        return this + new RegExp(b);
+		return new RegExp(this) + new RegExp(b);
     }
 
 	RegExp opBinary(string op) (int scale) if (op == "*")
@@ -887,11 +887,6 @@ private:
         return this + new RegExp(b);
     }
 	
-	RegExp opBinaryRight(string op) (Mmx b) if (op == "+")
-    {
-        return this + new RegExp(b);
-    }
-
 	RegExp opBinary(string op) (int disp) if (op == "+")
     {
         RegExp ret = this;
@@ -1433,9 +1428,15 @@ public:
         return makeAddress(e.optimize);
     }
 
-	Address opIndex(Reg reg)
+	Address opIndex(Reg32e reg)
 	{
 		auto ret = new RegExp(reg);
+		return makeAddress(ret.optimize);
+	}
+
+	Address opIndex(Mmx mmx)
+	{
+		auto ret = new RegExp(mmx);
 		return makeAddress(ret.optimize);
 	}
 }
@@ -3086,7 +3087,7 @@ public:
 
     string getVersionString()
     {
-        return "0.064";
+        return "0.065";
     }
     void packssdw(Mmx mmx, Operand op)
     {
