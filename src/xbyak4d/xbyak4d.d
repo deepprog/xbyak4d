@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.065
- * Date: 2015/05/21
+ * Version: 0.066
+ * Date: 2015/05/24
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -41,7 +41,7 @@ version(linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0065, // 0xABCD = A.BC(D)
+    VERSION               = 0x0066, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -49,7 +49,7 @@ alias long   sint64;
 alias uint   uint32;
 alias ushort uint16;
 alias ubyte  uint8;
-alias int    size_t;
+//alias int    size_t;
 
 // MIE_ALIGN
 T MIE_PACK(T)(T x, T y, T z, T W)
@@ -110,7 +110,8 @@ public:
         }
         super(this.what(), file, line, next);
     }
-    int opCast(int)
+
+    int opCast(T)() if (is(T == int))
     {
         return err_;
     }
@@ -3084,10 +3085,9 @@ public:
         }
     }
 
-
     string getVersionString()
     {
-        return "0.065";
+        return "0.066";
     }
     void packssdw(Mmx mmx, Operand op)
     {
@@ -8834,3 +8834,143 @@ public:
     }
 }
 // CodeGenerator
+alias CodeGenerator.mm0   mm0;
+alias CodeGenerator.mm1   mm1;
+alias CodeGenerator.mm2   mm2;
+alias CodeGenerator.mm3   mm3;
+alias CodeGenerator.mm4   mm4;
+alias CodeGenerator.mm5   mm5;
+alias CodeGenerator.mm6   mm6;
+alias CodeGenerator.mm7   mm7;
+
+alias CodeGenerator.xmm0  xmm0;
+alias CodeGenerator.xmm1  xmm1;
+alias CodeGenerator.xmm2  xmm2;
+alias CodeGenerator.xmm3  xmm3;
+alias CodeGenerator.xmm4  xmm4;
+alias CodeGenerator.xmm5  xmm5;
+alias CodeGenerator.xmm6  xmm6;
+alias CodeGenerator.xmm7  xmm7;
+
+alias CodeGenerator.ymm0  ymm0;
+alias CodeGenerator.ymm1  ymm1;
+alias CodeGenerator.ymm2  ymm2;
+alias CodeGenerator.ymm3  ymm3;
+alias CodeGenerator.ymm4  ymm4;
+alias CodeGenerator.ymm5  ymm5;
+alias CodeGenerator.ymm6  ymm6;
+alias CodeGenerator.ymm7  ymm7;
+
+alias CodeGenerator.eax   eax;
+alias CodeGenerator.ecx   ecx;
+alias CodeGenerator.edx   edx;
+alias CodeGenerator.ebx   ebx;
+alias CodeGenerator.esp   esp;
+alias CodeGenerator.ebp   ebp;
+alias CodeGenerator.esi   esi;
+alias CodeGenerator.edi   edi;
+
+alias CodeGenerator.ax    ax;
+alias CodeGenerator.cx    cx;
+alias CodeGenerator.dx    dx;
+alias CodeGenerator.bx    bx;
+alias CodeGenerator.sp    sp;
+alias CodeGenerator.bp    bp;
+alias CodeGenerator.si    si;
+alias CodeGenerator.di    di;
+
+alias CodeGenerator.al    al;
+alias CodeGenerator.cl    cl;
+alias CodeGenerator.dl    dl;
+alias CodeGenerator.bl    bl;
+alias CodeGenerator.ah    ah;
+alias CodeGenerator.ch    ch;
+alias CodeGenerator.dh    dh;
+alias CodeGenerator.bh    bh;
+
+alias CodeGenerator.ptr   ptr;
+alias CodeGenerator.byte_ byte_;
+alias CodeGenerator.word  word;
+alias CodeGenerator.qword qword;
+
+alias CodeGenerator.st0   st0;
+alias CodeGenerator.st1   st1;
+alias CodeGenerator.st2   st2;
+alias CodeGenerator.st3   st3;
+alias CodeGenerator.st4   st4;
+alias CodeGenerator.st5   st5;
+alias CodeGenerator.st6   st6;
+alias CodeGenerator.st7   st7;
+
+version(XBYAK64)
+{
+    alias CodeGenerator.rax   rax;
+    alias CodeGenerator.rcx   rcx;
+    alias CodeGenerator.rdx   rdx;
+    alias CodeGenerator.rbx   rbx;
+    alias CodeGenerator.rsp   rsp;
+    alias CodeGenerator.rbp   rbp;
+    alias CodeGenerator.rsi   rsi;
+    alias CodeGenerator.rdi   rdi;
+
+    alias CodeGenerator.r8    r8;
+    alias CodeGenerator.r9    r9;
+    alias CodeGenerator.r10   r10;
+    alias CodeGenerator.r11   r11;
+    alias CodeGenerator.r12   r12;
+    alias CodeGenerator.r13   r13;
+    alias CodeGenerator.r14   r14;
+    alias CodeGenerator.r15   r15;
+
+    alias CodeGenerator.r8d   r8d;
+    alias CodeGenerator.r9d   r9d;
+    alias CodeGenerator.r10d  r10d;
+    alias CodeGenerator.r11d  r11d;
+    alias CodeGenerator.r12d  r12d;
+    alias CodeGenerator.r13d  r13d;
+    alias CodeGenerator.r14d  r14d;
+    alias CodeGenerator.r15d  r15d;
+
+    alias CodeGenerator.r8w   r8w;
+    alias CodeGenerator.r9w   r9w;
+    alias CodeGenerator.r10w  r10w;
+    alias CodeGenerator.r11w  r11w;
+    alias CodeGenerator.r12w  r12w;
+    alias CodeGenerator.r13w  r13w;
+    alias CodeGenerator.r14w  r14w;
+    alias CodeGenerator.r15w  r15w;
+
+    alias CodeGenerator.r8b   r8b;
+    alias CodeGenerator.r9b   r9b;
+    alias CodeGenerator.r10b  r10b;
+    alias CodeGenerator.r11b  r11b;
+    alias CodeGenerator.r12b  r12b;
+    alias CodeGenerator.r13b  r13b;
+    alias CodeGenerator.r14b  r14b;
+    alias CodeGenerator.r15b  r15b;
+
+    alias CodeGenerator.spl   spl;
+    alias CodeGenerator.bpl   bpl;
+    alias CodeGenerator.sil   sil;
+    alias CodeGenerator.dil   dil;
+
+    alias CodeGenerator.xmm8  xmm8;
+    alias CodeGenerator.xmm9  xmm9;
+    alias CodeGenerator.xmm10 xmm10;
+    alias CodeGenerator.xmm11 xmm11;
+    alias CodeGenerator.xmm12 xmm12;
+    alias CodeGenerator.xmm13 xmm13;
+    alias CodeGenerator.xmm14 xmm14;
+    alias CodeGenerator.xmm15 xmm15;
+
+    alias CodeGenerator.ymm8  ymm8;
+    alias CodeGenerator.ymm9  ymm9;
+    alias CodeGenerator.ymm10 ymm10;
+    alias CodeGenerator.ymm11 ymm11;
+    alias CodeGenerator.ymm12 ymm12;
+    alias CodeGenerator.ymm13 ymm13;
+    alias CodeGenerator.ymm14 ymm14;
+    alias CodeGenerator.ymm15 ymm15;
+
+    alias CodeGenerator.rip   rip;
+}
