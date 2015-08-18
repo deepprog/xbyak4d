@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.066
- * Date: 2015/05/24
+ * Version: 0.067
+ * Date: 2015/08/18
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -11,9 +11,9 @@
 
 module xbyak4d;
 //*
-version = XBYAK64;
+version = XBYAK32;
 /*/
-   version = XBYAK32;
+   version = XBYAK64;
    //*/
 import std.stdio;
 import std.array;
@@ -477,6 +477,16 @@ public:
     }
 }
 
+unittest{
+	assert(eax == eax);
+	assert(ecx != xmm0);
+	assert(ptr[eax] == ptr[eax]);
+	assert(dword[eax] == dword[eax]);
+	assert(dword[eax] != ptr[eax]);
+	assert(ptr[eax] != ptr[eax+3]);
+	assert(ptr[ecx] != ptr[ecx+3]);
+}
+
 Reg REG(int idx = 0, Kind kind = Kind.NONE, int bit = 0, int ext8bit = 0)
 {
     return new Reg(idx, kind, bit, ext8bit);
@@ -660,6 +670,11 @@ public class Reg32e : Reg {
     RegExp opBinary(string op) (int scale) if (op == "*")
     {
         return new RegExp(this, scale);
+    }
+
+	RegExp opBinary(string op) (int disp) if (op == "+")
+    {
+        return new RegExp(this) + disp;
     }
 
     RegExp opBinaryRight(string op) (int disp) if (op == "+")
@@ -1126,7 +1141,7 @@ public:
             {
                 if (j < disp)
                 {
-                    format("%02X ", p[i * 16 + j]).write;
+                    write(format("%02X ", p[i * 16 + j]));
                 }
             }
             writeln();
@@ -3077,7 +3092,7 @@ public:
             throw new XError(ERR.BAD_ALIGN);
         if (isAutoGrow() && x > cast(int) inner.ALIGN_PAGE_SIZE)
         {
-            throw new Exception("warning:autoGrow mode does not support %d align".format(x));
+            throw new Exception(format("warning:autoGrow mode does not support %d align", x));
         }
         while (cast(size_t) getCurr % x)
         {
@@ -8891,6 +8906,7 @@ alias CodeGenerator.bh    bh;
 alias CodeGenerator.ptr   ptr;
 alias CodeGenerator.byte_ byte_;
 alias CodeGenerator.word  word;
+alias CodeGenerator.dword  dword;
 alias CodeGenerator.qword qword;
 
 alias CodeGenerator.st0   st0;
