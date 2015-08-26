@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.068
- * Date: 2015/08/25
+ * Version: 0.070
+ * Date: 2015/08/27
  * See_Also:
  * URL: <a href="http://code.google.com/p/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -41,7 +41,7 @@ version (linux)
 enum : uint
 {
     DEFAULT_MAX_CODE_SIZE = 4096,
-    VERSION               = 0x0066, // 0xABCD = A.BC(D)
+    VERSION               = 0x0070, // 0xABCD = A.BC(D)
 }
 
 alias ulong  uint64;
@@ -1959,14 +1959,14 @@ void makeJmp(uint32 disp, LabelType type, uint8 shortCode, uint8 longCode, uint8
     int shortJmpSize   = 2;
     int longHeaderSize = longPref ? 2 : 1;
     int longJmpSize    = longHeaderSize + 4;
-    if (type != LabelType.T_NEAR && inner.IsInDisp8(disp - shortJmpSize))
+    if (type != T_NEAR && inner.IsInDisp8(disp - shortJmpSize))
     {
         db(shortCode);
         db(disp - shortJmpSize);
     }
     else
     {
-        if (type == LabelType.T_SHORT)
+        if (type == T_SHORT)
             throw new XError(ERR.LABEL_IS_TOO_FAR);
         if (longPref)
             db(longPref);
@@ -1977,6 +1977,7 @@ void makeJmp(uint32 disp, LabelType type, uint8 shortCode, uint8 longCode, uint8
 }
 
 void opJmp(T)(T label, LabelType type, uint8 shortCode, uint8 longCode, uint8 longPref)
+if(is(T == string) || is(T == Label) )
 {
     if (isAutoGrow && size_ + 16 >= maxSize_)
     {
@@ -1994,7 +1995,7 @@ void opJmp(T)(T label, LabelType type, uint8 shortCode, uint8 longCode, uint8 lo
     else
     {
         int jmpSize = 0;
-        if (type == LabelType.T_NEAR)
+        if (type == T_NEAR)
         {
             jmpSize = 4;
             if (longPref)
@@ -2018,7 +2019,7 @@ void opJmpAbs(void* addr, LabelType type, uint8 shortCode, uint8 longCode)
 {
     if (isAutoGrow)
     {
-        if (type != LabelType.T_NEAR)
+        if (type != T_NEAR)
             throw new XError(ERR.ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW);
         if (size_ + 16 >= maxSize_)
             growMemory;
@@ -2517,15 +2518,12 @@ void outLocalLabel()
 {
     labelMgr_.leaveLocal;
 }
-void jmp(string label, LabelType type = LabelType.T_AUTO)
+void jmp(T)(T label, LabelType type = T_AUTO)
 {
     opJmp(label, type, 0B11101011, 0B11101001, 0);
 }
-void jmp(Label label, LabelType type = LabelType.T_AUTO)
-{
-    opJmp(label, type, 0B11101011, 0B11101001, 0);
-}
-void jmp(void* addr, LabelType type = LabelType.T_AUTO)
+
+void jmp(void* addr, LabelType type = T_AUTO)
 {
     opJmpAbs(addr, type, 0B11101011, 0B11101001);
 }
@@ -2841,16 +2839,16 @@ void xchg(Operand op1, Operand op2)
 
 void call(string label)
 {
-    opJmp(label, LabelType.T_NEAR, 0, 0B11101000, 0);
+    opJmp(label, T_NEAR, 0, 0B11101000, 0);
 }
 void call(Label label)
 {
-    opJmp(label, LabelType.T_NEAR, 0, 0B11101000, 0);
+    opJmp(label, T_NEAR, 0, 0B11101000, 0);
 }
 
 void call(void* addr)
 {
-    opJmpAbs(addr, LabelType.T_NEAR, 0, 0B11101000);
+    opJmpAbs(addr, T_NEAR, 0, 0B11101000);
 }
 
 // special case
@@ -3103,7 +3101,7 @@ void Align(int x = 16)
     }
 }
 
-string getVersionString() { return "0.066"; }
+string getVersionString() { return "0.070"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -3363,78 +3361,44 @@ void cmovng (Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM
 void cmovnle(Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 15); }
 void cmovg  (Reg32e reg, Operand op) { opModRM(reg, op, op.isREG(i32e), op.isMEM(), 0x0F, 0B01000000 | 15); }
 
-void jo  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x70, 0x80, 0x0F); }
-void jo  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x70, 0x80, 0x0F); }
-void jno (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x71, 0x81, 0x0F); }
-void jno (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x71, 0x81, 0x0F); }
-void jb  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
-void jb  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
-void jc  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
-void jc  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
-void jnae(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
-void jnae(Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
-void jnb (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
-void jnb (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
-void jae (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
-void jae (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
-void jnc (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
-void jnc (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
-void je  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
-void je  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
-void jz  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
-void jz  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
-void jne (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
-void jne (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
-void jnz (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
-void jnz (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
-void jbe (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
-void jbe (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
-void jna (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
-void jna (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
-void jnbe(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
-void jnbe(Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
-void ja  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
-void ja  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
-void js  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x78, 0x88, 0x0F); }
-void js  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x78, 0x88, 0x0F); }
-void jns (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x79, 0x89, 0x0F); }
-void jns (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x79, 0x89, 0x0F); }
-void jp  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
-void jp  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
-void jpe (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
-void jpe (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
-void jnp (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
-void jnp (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
-void jpo (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
-void jpo (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
-void jl  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
-void jl  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
-void jnge(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
-void jnge(Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
-void jnl (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
-void jnl (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
-void jge (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
-void jge (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
-void jle (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
-void jle (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
-void jng (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
-void jng (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
-void jnle(string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
-void jnle(Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
-void jg  (string label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
-void jg  (Label  label, LabelType type = LabelType.T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
+void jo  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x70, 0x80, 0x0F); }
+void jno (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x71, 0x81, 0x0F); }
+void jb  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
+void jc  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
+void jnae(T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
+void jnb (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
+void jae (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
+void jnc (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
+void je  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
+void jz  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
+void jne (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
+void jnz (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
+void jbe (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
+void jna (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
+void jnbe(T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
+void ja  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
+void js  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x78, 0x88, 0x0F); }
+void jns (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x79, 0x89, 0x0F); }
+void jp  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
+void jpe (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
+void jnp (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
+void jpo (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
+void jl  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
+void jnge(T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
+void jnl (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
+void jge (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
+void jle (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
+void jng (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
+void jnle(T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
+void jg  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
 
 version (XBYAK32)
 {
-    void jcxz (string label) { db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
-    void jcxz (Label  label) { db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
-	void jecxz(string label) { opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
-	void jecxz(Label  label) { opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
+    void jcxz (T)(T label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
+	void jecxz(T)(T label) { opJmp(label, T_SHORT, 0xe3, 0, 0); }
 }else{
-    void jecxz(string label) { db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
-    void jecxz(Label  label) { db(0x67); opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
-    void jrcxz(string label) { opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
-	void jrcxz(Label  label) { opJmp(label, LabelType.T_SHORT, 0xe3, 0, 0); }
+    void jecxz(T)(T label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
+    void jrcxz(T)(T label) { opJmp(label, T_SHORT, 0xe3, 0, 0); }
 }
 
 version (XBYAK64)
@@ -4164,227 +4128,131 @@ void vcmpgt_oqpd   (Xmm x, Operand op) { vcmppd(x, op, 30);}
 void vcmptrue_uspd (Xmm x1, Xmm x2, Operand op) { vcmppd(x1, x2, op, 31);}
 void vcmptrue_uspd (Xmm x, Operand op) { vcmppd(x, op, 31);}
 
-void cmpeqpsb   (Xmm x, Operand op) { cmpps(x, op, 0);}
-void vcmpeqps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 0);}
-void vcmpeqps   (Xmm x, Operand op) { vcmpps(x, op, 0);}
-void cmpltpsb   (Xmm x, Operand op) { cmpps(x, op, 1);}
-void vcmpltps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 1);}
-void vcmpltps   (Xmm x, Operand op) { vcmpps(x, op, 1);}
-void cmplepsb   (Xmm x, Operand op) { cmpps(x, op, 2);}
-void vcmpleps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 2);}
-void vcmpleps   (Xmm x, Operand op) { vcmpps(x, op, 2);}
-void cmpunordps (Xmm x, Operand op) { cmpps(x, op, 3);}
-void vcmpunordps(Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 3);}
-void vcmpunordps(Xmm x, Operand op) { vcmpps(x, op, 3);}
-void cmpneqps   (Xmm x, Operand op) { cmpps(x, op, 4);}
-void vcmpneqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 4);}
-void vcmpneqps  (Xmm x, Operand op) { vcmpps(x, op, 4);}
-void cmpnltps   (Xmm x, Operand op) { cmpps(x, op, 5);}
-void vcmpnltps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 5);}
-void vcmpnltps  (Xmm x, Operand op) { vcmpps(x, op, 5);}
-void cmpnleps   (Xmm x, Operand op) { cmpps(x, op, 6);}
-void vcmpnleps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 6);}
-void vcmpnleps  (Xmm x, Operand op) { vcmpps(x, op, 6);}
-void cmpordps   (Xmm x, Operand op) { cmpps(x, op, 7);}
+void cmpeqpsb   (Xmm x, Operand op) { cmpps (x, op, 0);}  
+void vcmpeqps   (Xmm x, Operand op) { vcmpps(x, op, 0);}  void vcmpeqps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 0);}
+void cmpltpsb   (Xmm x, Operand op) { cmpps (x, op, 1);}  
+void vcmpltps   (Xmm x, Operand op) { vcmpps(x, op, 1);}  void vcmpltps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 1);}
+void cmplepsb   (Xmm x, Operand op) { cmpps (x, op, 2);}  
+void vcmpleps   (Xmm x, Operand op) { vcmpps(x, op, 2);}  void vcmpleps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 2);}
+void cmpunordps (Xmm x, Operand op) { cmpps (x, op, 3);}  
+void vcmpunordps(Xmm x, Operand op) { vcmpps(x, op, 3);}  void vcmpunordps(Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 3);}
+void cmpneqps   (Xmm x, Operand op) { cmpps (x, op, 4);}  
+void vcmpneqps  (Xmm x, Operand op) { vcmpps(x, op, 4);}  void vcmpneqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 4);}
+void cmpnltps   (Xmm x, Operand op) { cmpps (x, op, 5);}  
+void vcmpnltps  (Xmm x, Operand op) { vcmpps(x, op, 5);}  void vcmpnltps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 5);}
+void cmpnleps   (Xmm x, Operand op) { cmpps (x, op, 6);}  
+void vcmpnleps  (Xmm x, Operand op) { vcmpps(x, op, 6);}  void vcmpnleps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 6);}
+void cmpordps   (Xmm x, Operand op) { cmpps (x, op, 7);}
 
-void vcmpordps    (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 7);}
-void vcmpordps    (Xmm x, Operand op) { vcmpps(x, op, 7);}
-void vcmpeq_uqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 8);}
-void vcmpeq_uqps  (Xmm x, Operand op) { vcmpps(x, op, 8);}
-void vcmpngeps    (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 9);}
-void vcmpngeps    (Xmm x, Operand op) { vcmpps(x, op, 9);}
-void vcmpngtps    (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 10);}
-void vcmpngtps    (Xmm x, Operand op) { vcmpps(x, op, 10);}
-void vcmpfalseps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 11);}
-void vcmpfalseps  (Xmm x, Operand op) { vcmpps(x, op, 11);}
-void vcmpneq_oqps (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 12);}
-void vcmpneq_oqps (Xmm x, Operand op) { vcmpps(x, op, 12);}
-void vcmpgeps     (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 13);}
-void vcmpgeps     (Xmm x, Operand op) { vcmpps(x, op, 13);}
-void vcmpgtps     (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 14);}
-void vcmpgtps     (Xmm x, Operand op) { vcmpps(x, op, 14);}
-void vcmptrueps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 15);}
-void vcmptrueps   (Xmm x, Operand op) { vcmpps(x, op, 15);}
-void vcmpeq_osps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 16);}
-void vcmpeq_osps  (Xmm x, Operand op) { vcmpps(x, op, 16);}
-void vcmplt_oqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 17);}
-void vcmplt_oqps  (Xmm x, Operand op) { vcmpps(x, op, 17);}
-void vcmple_oqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 18);}
-void vcmple_oqps  (Xmm x, Operand op) { vcmpps(x, op, 18);}
-void vcmpunord_sps(Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 19);}
-void vcmpunord_sps(Xmm x, Operand op) { vcmpps(x, op, 19);}
-void vcmpneq_usps (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 20);}
-void vcmpneq_usps (Xmm x, Operand op) { vcmpps(x, op, 20);}
-void vcmpnlt_uqps (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 21);}
-void vcmpnlt_uqps (Xmm x, Operand op) { vcmpps(x, op, 21);}
-void vcmpnle_uqps (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 22);}
-void vcmpnle_uqps (Xmm x, Operand op) { vcmpps(x, op, 22);}
-void vcmpord_sps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 23);}
-void vcmpord_sps  (Xmm x, Operand op) { vcmpps(x, op, 23);}
-void vcmpeq_usps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 24);}
-void vcmpeq_usps  (Xmm x, Operand op) { vcmpps(x, op, 24);}
-void vcmpnge_uqps (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 25);}
-void vcmpnge_uqps (Xmm x, Operand op) { vcmpps(x, op, 25);}
-void vcmpngt_uqps (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 26);}
-void vcmpngt_uqps (Xmm x, Operand op) { vcmpps(x, op, 26);}
-void vcmpfalse_osps(Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 27);}
-void vcmpfalse_osps(Xmm x, Operand op) { vcmpps(x, op, 27);}
-void vcmpneq_osps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 28);}
-void vcmpneq_osps  (Xmm x, Operand op) { vcmpps(x, op, 28);}
-void vcmpge_oqps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 29);}
-void vcmpge_oqps   (Xmm x, Operand op) { vcmpps(x, op, 29);}
-void vcmpgt_oqps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 30);}
-void vcmpgt_oqps   (Xmm x, Operand op) { vcmpps(x, op, 30);}
-void vcmptrue_usps (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 31);}
-void vcmptrue_usps (Xmm x, Operand op) { vcmpps(x, op, 31);}
+void vcmpordps     (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 7);}  void vcmpordps     (Xmm x, Operand op) { vcmpps(x, op, 7);}
+void vcmpeq_uqps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 8);}  void vcmpeq_uqps   (Xmm x, Operand op) { vcmpps(x, op, 8);}
+void vcmpngeps     (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 9);}  void vcmpngeps     (Xmm x, Operand op) { vcmpps(x, op, 9);}
+void vcmpngtps     (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 10);} void vcmpngtps     (Xmm x, Operand op) { vcmpps(x, op, 10);}
+void vcmpfalseps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 11);} void vcmpfalseps   (Xmm x, Operand op) { vcmpps(x, op, 11);}
+void vcmpneq_oqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 12);} void vcmpneq_oqps  (Xmm x, Operand op) { vcmpps(x, op, 12);}
+void vcmpgeps      (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 13);} void vcmpgeps      (Xmm x, Operand op) { vcmpps(x, op, 13);}
+void vcmpgtps      (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 14);} void vcmpgtps      (Xmm x, Operand op) { vcmpps(x, op, 14);}
+void vcmptrueps    (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 15);} void vcmptrueps    (Xmm x, Operand op) { vcmpps(x, op, 15);}
+void vcmpeq_osps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 16);} void vcmpeq_osps   (Xmm x, Operand op) { vcmpps(x, op, 16);}
+void vcmplt_oqps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 17);} void vcmplt_oqps   (Xmm x, Operand op) { vcmpps(x, op, 17);}
+void vcmple_oqps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 18);} void vcmple_oqps   (Xmm x, Operand op) { vcmpps(x, op, 18);}
+void vcmpunord_sps (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 19);} void vcmpunord_sps (Xmm x, Operand op) { vcmpps(x, op, 19);}
+void vcmpneq_usps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 20);} void vcmpneq_usps  (Xmm x, Operand op) { vcmpps(x, op, 20);}
+void vcmpnlt_uqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 21);} void vcmpnlt_uqps  (Xmm x, Operand op) { vcmpps(x, op, 21);}
+void vcmpnle_uqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 22);} void vcmpnle_uqps  (Xmm x, Operand op) { vcmpps(x, op, 22);}
+void vcmpord_sps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 23);} void vcmpord_sps   (Xmm x, Operand op) { vcmpps(x, op, 23);}
+void vcmpeq_usps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 24);} void vcmpeq_usps   (Xmm x, Operand op) { vcmpps(x, op, 24);}
+void vcmpnge_uqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 25);} void vcmpnge_uqps  (Xmm x, Operand op) { vcmpps(x, op, 25);}
+void vcmpngt_uqps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 26);} void vcmpngt_uqps  (Xmm x, Operand op) { vcmpps(x, op, 26);}
+void vcmpfalse_osps(Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 27);} void vcmpfalse_osps(Xmm x, Operand op) { vcmpps(x, op, 27);}
+void vcmpneq_osps  (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 28);} void vcmpneq_osps  (Xmm x, Operand op) { vcmpps(x, op, 28);}
+void vcmpge_oqps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 29);} void vcmpge_oqps   (Xmm x, Operand op) { vcmpps(x, op, 29);}
+void vcmpgt_oqps   (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 30);} void vcmpgt_oqps   (Xmm x, Operand op) { vcmpps(x, op, 30);}
+void vcmptrue_usps (Xmm x1, Xmm x2, Operand op) { vcmpps(x1, x2, op, 31);} void vcmptrue_usps (Xmm x, Operand op) { vcmpps(x, op, 31);}
 
-void cmpeqsd       (Xmm x, Operand op) { cmpsd(x, op, 0);}
-void vcmpeqsd      (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 0);}
-void vcmpeqsd      (Xmm x, Operand op) { vcmpsd(x, op, 0);}
-void cmpltsd       (Xmm x, Operand op) { cmpsd(x, op, 1);}
-void vcmpltsd      (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 1);}
-void vcmpltsd      (Xmm x, Operand op) { vcmpsd(x, op, 1);}
-void cmplesd       (Xmm x, Operand op) { cmpsd(x, op, 2);}
-void vcmplesd      (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 2);}
-void vcmplesd(Xmm x, Operand op) { vcmpsd(x, op, 2);}
+void cmpeqsd   (Xmm x, Operand op) { cmpsd(x, op, 0);}
+void cmpltsd   (Xmm x, Operand op) { cmpsd(x, op, 1);}
+void cmplesd   (Xmm x, Operand op) { cmpsd(x, op, 2);}
 void cmpunordsd(Xmm x, Operand op) { cmpsd(x, op, 3);}
-void vcmpunordsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 3);}
-void vcmpunordsd(Xmm x, Operand op) { vcmpsd(x, op, 3);}
-void cmpneqsd(Xmm x, Operand op) { cmpsd(x, op, 4);}
-void vcmpneqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 4);}
-void vcmpneqsd(Xmm x, Operand op) { vcmpsd(x, op, 4);}
-void cmpnltsd(Xmm x, Operand op) { cmpsd(x, op, 5);}
-void vcmpnltsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 5);}
-void vcmpnltsd(Xmm x, Operand op) { vcmpsd(x, op, 5);}
-void cmpnlesd(Xmm x, Operand op) { cmpsd(x, op, 6);}
-void vcmpnlesd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 6);}
-void vcmpnlesd(Xmm x, Operand op) { vcmpsd(x, op, 6);}
-void cmpordsd(Xmm x, Operand op) { cmpsd(x, op, 7);}
-void vcmpordsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 7);}
-void vcmpordsd(Xmm x, Operand op) { vcmpsd(x, op, 7);}
-void vcmpeq_uqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 8);}
-void vcmpeq_uqsd(Xmm x, Operand op) { vcmpsd(x, op, 8);}
-void vcmpngesd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 9);}
-void vcmpngesd(Xmm x, Operand op) { vcmpsd(x, op, 9);}
-void vcmpngtsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 10);}
-void vcmpngtsd(Xmm x, Operand op) { vcmpsd(x, op, 10);}
-void vcmpfalsesd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 11);}
-void vcmpfalsesd(Xmm x, Operand op) { vcmpsd(x, op, 11);}
-void vcmpneq_oqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 12);}
-void vcmpneq_oqsd(Xmm x, Operand op) { vcmpsd(x, op, 12);}
-void vcmpgesd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 13);}
-void vcmpgesd(Xmm x, Operand op) { vcmpsd(x, op, 13);}
-void vcmpgtsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 14);}
-void vcmpgtsd(Xmm x, Operand op) { vcmpsd(x, op, 14);}
-void vcmptruesd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 15);}
-void vcmptruesd(Xmm x, Operand op) { vcmpsd(x, op, 15);}
-void vcmpeq_ossd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 16);}
-void vcmpeq_ossd(Xmm x, Operand op) { vcmpsd(x, op, 16);}
-void vcmplt_oqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 17);}
-void vcmplt_oqsd(Xmm x, Operand op) { vcmpsd(x, op, 17);}
-void vcmple_oqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 18);}
-void vcmple_oqsd(Xmm x, Operand op) { vcmpsd(x, op, 18);}
-void vcmpunord_ssd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 19);}
-void vcmpunord_ssd(Xmm x, Operand op) { vcmpsd(x, op, 19);}
-void vcmpneq_ussd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 20);}
-void vcmpneq_ussd(Xmm x, Operand op) { vcmpsd(x, op, 20);}
-void vcmpnlt_uqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 21);}
-void vcmpnlt_uqsd(Xmm x, Operand op) { vcmpsd(x, op, 21);}
-void vcmpnle_uqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 22);}
-void vcmpnle_uqsd(Xmm x, Operand op) { vcmpsd(x, op, 22);}
-void vcmpord_ssd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 23);}
-void vcmpord_ssd(Xmm x, Operand op) { vcmpsd(x, op, 23);}
-void vcmpeq_ussd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 24);}
-void vcmpeq_ussd(Xmm x, Operand op) { vcmpsd(x, op, 24);}
-void vcmpnge_uqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 25);}
-void vcmpnge_uqsd(Xmm x, Operand op) { vcmpsd(x, op, 25);}
-void vcmpngt_uqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 26);}
-void vcmpngt_uqsd(Xmm x, Operand op) { vcmpsd(x, op, 26);}
-void vcmpfalse_ossd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 27);}
-void vcmpfalse_ossd(Xmm x, Operand op) { vcmpsd(x, op, 27);}
-void vcmpneq_ossd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 28);}
-void vcmpneq_ossd(Xmm x, Operand op) { vcmpsd(x, op, 28);}
-void vcmpge_oqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 29);}
-void vcmpge_oqsd(Xmm x, Operand op) { vcmpsd(x, op, 29);}
-void vcmpgt_oqsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 30);}
-void vcmpgt_oqsd(Xmm x, Operand op) { vcmpsd(x, op, 30);}
-void vcmptrue_ussd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 31);}
-void vcmptrue_ussd(Xmm x, Operand op) { vcmpsd(x, op, 31);}
+void cmpneqsd  (Xmm x, Operand op) { cmpsd(x, op, 4);}
+void cmpnltsd  (Xmm x, Operand op) { cmpsd(x, op, 5);}
+void cmpnlesd  (Xmm x, Operand op) { cmpsd(x, op, 6);}
+void cmpordsd  (Xmm x, Operand op) { cmpsd(x, op, 7);}
 
+void vcmpeqsd      (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 0);}   void vcmpeqsd      (Xmm x, Operand op) { vcmpsd(x, op, 0);}
+void vcmpltsd      (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 1);}   void vcmpltsd      (Xmm x, Operand op) { vcmpsd(x, op, 1);}
+void vcmplesd      (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 2);}   void vcmplesd      (Xmm x, Operand op) { vcmpsd(x, op, 2);}
+void vcmpunordsd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 3);}   void vcmpunordsd   (Xmm x, Operand op) { vcmpsd(x, op, 3);}
+void vcmpneqsd     (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 4);}   void vcmpneqsd     (Xmm x, Operand op) { vcmpsd(x, op, 4);}
+void vcmpnltsd     (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 5);}   void vcmpnltsd     (Xmm x, Operand op) { vcmpsd(x, op, 5);}
+void vcmpnlesd     (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 6);}   void vcmpnlesd     (Xmm x, Operand op) { vcmpsd(x, op, 6);}
+void vcmpordsd     (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 7);}   void vcmpordsd     (Xmm x, Operand op) { vcmpsd(x, op, 7);}
+void vcmpeq_uqsd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 8);}   void vcmpeq_uqsd   (Xmm x, Operand op) { vcmpsd(x, op, 8);}
+void vcmpngesd     (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 9);}   void vcmpngesd     (Xmm x, Operand op) { vcmpsd(x, op, 9);}
+void vcmpngtsd     (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 10);}  void vcmpngtsd     (Xmm x, Operand op) { vcmpsd(x, op, 10);}
+void vcmpfalsesd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 11);}  void vcmpfalsesd   (Xmm x, Operand op) { vcmpsd(x, op, 11);}
+void vcmpneq_oqsd  (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 12);}  void vcmpneq_oqsd  (Xmm x, Operand op) { vcmpsd(x, op, 12);}
+void vcmpgesd      (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 13);}  void vcmpgesd      (Xmm x, Operand op) { vcmpsd(x, op, 13);}
+void vcmpgtsd      (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 14);}  void vcmpgtsd      (Xmm x, Operand op) { vcmpsd(x, op, 14);}
+void vcmptruesd    (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 15);}  void vcmptruesd    (Xmm x, Operand op) { vcmpsd(x, op, 15);}
+void vcmpeq_ossd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 16);}  void vcmpeq_ossd   (Xmm x, Operand op) { vcmpsd(x, op, 16);}
+void vcmplt_oqsd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 17);}  void vcmplt_oqsd   (Xmm x, Operand op) { vcmpsd(x, op, 17);}
+void vcmple_oqsd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 18);}  void vcmple_oqsd   (Xmm x, Operand op) { vcmpsd(x, op, 18);}
+void vcmpunord_ssd (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 19);}  void vcmpunord_ssd (Xmm x, Operand op) { vcmpsd(x, op, 19);}
+void vcmpneq_ussd  (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 20);}  void vcmpneq_ussd  (Xmm x, Operand op) { vcmpsd(x, op, 20);}
+void vcmpnlt_uqsd  (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 21);}  void vcmpnlt_uqsd  (Xmm x, Operand op) { vcmpsd(x, op, 21);}
+void vcmpnle_uqsd  (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 22);}  void vcmpnle_uqsd  (Xmm x, Operand op) { vcmpsd(x, op, 22);}
+void vcmpord_ssd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 23);}  void vcmpord_ssd   (Xmm x, Operand op) { vcmpsd(x, op, 23);}
+void vcmpeq_ussd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 24);}  void vcmpeq_ussd   (Xmm x, Operand op) { vcmpsd(x, op, 24);}
+void vcmpnge_uqsd  (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 25);}  void vcmpnge_uqsd  (Xmm x, Operand op) { vcmpsd(x, op, 25);}
+void vcmpngt_uqsd  (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 26);}  void vcmpngt_uqsd  (Xmm x, Operand op) { vcmpsd(x, op, 26);}
+void vcmpfalse_ossd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 27);}  void vcmpfalse_ossd(Xmm x, Operand op) { vcmpsd(x, op, 27);}
+void vcmpneq_ossd  (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 28);}  void vcmpneq_ossd  (Xmm x, Operand op) { vcmpsd(x, op, 28);}
+void vcmpge_oqsd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 29);}  void vcmpge_oqsd   (Xmm x, Operand op) { vcmpsd(x, op, 29);}
+void vcmpgt_oqsd   (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 30);}  void vcmpgt_oqsd   (Xmm x, Operand op) { vcmpsd(x, op, 30);}
+void vcmptrue_ussd (Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 31);}  void vcmptrue_ussd (Xmm x, Operand op) { vcmpsd(x, op, 31);}
 
-void cmpeqss(Xmm x, Operand op) { cmpss(x, op, 0);}
-void vcmpeqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 0);}
-void vcmpeqss(Xmm x, Operand op) { vcmpss(x, op, 0);}
-void cmpltss(Xmm x, Operand op) { cmpss(x, op, 1);}
-void vcmpltss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 1);}
-void vcmpltss(Xmm x, Operand op) { vcmpss(x, op, 1);}
-void cmpless(Xmm x, Operand op) { cmpss(x, op, 2);}
-void vcmpless(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 2);}
-void vcmpless(Xmm x, Operand op) { vcmpss(x, op, 2);}
+void cmpeqss   (Xmm x, Operand op) { cmpss(x, op, 0);}
+void cmpltss   (Xmm x, Operand op) { cmpss(x, op, 1);}
+void cmpless   (Xmm x, Operand op) { cmpss(x, op, 2);}
 void cmpunordss(Xmm x, Operand op) { cmpss(x, op, 3);}
-void vcmpunordss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 3);}
-void vcmpunordss(Xmm x, Operand op) { vcmpss(x, op, 3);}
-void cmpneqss(Xmm x, Operand op) { cmpss(x, op, 4);}
-void vcmpneqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 4);}
-void vcmpneqss(Xmm x, Operand op) { vcmpss(x, op, 4);}
-void cmpnltss(Xmm x, Operand op) { cmpss(x, op, 5);}
-void vcmpnltss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 5);}
-void vcmpnltss(Xmm x, Operand op) { vcmpss(x, op, 5);}
-void cmpnless(Xmm x, Operand op) { cmpss(x, op, 6);}
-void vcmpnless(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 6);}
-void vcmpnless(Xmm x, Operand op) { vcmpss(x, op, 6);}
-void cmpordss(Xmm x, Operand op) { cmpss(x, op, 7);}
+void cmpneqss  (Xmm x, Operand op) { cmpss(x, op, 4);}
+void cmpnltss  (Xmm x, Operand op) { cmpss(x, op, 5);}
+void cmpordss  (Xmm x, Operand op) { cmpss(x, op, 7);}
+void cmpnless  (Xmm x, Operand op) { cmpss(x, op, 6);}
 
-void vcmpordss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 7);}
-void vcmpordss(Xmm x, Operand op) { vcmpss(x, op, 7);}
-void vcmpeq_uqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 8);}
-void vcmpeq_uqss(Xmm x, Operand op) { vcmpss(x, op, 8);}
-void vcmpngess(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 9);}
-void vcmpngess(Xmm x, Operand op) { vcmpss(x, op, 9);}
-void vcmpngtss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 10);}
-void vcmpngtss(Xmm x, Operand op) { vcmpss(x, op, 10);}
-void vcmpfalsess(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 11);}
-void vcmpfalsess(Xmm x, Operand op) { vcmpss(x, op, 11);}
-void vcmpneq_oqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 12);}
-void vcmpneq_oqss(Xmm x, Operand op) { vcmpss(x, op, 12);}
-void vcmpgess(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 13);}
-void vcmpgess(Xmm x, Operand op) { vcmpss(x, op, 13);}
-void vcmpgtss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 14);}
-void vcmpgtss(Xmm x, Operand op) { vcmpss(x, op, 14);}
-void vcmptruess(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 15);}
-void vcmptruess(Xmm x, Operand op) { vcmpss(x, op, 15);}
-void vcmpeq_osss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 16);}
-void vcmpeq_osss(Xmm x, Operand op) { vcmpss(x, op, 16);}
-void vcmplt_oqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 17);}
-void vcmplt_oqss(Xmm x, Operand op) { vcmpss(x, op, 17);}
-void vcmple_oqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 18);}
-void vcmple_oqss(Xmm x, Operand op) { vcmpss(x, op, 18);}
-void vcmpunord_sss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 19);}
-void vcmpunord_sss(Xmm x, Operand op) { vcmpss(x, op, 19);}
-void vcmpneq_usss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 20);}
-void vcmpneq_usss(Xmm x, Operand op) { vcmpss(x, op, 20);}
-void vcmpnlt_uqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 21);}
-void vcmpnlt_uqss(Xmm x, Operand op) { vcmpss(x, op, 21);}
-void vcmpnle_uqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 22);}
-void vcmpnle_uqss(Xmm x, Operand op) { vcmpss(x, op, 22);}
-void vcmpord_sss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 23);}
-void vcmpord_sss(Xmm x, Operand op) { vcmpss(x, op, 23);}
-void vcmpeq_usss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 24);}
-void vcmpeq_usss(Xmm x, Operand op) { vcmpss(x, op, 24);}
-void vcmpnge_uqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 25);}
-void vcmpnge_uqss(Xmm x, Operand op) { vcmpss(x, op, 25);}
-void vcmpngt_uqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 26);}
-void vcmpngt_uqss(Xmm x, Operand op) { vcmpss(x, op, 26);}
-void vcmpfalse_osss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 27);}
-void vcmpfalse_osss(Xmm x, Operand op) { vcmpss(x, op, 27);}
-void vcmpneq_osss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 28);}
-void vcmpneq_osss(Xmm x, Operand op) { vcmpss(x, op, 28);}
-void vcmpge_oqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 29);}
-void vcmpge_oqss(Xmm x, Operand op) { vcmpss(x, op, 29);}
-void vcmpgt_oqss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 30);}
-void vcmpgt_oqss(Xmm x, Operand op) { vcmpss(x, op, 30);}
-void vcmptrue_usss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 31);}
-void vcmptrue_usss(Xmm x, Operand op) { vcmpss(x, op, 31);}
+void vcmpeqss       (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 0);}  void vcmpeqss      (Xmm x, Operand op) { vcmpss(x, op, 0);}
+void vcmpltss       (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 1);}  void vcmpltss      (Xmm x, Operand op) { vcmpss(x, op, 1);}
+void vcmpless       (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 2);}  void vcmpless      (Xmm x, Operand op) { vcmpss(x, op, 2);}
+void vcmpunordss    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 3);}  void vcmpunordss   (Xmm x, Operand op) { vcmpss(x, op, 3);}
+void vcmpneqss      (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 4);}  void vcmpneqss     (Xmm x, Operand op) { vcmpss(x, op, 4);}
+void vcmpnltss      (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 5);}  void vcmpnltss     (Xmm x, Operand op) { vcmpss(x, op, 5);}
+void vcmpnless      (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 6);}  void vcmpnless     (Xmm x, Operand op) { vcmpss(x, op, 6);}
+void vcmpordss      (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 7);}  void vcmpordss     (Xmm x, Operand op) { vcmpss(x, op, 7);}
+void vcmpeq_uqss    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 8);}  void vcmpeq_uqss   (Xmm x, Operand op) { vcmpss(x, op, 8);}
+void vcmpngess      (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 9);}  void vcmpngess     (Xmm x, Operand op) { vcmpss(x, op, 9);}
+void vcmpngtss      (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 10);} void vcmpngtss     (Xmm x, Operand op) { vcmpss(x, op, 10);}
+void vcmpfalsess    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 11);} void vcmpfalsess   (Xmm x, Operand op) { vcmpss(x, op, 11);}
+void vcmpneq_oqss   (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 12);} void vcmpneq_oqss  (Xmm x, Operand op) { vcmpss(x, op, 12);}
+void vcmpgess       (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 13);} void vcmpgess      (Xmm x, Operand op) { vcmpss(x, op, 13);}
+void vcmpgtss       (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 14);} void vcmpgtss      (Xmm x, Operand op) { vcmpss(x, op, 14);}
+void vcmptruess     (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 15);} void vcmptruess    (Xmm x, Operand op) { vcmpss(x, op, 15);}
+void vcmpeq_osss    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 16);} void vcmpeq_osss   (Xmm x, Operand op) { vcmpss(x, op, 16);}
+void vcmplt_oqss    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 17);} void vcmplt_oqss   (Xmm x, Operand op) { vcmpss(x, op, 17);}
+void vcmple_oqss    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 18);} void vcmple_oqss   (Xmm x, Operand op) { vcmpss(x, op, 18);}
+void vcmpunord_sss  (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 19);} void vcmpunord_sss (Xmm x, Operand op) { vcmpss(x, op, 19);}
+void vcmpneq_usss   (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 20);} void vcmpneq_usss  (Xmm x, Operand op) { vcmpss(x, op, 20);}
+void vcmpnlt_uqss   (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 21);} void vcmpnlt_uqss  (Xmm x, Operand op) { vcmpss(x, op, 21);}
+void vcmpnle_uqss   (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 22);} void vcmpnle_uqss  (Xmm x, Operand op) { vcmpss(x, op, 22);}
+void vcmpord_sss    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 23);} void vcmpord_sss   (Xmm x, Operand op) { vcmpss(x, op, 23);}
+void vcmpeq_usss    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 24);} void vcmpeq_usss   (Xmm x, Operand op) { vcmpss(x, op, 24);}
+void vcmpnge_uqss   (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 25);} void vcmpnge_uqss  (Xmm x, Operand op) { vcmpss(x, op, 25);}
+void vcmpngt_uqss   (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 26);} void vcmpngt_uqss  (Xmm x, Operand op) { vcmpss(x, op, 26);}
+void vcmpfalse_osss (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 27);} void vcmpfalse_osss(Xmm x, Operand op) { vcmpss(x, op, 27);}
+void vcmpneq_osss   (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 28);} void vcmpneq_osss  (Xmm x, Operand op) { vcmpss(x, op, 28);}
+void vcmpge_oqss    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 29);} void vcmpge_oqss   (Xmm x, Operand op) { vcmpss(x, op, 29);}
+void vcmpgt_oqss    (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 30);} void vcmpgt_oqss   (Xmm x, Operand op) { vcmpss(x, op, 30);}
+void vcmptrue_usss  (Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 31);} void vcmptrue_usss (Xmm x, Operand op) { vcmpss(x, op, 31);}
 
 void vmovhpd(Xmm x, Operand op1, Operand op2 = OP()) {
     if (!op2.isNone() && !op2.isMEM()) throw new XError(ERR.BAD_COMBINATION);
@@ -4700,6 +4568,10 @@ void vpgatherdq(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 |
 void vpgatherqq(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 | PP_66, 0x91, 1, 1); }
 }
 // CodeGenerator
+alias LabelType.T_SHORT T_SHORT;
+alias LabelType.T_NEAR T_NEAR;
+alias LabelType.T_AUTO T_AUTO;
+
 alias CodeGenerator.mm0   mm0;
 alias CodeGenerator.mm1   mm1;
 alias CodeGenerator.mm2   mm2;
