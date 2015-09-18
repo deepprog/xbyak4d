@@ -1,7 +1,6 @@
 module xbyak4d_cpuid;
 import std.stdio;
 
-
 alias ulong uint64;
 enum  Type : uint64 {
 	NONE          = 0,
