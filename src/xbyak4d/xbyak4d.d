@@ -538,7 +538,7 @@ public:
 		return REG8(idx, 4 <= idx && idx < 8);
 	}
 
-	Reg16 cvt16()
+	Reg16 cvt16() const
 	{
 		int idx = getIdx;
 		auto a   = isBit(8);
@@ -549,7 +549,7 @@ public:
 		return REG16(idx);
 	}
 
-	Reg32 cvt32()
+	Reg32 cvt32() const
 	{
 		int idx = getIdx;
 		if (isBit(8) && (4 <= idx && idx < 8) && !isExt8bit)
@@ -559,7 +559,7 @@ public:
 
 	version (XBYAK64)
 	{
-		Reg64 cvt64()
+		Reg64 cvt64() const
 		{
 			int idx = getIdx;
 			if (isBit(8) && (4 <= idx && idx < 8) && !isExt8bit)
@@ -1113,7 +1113,7 @@ public:
 		return CastTo !(F)(&top_[size_]);
 	}
 
-	size_t getSize() {
+	size_t getSize() const {
 		return size_;
 	}
 	void   setSize(size_t size)
@@ -1125,7 +1125,7 @@ public:
 		size_ = size;
 	}
 
-	void dump()
+	void dump() const
 	{
 		uint8  * p     = CodeArray.getCode();
 		size_t bufSize = getSize();
@@ -1175,7 +1175,7 @@ public:
 	{
 		addrInfoList_ ~= AddrInfo(offset, val, size, mode);
 	}
-	bool isAutoGrow()
+	bool isAutoGrow() const
 	{
 		return type_ == Type.AUTO_GROW;
 	}
@@ -1185,7 +1185,7 @@ public:
 //	@param size [in] buffer size
 //	@param canExec [in] true(enable to exec), false(disable to exec)
 //	@return true(success), false(failure)
-	bool protect(void* addr, size_t size, bool canExec)
+	bool protect(void* addr, size_t size, bool canExec) const
 	{
 		version (Windows)
 		{
@@ -1509,7 +1509,7 @@ public:
 		return id;
 	}
 
-	string toStr(int num)
+	string toStr(int num) const
 	{
 		return format(".%08x", num);
 	}
@@ -3146,7 +3146,7 @@ public:
 	}
 
 
-string getVersionString() { return "0.073"; }
+string getVersionString() const { return "0.073"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
