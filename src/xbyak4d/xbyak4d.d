@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.073
- * Date: 2015/09/29
+ * Version: 0.074
+ * Date: 2016/01/18
  * See_Also:
  * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -11,20 +11,14 @@
 
 module xbyak4d;
 
-version = XBYAK32;
-//version = XBYAK64;
+//version = XBYAK32;
+version = XBYAK64;
 
 import std.stdio;
 import std.array;
 import std.string    : format;
 import std.algorithm : swap, max, min;
 import std.conv;
-
-unittest
-{
-	import test.bad_address;
-	import test.address;
-}
 
 version (Windows)
 {
@@ -33,22 +27,22 @@ version (Windows)
 
 version (linux)
 {
-	import core.sys.posix.sys.mman;
-	import std.c.linux.linux;
+    import core.sys.posix.unistd;
+    import core.sys.posix.fcntl;
+    import core.sys.posix.sys.mman;
 }
 
 enum : uint
 {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION               = 0x0073// 0xABCD = A.BC(D)
+	VERSION               = 0x0074// 0xABCD = A.BC(D)
 }
 
-alias ulong uint64;
-alias long sint64;
-alias uint uint32;
-alias ushort uint16;
-alias ubyte uint8;
-//alias int    size_t;
+alias uint64 = ulong ;
+alias sint64 = long;
+alias uint32 = uint;
+alias uint16 = ushort;
+alias uint8  = ubyte;
 
 // MIE_ALIGN
 T MIE_PACK(T)(T x, T y, T z, T W)
@@ -191,7 +185,7 @@ public:
 
 			size = (size + alignedSizeM1) & ~alignedSizeM1;
 			int prot     = PROT_EXEC | PROT_READ | PROT_WRITE;
-			int mode     = MAP_PRIVATE | MAP_ANONYMOUS;
+			int mode     = MAP_PRIVATE | MAP_ANON;
 			int fd       = open("/dev/zero", O_RDONLY);
 			size_t pageSize = sysconf(_SC_PAGESIZE);
 
@@ -217,7 +211,7 @@ public:
 		}
 		version (linux)
 		{
-			if (p == 0)
+			if (p == null)
 			{
 				return;
 			}
@@ -310,7 +304,7 @@ enum Kind
 
 
 version(XBYAK64){
-	enum Code
+	enum Code : int
 	{
 		RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
 		R8D = 8, R9D, R10D, R11D, R12D, R13D, R14D, R15D,
@@ -324,7 +318,7 @@ version(XBYAK64){
 }
 
 version(XBYAK32){
-	enum Code
+	enum Code : int
 	{
 		EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
 		AX  = 0, CX, DX, BX, SP, BP, SI, DI,
@@ -971,7 +965,7 @@ class CodeArray {
 		}
 	}
 
-	alias AddrInfo[] AddrInfoList;
+	alias AddrInfoList = AddrInfo[] ;
 	AddrInfoList addrInfoList_;
 	Type type_;
 	Allocator defaultAllocator_;
@@ -1213,7 +1207,7 @@ public:
 }
 
 public class Address : Operand {
-	uint8 top_[6];         // 6 = 1(ModRM) + 1(SIB) + 4(disp)
+	uint8[6] top_;         // 6 = 1(ModRM) + 1(SIB) + 4(disp)
 	uint8 size_;
 	uint8 rex_;
 	uint64 disp_;
@@ -1522,14 +1516,18 @@ class LabelManager
 	struct SlabelVal
 	{
 		size_t offset;
-		this(size_t offset = 0)
+	    this(this)
+        {
+            this.offset = 0;
+        }
+        this(size_t offset)
 		{
 			this.offset = offset;
 		}
 	}
 
-	alias SlabelVal[string] SlabelDefList;
-	alias JmpLabel[][string] SlabelUndefList;
+	alias SlabelDefList = SlabelVal[string] ;
+	alias SlabelUndefList = JmpLabel[][string] ;
 
 	struct SlabelState
 	{
@@ -1537,23 +1535,27 @@ class LabelManager
 		SlabelUndefList undefList;
 	}
 
-	alias SlabelState[] StateList;
+	alias StateList = SlabelState[] ;
 
 // for Label class
 	struct ClabelVal
 	{
 		size_t offset;
 		int refCount = 1;
-
-		this(size_t offset = 0)
+        this(this)
+        {
+            this.offset = 0;
+            this.refCount = 1;
+        }
+		this(size_t offset)
 		{
 			this.offset   = offset;
 			this.refCount = 1;
 		}
 	}
 
-	alias ClabelVal[int] ClabelDefList;
-	alias JmpLabel[][int] ClabelUndefList;
+	alias ClabelDefList = ClabelVal[int] ;
+	alias ClabelUndefList = JmpLabel[][int] ;
 
 	CodeArray base_;
 
@@ -1827,13 +1829,13 @@ public class CodeGenerator : CodeArray {
 	{
 		enum { i32e = 64 | 32, BIT = 64 }
 		size_t dummyAddr = cast(size_t) (0x11223344UL << 32) | 55667788;
-		alias Reg64 NativeReg;
+		alias NativeReg = Reg64;
 	}
 	else
 	{
 		enum { i32e = 32, BIT = 32 }
 		size_t dummyAddr = 0x12345678;
-		alias Reg32 NativeReg;
+		alias NativeReg = Reg32;
 	}
 
 	bool isXMM_XMMorMEM  (Operand op1, Operand op2) const {
@@ -3093,7 +3095,7 @@ public:
 	{
 		opGpr(r, op, REG32E(0, r.getBit), MM_0F3A | PP_F2, 0xF0, false, imm);
 	}
-	enum { NONE = 256 };
+	enum { NONE = 256 }
 public:
 	this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator * allocator = null)
 	{
@@ -3146,7 +3148,7 @@ public:
 	}
 
 
-string getVersionString() const { return "0.073"; }
+string getVersionString() const { return "0.074"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -4393,148 +4395,40 @@ void vpgatherqq(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, MM_0F38 |
 }
 
 // CodeGenerator
-alias LabelType.T_SHORT T_SHORT;
-alias LabelType.T_NEAR T_NEAR;
-alias LabelType.T_AUTO T_AUTO;
+alias T_SHORT = LabelType.T_SHORT;
+alias T_NEAR  = LabelType.T_NEAR;
+alias T_AUTO  = LabelType.T_AUTO;
 
-alias CodeGenerator.mm0   mm0;
-alias CodeGenerator.mm1   mm1;
-alias CodeGenerator.mm2   mm2;
-alias CodeGenerator.mm3   mm3;
-alias CodeGenerator.mm4   mm4;
-alias CodeGenerator.mm5   mm5;
-alias CodeGenerator.mm6   mm6;
-alias CodeGenerator.mm7   mm7;
+string def_alias(string[] names)
+{
+ string result;
+  foreach(name; names){
+	  result ~="alias "~name~" = CodeGenerator."~name~";\n"; 
+	}
+ return result;
+}
 
-alias CodeGenerator.xmm0  xmm0;
-alias CodeGenerator.xmm1  xmm1;
-alias CodeGenerator.xmm2  xmm2;
-alias CodeGenerator.xmm3  xmm3;
-alias CodeGenerator.xmm4  xmm4;
-alias CodeGenerator.xmm5  xmm5;
-alias CodeGenerator.xmm6  xmm6;
-alias CodeGenerator.xmm7  xmm7;
+mixin(["mm0","mm1","mm2","mm3","mm4","mm5","mm6","mm7"].def_alias);
+mixin(["xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7"].def_alias);
+mixin(["ymm0","ymm1","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7"].def_alias);
 
-alias CodeGenerator.ymm0  ymm0;
-alias CodeGenerator.ymm1  ymm1;
-alias CodeGenerator.ymm2  ymm2;
-alias CodeGenerator.ymm3  ymm3;
-alias CodeGenerator.ymm4  ymm4;
-alias CodeGenerator.ymm5  ymm5;
-alias CodeGenerator.ymm6  ymm6;
-alias CodeGenerator.ymm7  ymm7;
+mixin(["eax","ecx","edx","ebx","esp","ebp","esi","edi"].def_alias);
+mixin(["ax","cx","dx","bx","sp","bp","si","di"].def_alias);
+mixin(["al","cl","dl","bl","ah","ch","dh","bh"].def_alias);
+mixin(["ptr","byte_","word","dword","qword"].def_alias);
 
-alias CodeGenerator.eax   eax;
-alias CodeGenerator.ecx   ecx;
-alias CodeGenerator.edx   edx;
-alias CodeGenerator.ebx   ebx;
-alias CodeGenerator.esp   esp;
-alias CodeGenerator.ebp   ebp;
-alias CodeGenerator.esi   esi;
-alias CodeGenerator.edi   edi;
-
-alias CodeGenerator.ax    ax;
-alias CodeGenerator.cx    cx;
-alias CodeGenerator.dx    dx;
-alias CodeGenerator.bx    bx;
-alias CodeGenerator.sp    sp;
-alias CodeGenerator.bp    bp;
-alias CodeGenerator.si    si;
-alias CodeGenerator.di    di;
-
-alias CodeGenerator.al    al;
-alias CodeGenerator.cl    cl;
-alias CodeGenerator.dl    dl;
-alias CodeGenerator.bl    bl;
-alias CodeGenerator.ah    ah;
-alias CodeGenerator.ch    ch;
-alias CodeGenerator.dh    dh;
-alias CodeGenerator.bh    bh;
-
-alias CodeGenerator.ptr   ptr;
-alias CodeGenerator.byte_ byte_;
-alias CodeGenerator.word  word;
-alias CodeGenerator.dword dword;
-alias CodeGenerator.qword qword;
-
-alias CodeGenerator.st0   st0;
-alias CodeGenerator.st1   st1;
-alias CodeGenerator.st2   st2;
-alias CodeGenerator.st3   st3;
-alias CodeGenerator.st4   st4;
-alias CodeGenerator.st5   st5;
-alias CodeGenerator.st6   st6;
-alias CodeGenerator.st7   st7;
+mixin(["st0","st1","st2","st3","st4","st5","st6","st7"].def_alias);
 
 version (XBYAK64)
 {
-    alias CodeGenerator.rax   rax;
-    alias CodeGenerator.rcx   rcx;
-    alias CodeGenerator.rdx   rdx;
-    alias CodeGenerator.rbx   rbx;
-    alias CodeGenerator.rsp   rsp;
-    alias CodeGenerator.rbp   rbp;
-    alias CodeGenerator.rsi   rsi;
-    alias CodeGenerator.rdi   rdi;
-
-    alias CodeGenerator.r8    r8;
-    alias CodeGenerator.r9    r9;
-    alias CodeGenerator.r10   r10;
-    alias CodeGenerator.r11   r11;
-    alias CodeGenerator.r12   r12;
-    alias CodeGenerator.r13   r13;
-    alias CodeGenerator.r14   r14;
-    alias CodeGenerator.r15   r15;
-
-    alias CodeGenerator.r8d   r8d;
-    alias CodeGenerator.r9d   r9d;
-    alias CodeGenerator.r10d  r10d;
-    alias CodeGenerator.r11d  r11d;
-    alias CodeGenerator.r12d  r12d;
-    alias CodeGenerator.r13d  r13d;
-    alias CodeGenerator.r14d  r14d;
-    alias CodeGenerator.r15d  r15d;
-
-    alias CodeGenerator.r8w   r8w;
-    alias CodeGenerator.r9w   r9w;
-    alias CodeGenerator.r10w  r10w;
-    alias CodeGenerator.r11w  r11w;
-    alias CodeGenerator.r12w  r12w;
-    alias CodeGenerator.r13w  r13w;
-    alias CodeGenerator.r14w  r14w;
-    alias CodeGenerator.r15w  r15w;
-
-    alias CodeGenerator.r8b   r8b;
-    alias CodeGenerator.r9b   r9b;
-    alias CodeGenerator.r10b  r10b;
-    alias CodeGenerator.r11b  r11b;
-    alias CodeGenerator.r12b  r12b;
-    alias CodeGenerator.r13b  r13b;
-    alias CodeGenerator.r14b  r14b;
-    alias CodeGenerator.r15b  r15b;
-
-    alias CodeGenerator.spl   spl;
-    alias CodeGenerator.bpl   bpl;
-    alias CodeGenerator.sil   sil;
-    alias CodeGenerator.dil   dil;
-
-    alias CodeGenerator.xmm8  xmm8;
-    alias CodeGenerator.xmm9  xmm9;
-    alias CodeGenerator.xmm10 xmm10;
-    alias CodeGenerator.xmm11 xmm11;
-    alias CodeGenerator.xmm12 xmm12;
-    alias CodeGenerator.xmm13 xmm13;
-    alias CodeGenerator.xmm14 xmm14;
-    alias CodeGenerator.xmm15 xmm15;
-
-    alias CodeGenerator.ymm8  ymm8;
-    alias CodeGenerator.ymm9  ymm9;
-    alias CodeGenerator.ymm10 ymm10;
-    alias CodeGenerator.ymm11 ymm11;
-    alias CodeGenerator.ymm12 ymm12;
-    alias CodeGenerator.ymm13 ymm13;
-    alias CodeGenerator.ymm14 ymm14;
-    alias CodeGenerator.ymm15 ymm15;
-
-    alias CodeGenerator.rip   rip;
+    mixin(["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi"].def_alias);
+    mixin(["r8","r9","r10","r11","r12","r13","r14","r15"].def_alias);
+    mixin(["r8d","r9d","r10d","r11d","r12d","r13d","r14d","r15d"].def_alias);
+    mixin(["r8w","r9w","r10w","r11w","r12w","r13w","r14w","r15w"].def_alias);
+    mixin(["r8b","r9b","r10b","r11b","r12b","r13b","r14b","r15b"].def_alias);
+    
+    mixin(["spl","bpl","sil","dil"].def_alias);
+    mixin(["xmm8","xmm9","xmm10","xmm11","xmm12","xmm13","xmm14","xmm15"].def_alias);
+    mixin(["ymm8","ymm9","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15"].def_alias);
+    mixin(["rip"].def_alias);
 }
