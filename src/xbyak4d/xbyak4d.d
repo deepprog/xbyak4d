@@ -738,6 +738,31 @@ version (XBYAK64)
 	}
 }
 
+version (XBYAK_DISABLE_SEGMENT) {}
+else{
+// not derived from Reg
+    class Segment {
+    int idx_;
+public:
+    enum
+    {
+        es, cs, ss, ds, fs, gs
+    };
+    this(int idx){ assert(0 <= idx_ && idx_ < 6); idx_ = idx; }
+    int getIdx() const
+    {
+        return idx_;
+    }
+    override string toString()
+    {
+        string tbl[] = [
+            "es", "cs", "ss", "ds", "fs", "gs"
+        ];
+        return tbl[idx_];
+    }
+    }
+}
+
 class RegExp {
 public:
 	struct SReg
@@ -2520,6 +2545,16 @@ public:
 			ym8 = ymm8, ym9 = ymm9, ym10 = ymm10, ym11 = ymm11, ym12 = ymm12, ym13 = ymm13, ym14 = ymm14, ym15 = ymm15, // for my convenience
 			rip = RegRip()
 		}
+		version (XBYAK_DISABLE_SEGMENT) {}
+		else{
+		enum{
+			es = new Segment(Segment.es),
+			cs = new Segment(Segment.cs),
+			ss = new Segment(Segment.ss),
+			ds = new Segment(Segment.ds),
+			fs = new Segment(Segment.fs),
+			gs = new Segment(Segment.gs)
+		}
 	}
 
 	void L(string label)
@@ -2655,6 +2690,36 @@ public:
 		}
 	}
 
+version(XBYAK_DISABLE_SEGMENT){}
+else
+{
+	void push(Segment seg)
+	{
+		final switch(seg.getIdx()) with (Segment)
+		{
+		case es: db(0x06); break;
+		case cs: db(0x0e); break;
+		case ss: db(0x16); break;
+		case ds: db(0x1e); break;
+		case fs: db(0x0f); db(0xa0); break;
+		case gs: db(0x0f); db(0xa8); break;
+		}
+	}
+	void pop(Segment seg)
+	{
+		switch (seg.getIdx()) {
+		case Segment.es: db(0x07); break;
+		case Segment.cs: throw new XError(ERR.BAD_COMBINATION);
+		case Segment.ss: db(0x17); break;
+		case Segment.ds: db(0x1f); break;
+		case Segment.fs: db(0x0f); db(0xa1); break;
+		case Segment.gs: db(0x0f); db(0xa9); break;
+		default:
+			//assert(0);
+		}
+	}
+}		
+	
 	void bswap(Reg32e reg)
 	{
 		opModR(REG32(1), reg, 0x0F);
@@ -2809,6 +2874,31 @@ public:
 		putL(label);
 	}
 
+version(XBYAK_DISABLE_SEGMENT){}
+else
+{
+	void putSeg(Segment seg)
+	{
+		final switch(seg.getIdx()) with (Segment)
+		{
+		case es: db(0x2e); break;
+		case cs: db(0x36); break;
+		case ss: db(0x3e); break;
+		case ds: db(0x26); break;
+		case fs: db(0x64); break;
+		case gs: db(0x65); break;
+		}
+	}
+	void mov(Operand op, Segment seg)
+	{
+		opModRM(REG8(seg.getIdx()), op, op.isREG(16|i32e), op.isMEM(), 0x8C);
+	}
+	void mov(Segment seg, Operand op)
+	{
+		opModRM(REG8(seg.getIdx()), op.isREG(16|i32e) ? cast(Operand)((cast(Reg)op).cvt32()) : op, op.isREG(16|i32e), op.isMEM(), 0x8E);
+	}
+}		
+	
 	void movbe(Reg reg, Address addr) {
 		opModM(addr, reg, 0x0F, 0x38, 0xF0);
 	}
@@ -4431,4 +4521,15 @@ version (XBYAK64)
     mixin(["xmm8","xmm9","xmm10","xmm11","xmm12","xmm13","xmm14","xmm15"].def_alias);
     mixin(["ymm8","ymm9","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15"].def_alias);
     mixin(["rip"].def_alias);
+}
+
+version(XBYAK_DISABLE_SEGMENT){}
+else
+{
+	alias CodeGenerator.es es;
+	alias CodeGenerator.cs cs;
+	alias CodeGenerator.ss ss;
+	alias CodeGenerator.ds ds;
+	alias CodeGenerator.fs fs;
+	alias CodeGenerator.gs gs;
 }
