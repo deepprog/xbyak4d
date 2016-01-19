@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.074
- * Date: 2016/01/18
+ * Version: 0.075
+ * Date: 2016/01/19
  * See_Also:
  * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -35,7 +35,7 @@ version (linux)
 enum : uint
 {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION               = 0x0074// 0xABCD = A.BC(D)
+	VERSION               = 0x0075  // 0xABCD = A.BC(D)
 }
 
 alias uint64 = ulong ;
@@ -156,79 +156,6 @@ string ConvertErrorToString(XError err) {
 	return err.what();
 }
 
-
-struct Aligned
-{
-	static :
-
-private:
-	void*[void*] MemTbl;
-	size_t[void*] SizeTbl;
-
-public:
-	void* getAlignedAddress(void* addr, size_t alignedSize = 16)
-	{
-		size_t mask = alignedSize - 1;
-		return cast(void*) ((cast(size_t) addr + mask) & ~mask);
-	}
-
-	void* Malloc(size_t size, size_t alignment = inner.ALIGN_PAGE_SIZE)
-	{
-		void* p;
-		version (Windows)
-		{
-			void* mp = core.memory.GC.malloc(size + alignment);
-		}
-		version (linux)
-		{
-			const size_t alignedSizeM1 = inner.ALIGN_PAGE_SIZE - 1;
-
-			size = (size + alignedSizeM1) & ~alignedSizeM1;
-			int prot     = PROT_EXEC | PROT_READ | PROT_WRITE;
-			int mode     = MAP_PRIVATE | MAP_ANON;
-			int fd       = open("/dev/zero", O_RDONLY);
-			size_t pageSize = sysconf(_SC_PAGESIZE);
-
-			void   * mp = mmap(null, size, prot, mode, fd, pageSize);
-
-			if (mp == MAP_FAILED)
-			{
-				throw new XError(ERR.CANT_ALLOC);
-			}
-		}
-		assert(mp);
-		SizeTbl[mp] = size + alignment;
-		MemTbl[mp]  = getAlignedAddress(mp, alignment);
-		return MemTbl[mp];
-	}
-
-	void Free(void* p)
-	{
-		version (Windows)
-		{
-			//core.memory.GC.free(MemTbl[p]);
-			MemTbl.remove(p);
-		}
-		version (linux)
-		{
-			if (p == null)
-			{
-				return;
-			}
-
-			void   * ret = MemTbl[p];
-			size_t size  = SizeTbl[p];
-
-			if (munmap(ret, size) < 0)
-			{
-				throw new XError(ERR.MUNMAP);
-			}
-			MemTbl.remove(p);
-			SizeTbl.remove(p);
-		}
-	}
-}
-
 To CastTo(To, From)(From p) const
 {
 	return cast(To) (p);
@@ -269,24 +196,99 @@ struct inner
 	}
 }
 // inner
+void* getAlignedAddress(void* addr, size_t alignedSize = 16)
+{
+	size_t mask = alignedSize - 1;
+	return cast(void*) ((cast(size_t) addr + mask) & ~mask);
+}
 
 // custom allocator
+version(windows)
+{
 struct Allocator
 {
-	uint8* alloc(size_t size) const
+static:
+	void*[void*] MemTbl;
+	size_t[void*] SizeTbl;	
+
+public:    
+    uint8* alloc(size_t size)
 	{
-		return cast(uint8*) (Aligned.Malloc(size, inner.ALIGN_PAGE_SIZE));
+        size_t alignment = inner.ALIGN_PAGE_SIZE;
+		void* mp = core.memory.GC.malloc(size + alignment);    
+        assert(mp);	
+		SizeTbl[mp] = size + alignment;
+		MemTbl[mp]  = getAlignedAddress(mp, alignment);
+		return MemTbl[mp];
 	}
-	void free(uint8* p) const
+	
+    void free(uint8* p)
 	{
-		Aligned.Free(p);
+		//core.memory.GC.free(MemTbl[p]);
 	}
 
 	// override to return false if you call protect() manually
-	bool useProtect() const
+	bool useProtect()
 	{
 		return true;
 	}
+}
+}
+
+version(linux)
+{
+struct Allocator
+{
+static:
+	void*[void*] MemTbl;
+	size_t[void*] SizeTbl;
+    
+public:
+	uint8* alloc(size_t size)
+	{
+		const size_t alignedSizeM1 = inner.ALIGN_PAGE_SIZE - 1;
+		size = (size + alignedSizeM1) & ~alignedSizeM1;
+	
+    	const int mode = MAP_PRIVATE | MAP_ANON;
+		const int prot = PROT_EXEC | PROT_READ | PROT_WRITE;
+        int fd = open("/dev/zero", O_RDONLY);
+		size_t pageSize = sysconf(_SC_PAGESIZE);
+        void* mp = mmap(null, size, prot, mode, fd, pageSize);
+
+		if (mp == MAP_FAILED)
+		{
+			throw new XError(ERR.CANT_ALLOC);
+		}
+		assert(mp);
+        size_t alignment = inner.ALIGN_PAGE_SIZE;	
+		SizeTbl[mp] = size + alignment;
+		MemTbl[mp]  = getAlignedAddress(mp, alignment);
+		return cast(uint8*)MemTbl[mp];
+    }
+    
+    void free(uint8 *p)
+	{
+		if(p == null)
+	    {
+            return;
+	    }
+		void   * ret = MemTbl[p];
+		size_t size  = SizeTbl[p];
+
+		if (munmap(ret, size) < 0)
+		{
+			throw new XError(ERR.MUNMAP);
+		}
+		MemTbl.remove(p);
+		SizeTbl.remove(p);
+	}
+    
+    // override to return false if you call protect() manually
+	bool useProtect()
+	{
+		return true;
+	}
+}
 }
 
 // Operand
@@ -747,7 +749,7 @@ public:
     enum
     {
         es, cs, ss, ds, fs, gs
-    };
+    }
     this(int idx){ assert(0 <= idx_ && idx_ < 6); idx_ = idx; }
     int getIdx() const
     {
@@ -755,7 +757,7 @@ public:
     }
     override string toString()
     {
-        string tbl[] = [
+        string[] tbl = [
             "es", "cs", "ss", "ds", "fs", "gs"
         ];
         return tbl[idx_];
@@ -994,10 +996,10 @@ class CodeArray {
 	AddrInfoList addrInfoList_;
 	Type type_;
 	Allocator defaultAllocator_;
-	Allocator        * alloc_;
+	Allocator* alloc_;
 protected:
 	size_t maxSize_;
-	uint8            * top_;
+	uint8* top_;
 	size_t size_;
 
 
@@ -1032,7 +1034,7 @@ protected:
 	}
 
 public:
-	this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator * allocator = null)
+	this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator* allocator = null)
 	{
 		type_    = userPtr == AutoGrow ? Type.AUTO_GROW : userPtr ? Type.USER_BUF : Type.ALLOC_BUF;
 		alloc_   = allocator ? allocator : &defaultAllocator_;
@@ -2547,14 +2549,15 @@ public:
 		}
 		version (XBYAK_DISABLE_SEGMENT) {}
 		else{
-		enum{
-			es = new Segment(Segment.es),
-			cs = new Segment(Segment.cs),
-			ss = new Segment(Segment.ss),
-			ds = new Segment(Segment.ds),
-			fs = new Segment(Segment.fs),
-			gs = new Segment(Segment.gs)
-		}
+		    enum{
+			    es = new Segment(Segment.es),
+			    cs = new Segment(Segment.cs),
+			    ss = new Segment(Segment.ss),
+			    ds = new Segment(Segment.ds),
+			    fs = new Segment(Segment.fs),
+			    gs = new Segment(Segment.gs)
+		    }
+        }
 	}
 
 	void L(string label)
@@ -3187,7 +3190,7 @@ else
 	}
 	enum { NONE = 256 }
 public:
-	this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator * allocator = null)
+	this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator* allocator = null)
 	{
 		super(userPtr, maxSize, allocator);
 		labelMgr_.set(this);
@@ -3238,7 +3241,7 @@ public:
 	}
 
 
-string getVersionString() const { return "0.074"; }
+string getVersionString() const { return "0.075"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -4526,10 +4529,5 @@ version (XBYAK64)
 version(XBYAK_DISABLE_SEGMENT){}
 else
 {
-	alias CodeGenerator.es es;
-	alias CodeGenerator.cs cs;
-	alias CodeGenerator.ss ss;
-	alias CodeGenerator.ds ds;
-	alias CodeGenerator.fs fs;
-	alias CodeGenerator.gs gs;
+	mixin(["es","cs","ss","ds","fs","gs"].def_alias);
 }
