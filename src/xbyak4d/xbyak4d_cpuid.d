@@ -1,7 +1,7 @@
 module xbyak4d_cpuid;
 import std.stdio;
 
-alias ulong uint64;
+alias uint64 = ulong;
 enum  Type : uint64 {
 	NONE          = 0,
 	tMMX          = 1 << 0,     //mmx(), //amdMmx()
@@ -58,7 +58,7 @@ class CpuId {
 
 	void setFamily()
 	{
-		uint data[4];
+		uint[4] data;
 
 		data = getCpuid(1);
 		stepping = data[0] & mask(4);
@@ -135,7 +135,7 @@ public:
 	this()
 	{
 		type_ = Type.NONE;
-		uint data[4];
+		uint[4] data;
 		data = getCpuid(0);
 		uint maxNum = data[0];
 		string intel = "ntel";
