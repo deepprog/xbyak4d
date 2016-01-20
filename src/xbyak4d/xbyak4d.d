@@ -1,6 +1,6 @@
 /**
  * xbyak for the D programming language
- * Version: 0.076
+ * Version: 0.077
  * Date: 2016/01/20
  * See_Also:
  * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
@@ -11,8 +11,8 @@
 
 module xbyak4d;
 
-//version = XBYAK32;
-version = XBYAK64;
+version = XBYAK32;
+//version = XBYAK64;
 
 import std.stdio;
 import std.array;
@@ -35,7 +35,7 @@ version (linux)
 enum : uint
 {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION               = 0x0076  // 0xABCD = A.BC(D)
+	VERSION               = 0x0077  // 0xABCD = A.BC(D)
 }
 
 alias uint64 = ulong ;
@@ -1040,25 +1040,12 @@ public:
 		{
 			throw new XError(ERR.CANT_ALLOC);
 		}
-/+
-		if (type_ == Type.ALLOC_BUF)
-		{
-			alloc_.free(top_);
-			throw new XError(ERR.CANT_PROTECT);
-		}
         
-        if (alloc_.useProtect)
+		if (type_ == Type.ALLOC_BUF && alloc_.useProtect && !protect(top_, maxSize, true))
 		{
 			alloc_.free(top_);
 			throw new XError(ERR.CANT_PROTECT);
 		}
-        
-        if (!protect(top_, maxSize, true))
-		{
-			alloc_.free(top_);
-			throw new XError(ERR.CANT_PROTECT);
-		}
-+/
 	}
 
 	~this()
@@ -1218,15 +1205,15 @@ public:
 		version (Windows)
 		{
 			DWORD oldProtect;
-			return VirtualProtect(cast(void*) (addr), size, canExec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldProtect) != 0;
+			return VirtualProtect(addr, size, canExec ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldProtect) != 0;
 		}
+        
 		version (linux)
 		{
-			size_t pageSize = sysconf(_SC_PAGESIZE);
-			int fd       = open("/dev/zero", O_RDONLY);
-			auto m        = cast(uint8*) mmap(addr, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, pageSize);
-			return(m == addr);
-		}
+			//void* m = mmap(addr, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE, -1, 0);
+			//return(m == addr);
+		    return true;
+        }
 	}
 
 //	get aligned memory pointer
@@ -3240,7 +3227,7 @@ public:
 	}
 
 
-string getVersionString() const { return "0.076"; }
+string getVersionString() const { return "0.077"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
