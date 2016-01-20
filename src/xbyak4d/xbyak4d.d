@@ -11,8 +11,8 @@
 
 module xbyak4d;
 
-//version = XBYAK32;
-version = XBYAK64;
+version = XBYAK32;
+//version = XBYAK64;
 
 import std.stdio;
 import std.array;
@@ -203,7 +203,7 @@ void* getAlignedAddress(void* addr, size_t alignedSize = 16)
 }
 
 // custom allocator
-version(windows)
+version(Windows)
 {
 struct Allocator
 {
@@ -219,7 +219,7 @@ public:
         assert(mp);	
 		SizeTbl[mp] = size + alignment;
 		MemTbl[mp]  = getAlignedAddress(mp, alignment);
-		return MemTbl[mp];
+		return cast(uint8*)MemTbl[mp];
 	}
 	
     void free(uint8* p)
@@ -718,11 +718,19 @@ version (XBYAK64)
 	{
 		sint64 disp_;
 		Label label_;
-		this(sint64 disp = 0, Label label = new Label)
+        
+        this(this)
+        {
+            disp_  = 0;
+			label_ = new Label;
+        }
+        
+		this(sint64 disp, Label label)
 		{
 			disp_  = disp;
 			label_ = label;
 		}
+        
 		RegRip opBinary(string op) (sint64 disp) if (op == "+")
 		{
 			return RegRip(disp_ + disp, label_);
@@ -772,7 +780,13 @@ public:
 		uint16 bit = 9; // 32/64/128/256 none if 0
 		uint16 idx = 7;
 
-		this(uint16 b = 0, uint16 i = 0)
+        this(this)
+        {
+            bit = 0;
+			idx = 0;
+        }
+
+		this(uint16 b, uint16 i)
 		{
 			bit = b;
 			idx = i;
@@ -1476,6 +1490,14 @@ struct JmpLabel
 	inner.LabelMode mode;
 	uint64 disp;                            // disp for [rip + disp]
 
+    this(this)
+    {
+        this.endOfJmp = 0;
+		this.jmpSize  = 0;
+		this.mode     = inner.LabelMode.LasIs;
+		this.disp     = 0;
+    }
+    
 	this(size_t endOfJmp = 0, int jmpSize = 0, inner.LabelMode mode = inner.LabelMode.LasIs, uint64 disp = 0)
 	{
 		this.endOfJmp = endOfJmp;
@@ -2710,13 +2732,14 @@ else
 	}
 	void pop(Segment seg)
 	{
-		switch (seg.getIdx()) {
-		case Segment.es: db(0x07); break;
-		case Segment.cs: throw new XError(ERR.BAD_COMBINATION);
-		case Segment.ss: db(0x17); break;
-		case Segment.ds: db(0x1f); break;
-		case Segment.fs: db(0x0f); db(0xa1); break;
-		case Segment.gs: db(0x0f); db(0xa9); break;
+		switch (seg.getIdx()) with (Segment)
+        {
+		case es: db(0x07); break;
+		case cs: throw new XError(ERR.BAD_COMBINATION);
+		case ss: db(0x17); break;
+		case ds: db(0x1f); break;
+		case fs: db(0x0f); db(0xa1); break;
+		case gs: db(0x0f); db(0xa9); break;
 		default:
 			//assert(0);
 		}
@@ -4529,5 +4552,10 @@ version (XBYAK64)
 version(XBYAK_DISABLE_SEGMENT){}
 else
 {
-	mixin(["es","cs","ss","ds","fs","gs"].def_alias);
+	alias es = Segment.es;
+    alias cs = Segment.cs;
+    alias ss = Segment.ss;
+    alias ds = Segment.ds;
+    alias fs = Segment.fs;
+    alias gs = Segment.gs;
 }
