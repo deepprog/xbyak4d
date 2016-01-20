@@ -2818,30 +2818,20 @@ public:
 
 	void mov(Operand op, size_t imm)
 	{
-
-		if (op.isREG())
-		{
+        verifyMemHasSize(op);
+		if (op.isREG()) {
 			const int size = mov_imm(cast(Reg) (op), imm);
 			db(imm, size);
-		}
-		else if (op.isMEM())
-		{
-			verifyMemHasSize(op);
-			int immSize = op.getBit() / 8;
-			if (immSize <= 4)
+		} else if (op.isMEM()) {
+		    opModM(cast(Address) op, REG(0, Kind.REG, op.getBit), 0B11000110);
+			int size = op.getBit() / 8;
+			if (size == 8)
 			{
-				sint64 s = sint64(imm) >> (immSize * 8);
-				if (s != 0 && s != -1) throw new XError(ERR.IMM_IS_TOO_BIG);
-			} else {
 				if (!inner.IsInInt32(imm)) throw new XError(ERR.IMM_IS_TOO_BIG);
-				immSize = 4;
+				size = 4;
 			}
-
-			opModM(cast(Address) op, REG(0, Kind.REG, op.getBit), 0B11000110);
-			db(cast(uint32) imm, immSize);
-		}
-		else
-		{
+			db(cast(uint32) imm, size);
+		} else {
 			throw new XError(ERR.BAD_COMBINATION);
 		}
 	}
