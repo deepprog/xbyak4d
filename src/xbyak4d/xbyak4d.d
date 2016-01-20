@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.075
- * Date: 2016/01/19
+ * Version: 0.076
+ * Date: 2016/01/20
  * See_Also:
  * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -35,7 +35,7 @@ version (linux)
 enum : uint
 {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION               = 0x0075  // 0xABCD = A.BC(D)
+	VERSION               = 0x0076  // 0xABCD = A.BC(D)
 }
 
 alias uint64 = ulong ;
@@ -719,13 +719,7 @@ version (XBYAK64)
 		sint64 disp_;
 		Label label_;
         
-        this(this)
-        {
-            disp_  = 0;
-			label_ = new Label;
-        }
-        
-		this(sint64 disp, Label label)
+		this(sint64 disp = 0, Label label = new Label)
 		{
 			disp_  = disp;
 			label_ = label;
@@ -780,13 +774,7 @@ public:
 		uint16 bit = 9; // 32/64/128/256 none if 0
 		uint16 idx = 7;
 
-        this(this)
-        {
-            bit = 0;
-			idx = 0;
-        }
-
-		this(uint16 b, uint16 i)
+		this(uint16 b = 0, uint16 i = 0)
 		{
 			bit = b;
 			idx = i;
@@ -1489,15 +1477,7 @@ struct JmpLabel
 	int jmpSize;
 	inner.LabelMode mode;
 	uint64 disp;                            // disp for [rip + disp]
-
-    this(this)
-    {
-        this.endOfJmp = 0;
-		this.jmpSize  = 0;
-		this.mode     = inner.LabelMode.LasIs;
-		this.disp     = 0;
-    }
-    
+   
 	this(size_t endOfJmp = 0, int jmpSize = 0, inner.LabelMode mode = inner.LabelMode.LasIs, uint64 disp = 0)
 	{
 		this.endOfJmp = endOfJmp;
@@ -1565,11 +1545,7 @@ class LabelManager
 	struct SlabelVal
 	{
 		size_t offset;
-	    this(this)
-        {
-            this.offset = 0;
-        }
-        this(size_t offset)
+        this(size_t offset = 0)
 		{
 			this.offset = offset;
 		}
@@ -1591,12 +1567,7 @@ class LabelManager
 	{
 		size_t offset;
 		int refCount = 1;
-        this(this)
-        {
-            this.offset = 0;
-            this.refCount = 1;
-        }
-		this(size_t offset)
+		this(size_t offset = 0)
 		{
 			this.offset   = offset;
 			this.refCount = 1;
@@ -3264,7 +3235,7 @@ public:
 	}
 
 
-string getVersionString() const { return "0.075"; }
+string getVersionString() const { return "0.076"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
