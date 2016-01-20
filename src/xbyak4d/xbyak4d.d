@@ -11,8 +11,8 @@
 
 module xbyak4d;
 
-version = XBYAK32;
-//version = XBYAK64;
+//version = XBYAK32;
+version = XBYAK64;
 
 import std.stdio;
 import std.array;
@@ -251,14 +251,9 @@ public:
 	
     	const int mode = MAP_PRIVATE | MAP_ANON;
 		const int prot = PROT_EXEC | PROT_READ | PROT_WRITE;
-        int fd = open("/dev/zero", O_RDONLY);
-		size_t pageSize = sysconf(_SC_PAGESIZE);
-        void* mp = mmap(null, size, prot, mode, fd, pageSize);
+        void* mp = mmap(null, size, prot, mode, -1, 0);
 
-		if (mp == MAP_FAILED)
-		{
-			throw new XError(ERR.CANT_ALLOC);
-		}
+		if (mp == MAP_FAILED) throw new XError(ERR.CANT_ALLOC);
 		assert(mp);
         size_t alignment = inner.ALIGN_PAGE_SIZE;	
 		SizeTbl[mp] = size + alignment;
@@ -268,11 +263,8 @@ public:
     
     void free(uint8 *p)
 	{
-		if(p == null)
-	    {
-            return;
-	    }
-		void   * ret = MemTbl[p];
+		if(p == null) return;
+		void* ret = MemTbl[p];
 		size_t size  = SizeTbl[p];
 
 		if (munmap(ret, size) < 0)
@@ -1038,7 +1030,7 @@ protected:
 public:
 	this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator* allocator = null)
 	{
-		type_    = userPtr == AutoGrow ? Type.AUTO_GROW : userPtr ? Type.USER_BUF : Type.ALLOC_BUF;
+		type_    = (userPtr == AutoGrow) ? Type.AUTO_GROW : userPtr ? Type.USER_BUF : Type.ALLOC_BUF;
 		alloc_   = allocator ? allocator : &defaultAllocator_;
 		maxSize_ = maxSize;
 		top_     = type_ == Type.USER_BUF ? cast(uint8*) (userPtr) : alloc_.alloc(max(maxSize, 1));
@@ -1048,12 +1040,25 @@ public:
 		{
 			throw new XError(ERR.CANT_ALLOC);
 		}
-
-		if (type_ == Type.ALLOC_BUF && alloc_.useProtect && !protect(top_, maxSize, true))
+/+
+		if (type_ == Type.ALLOC_BUF)
 		{
 			alloc_.free(top_);
 			throw new XError(ERR.CANT_PROTECT);
 		}
+        
+        if (alloc_.useProtect)
+		{
+			alloc_.free(top_);
+			throw new XError(ERR.CANT_PROTECT);
+		}
+        
+        if (!protect(top_, maxSize, true))
+		{
+			alloc_.free(top_);
+			throw new XError(ERR.CANT_PROTECT);
+		}
++/
 	}
 
 	~this()
@@ -1544,8 +1549,8 @@ class LabelManager
 // for string label
 	struct SlabelVal
 	{
-		size_t offset;
-        this(size_t offset = 0)
+		size_t offset = 0;
+        this(size_t offset)
 		{
 			this.offset = offset;
 		}
@@ -1565,9 +1570,9 @@ class LabelManager
 // for Label class
 	struct ClabelVal
 	{
-		size_t offset;
+		size_t offset = 0;
 		int refCount = 1;
-		this(size_t offset = 0)
+		this(size_t offset)
 		{
 			this.offset   = offset;
 			this.refCount = 1;
