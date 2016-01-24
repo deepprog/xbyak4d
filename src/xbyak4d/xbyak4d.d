@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.077
- * Date: 2016/01/20
+ * Version: 0.078
+ * Date: 2016/01/24
  * See_Also:
  * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -27,15 +27,13 @@ version (Windows)
 
 version (linux)
 {
-    import core.sys.posix.unistd;
-    import core.sys.posix.fcntl;
     import core.sys.posix.sys.mman;
 }
 
 enum : uint
 {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION               = 0x0077  // 0xABCD = A.BC(D)
+	VERSION               = 0x0078  // 0xABCD = A.BC(D)
 }
 
 alias uint64 = ulong ;
@@ -203,16 +201,18 @@ void* getAlignedAddress(void* addr, size_t alignedSize = 16)
 }
 
 // custom allocator
-version(Windows)
-{
+
 struct Allocator
 {
 static:
 	void*[void*] MemTbl;
 	size_t[void*] SizeTbl;	
 
-public:    
-    uint8* alloc(size_t size)
+public:
+
+version(Windows)
+{
+	uint8* alloc(size_t size)
 	{
         size_t alignment = inner.ALIGN_PAGE_SIZE;
 		void* mp = core.memory.GC.malloc(size + alignment);    
@@ -222,46 +222,32 @@ public:
 		return cast(uint8*)MemTbl[mp];
 	}
 	
-    void free(uint8* p)
+	void free(uint8* p)
 	{
 		//core.memory.GC.free(MemTbl[p]);
 	}
-
-	// override to return false if you call protect() manually
-	bool useProtect()
-	{
-		return true;
-	}
-}
 }
 
 version(linux)
 {
-struct Allocator
-{
-static:
-	void*[void*] MemTbl;
-	size_t[void*] SizeTbl;
-    
-public:
 	uint8* alloc(size_t size)
 	{
 		const size_t alignedSizeM1 = inner.ALIGN_PAGE_SIZE - 1;
 		size = (size + alignedSizeM1) & ~alignedSizeM1;
 	
-    	const int mode = MAP_PRIVATE | MAP_ANON;
+    		const int mode = MAP_PRIVATE | MAP_ANON;
 		const int prot = PROT_EXEC | PROT_READ | PROT_WRITE;
-        void* mp = mmap(null, size, prot, mode, -1, 0);
+        	void* mp = mmap(null, size, prot, mode, -1, 0);
 
 		if (mp == MAP_FAILED) throw new XError(ERR.CANT_ALLOC);
 		assert(mp);
-        size_t alignment = inner.ALIGN_PAGE_SIZE;	
+        	size_t alignment = inner.ALIGN_PAGE_SIZE;	
 		SizeTbl[mp] = size + alignment;
 		MemTbl[mp]  = getAlignedAddress(mp, alignment);
 		return cast(uint8*)MemTbl[mp];
-    }
+    	}
     
-    void free(uint8 *p)
+    	void free(uint8 *p)
 	{
 		if(p == null) return;
 		void* ret = MemTbl[p];
@@ -274,14 +260,15 @@ public:
 		MemTbl.remove(p);
 		SizeTbl.remove(p);
 	}
-    
-    // override to return false if you call protect() manually
+}
+	// override to return false if you call protect() manually
 	bool useProtect()
 	{
 		return true;
 	}
 }
-}
+
+
 
 // Operand
 enum Kind
@@ -296,11 +283,10 @@ enum Kind
 	YMM  = 1 << 7
 }
 
-
 version(XBYAK64){
 	enum Code : int
 	{
-		RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
+    		RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
 		R8D = 8, R9D, R10D, R11D, R12D, R13D, R14D, R15D,
 		R8W = 8, R9W, R10W, R11W, R12W, R13W, R14W, R15W,
 		R8B = 8, R9B, R10B, R11B, R12B, R13B, R14B, R15B,
@@ -516,8 +502,8 @@ public:
 	Reg8 cvt8() const
 	{
 		int idx = getIdx;
-		if (isBit(8))
-			return REG8(idx, isExt8bit);
+		if (isBit(8))return REG8(idx, isExt8bit);
+			
 		version (XBYAK32)
 		{
 			if (idx >= 4)
@@ -2818,30 +2804,20 @@ public:
 
 	void mov(Operand op, size_t imm)
 	{
-
-		if (op.isREG())
-		{
+        	verifyMemHasSize(op);
+		if (op.isREG()) {
 			const int size = mov_imm(cast(Reg) (op), imm);
 			db(imm, size);
-		}
-		else if (op.isMEM())
-		{
-			verifyMemHasSize(op);
-			int immSize = op.getBit() / 8;
-			if (immSize <= 4)
+		} else if (op.isMEM()) {
+		    opModM(cast(Address) op, REG(0, Kind.REG, op.getBit), 0B11000110);
+			int size = op.getBit() / 8;
+			if (size == 8)
 			{
-				sint64 s = sint64(imm) >> (immSize * 8);
-				if (s != 0 && s != -1) throw new XError(ERR.IMM_IS_TOO_BIG);
-			} else {
 				if (!inner.IsInInt32(imm)) throw new XError(ERR.IMM_IS_TOO_BIG);
-				immSize = 4;
+				size = 4;
 			}
-
-			opModM(cast(Address) op, REG(0, Kind.REG, op.getBit), 0B11000110);
-			db(cast(uint32) imm, immSize);
-		}
-		else
-		{
+			db(cast(uint32) imm, size);
+		} else {
 			throw new XError(ERR.BAD_COMBINATION);
 		}
 	}
@@ -3227,7 +3203,7 @@ public:
 	}
 
 
-string getVersionString() const { return "0.077"; }
+string getVersionString() const { return "0.078"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
