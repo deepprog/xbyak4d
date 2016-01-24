@@ -19,7 +19,7 @@ xbyak for the D programming language
 開発環境
 --------
 Windows
- DMD64 D Compiler v2.070.0-b1(Version: 0.057以降)
+ DMD64 D Compiler v2.070.0-b1(Version: 0.078以降)
  Visual D
 
 Linux
