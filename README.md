@@ -6,7 +6,7 @@ xbyak for the D programming language
 
 詳細
 ----
- xbyak Xbyak 4.88（相当）のＤ言語版。
+ xbyak Xbyak 4.87（相当）のＤ言語版。
  Version: 0.078以降
 
 動作環境
