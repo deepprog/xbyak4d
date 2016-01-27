@@ -3094,8 +3094,9 @@ else
 			throw new XError(ERR.BAD_COMBINATION);
 		opModR(reg1, reg2, 0x0F, 0B11110111);
 	}
-	void lea(Reg32e reg, Address addr)
+    void lea(Reg reg, Address addr)
 	{
+		if (!reg.isBit(16 | i32e)) throw new XError(ERR.BAD_SIZE_OF_REGISTER);
 		opModM(addr, reg, 0B10001101);
 	}
 	void movmskps(Reg32e reg, Xmm xmm)
