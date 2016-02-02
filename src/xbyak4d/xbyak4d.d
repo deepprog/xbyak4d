@@ -11,8 +11,8 @@
 
 module xbyak4d;
 
-version = XBYAK32;
-//version = XBYAK64;
+//version = XBYAK32;
+version = XBYAK64;
 
 import std.stdio;
 import std.array;
@@ -3428,36 +3428,36 @@ void setng (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 14); }
 void setnle(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 15); }
 void setg  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 15); }
 
-void cmovo  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  0); }
-void cmovno (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  1); }
-void cmovb  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  2); }
-void cmovc  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  2); }
-void cmovnae(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  2); }
-void cmovnb (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  3); }
-void cmovae (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  3); }
-void cmovnc (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  3); }
-void cmove  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  4); }
-void cmovz  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  4); }
-void cmovne (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  5); }
-void cmovnz (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  5); }
-void cmovbe (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  6); }
-void cmovna (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  6); }
-void cmovnbe(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  7); }
-void cmova  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  7); }
-void cmovs  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  8); }
-void cmovns (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 |  9); }
-void cmovp  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 10); }
-void cmovpe (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 10); }
-void cmovnp (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 11); }
-void cmovpo (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 11); }
-void cmovl  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 12); }
-void cmovnge(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 12); }
-void cmovnl (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 13); }
-void cmovge (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 13); }
-void cmovle (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 14); }
-void cmovng (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 14); }
-void cmovnle(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 15); }
-void cmovg  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | 32e), op.isMEM, 0x0F, 0B01000000 | 15); }
+void cmovo  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  0); }
+void cmovno (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  1); }
+void cmovb  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  2); }
+void cmovc  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  2); }
+void cmovnae(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  2); }
+void cmovnb (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  3); }
+void cmovae (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  3); }
+void cmovnc (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  3); }
+void cmove  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  4); }
+void cmovz  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  4); }
+void cmovne (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  5); }
+void cmovnz (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  5); }
+void cmovbe (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  6); }
+void cmovna (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  6); }
+void cmovnbe(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  7); }
+void cmova  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  7); }
+void cmovs  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  8); }
+void cmovns (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  9); }
+void cmovp  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 10); }
+void cmovpe (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 10); }
+void cmovnp (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 11); }
+void cmovpo (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 11); }
+void cmovl  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 12); }
+void cmovnge(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 12); }
+void cmovnl (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 13); }
+void cmovge (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 13); }
+void cmovle (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 14); }
+void cmovng (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 14); }
+void cmovnle(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 15); }
+void cmovg  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 15); }
 
 void jo  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x70, 0x80, 0x0F); }
 void jno (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x71, 0x81, 0x0F); }
