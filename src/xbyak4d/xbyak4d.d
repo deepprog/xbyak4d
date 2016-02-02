@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.078
- * Date: 2016/01/24
+ * Version: 0.080
+ * Date: 2016/02/02
  * See_Also:
  * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -33,7 +33,7 @@ version (linux)
 enum : uint
 {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION               = 0x0078  // 0xABCD = A.BC(D)
+	VERSION               = 0x0080  // 0xABCD = A.BC(D)
 }
 
 alias uint64 = ulong ;
@@ -3207,7 +3207,7 @@ public:
 	}
 
 
-string getVersionString() const { return "0.078"; }
+string getVersionString() const { return "0.080"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -4365,11 +4365,11 @@ void vpsrlq (Xmm x1, Xmm x2, uint8 imm) { opAVX_X_X_XM(x1.isYMM ? ym2 : xm2, x1,
 void vpsrlq (Xmm x,          uint8 imm) { opAVX_X_X_XM( x.isYMM ? ym2 : xm2, x,  x,  MM_0F | PP_66, 0x73, true, -1, imm); }
 
 void vblendvpd(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4B, true, -1, x4.getIdx << 4);}
-void vblendvpd(Xmm x1,         Operand op, Xmm x4) { opAVX_X_X_XM(x1, x1, op, MM_0F3A | PP_66, 0x4B, true, -1, x4.getIdx << 4);}
+void vblendvpd(Xmm x1,         Operand op, Xmm x4) { vblendvpd(x1, x1, op, x4); }
 void vblendvps(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4A, true, -1, x4.getIdx << 4);}
-void vblendvps(Xmm x1,         Operand op, Xmm x4) { opAVX_X_X_XM(x1, x1, op, MM_0F3A | PP_66, 0x4A, true, -1, x4.getIdx << 4);}
-void vpblendvb(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4C, false, -1, x4.getIdx << 4);}
-void vpblendvb(Xmm x1,         Operand op, Xmm x4) { opAVX_X_X_XM(x1, x1, op, MM_0F3A | PP_66, 0x4C, false, -1, x4.getIdx << 4);}
+void vblendvps(Xmm x1,         Operand op, Xmm x4) { vblendvps(x1, x1, op, x4); }
+void vpblendvb(Xmm x1, Xmm x2, Operand op, Xmm x4) { opAVX_X_X_XM(x1, x2, op, MM_0F3A | PP_66, 0x4C, true, -1, x4.getIdx << 4);}
+void vpblendvb(Xmm x1,         Operand op, Xmm x4) { vpblendvb(x1, x1, op, x4); }
 
 void vmovd(Xmm        x, Reg32   reg)  { opAVX_X_X_XM(x,  xm0, XMM(reg.getIdx), MM_0F | PP_66, 0x6E, false, 0);}
 void vmovd(Xmm        x, Address addr) { opAVX_X_X_XM(x,  xm0, addr,            MM_0F | PP_66, 0x6E, false, 0);}
