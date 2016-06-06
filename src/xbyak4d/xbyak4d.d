@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.080
- * Date: 2016/02/02
+ * Version: 0.081
+ * Date: 2016/06/06
  * See_Also:
  * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -694,10 +694,10 @@ version (XBYAK64)
 
 	struct RegRip
 	{
-		sint64 disp_;
-		Label label_;
+		sint64 disp_ = 0;
+		Label label_ = new Label;
         
-		this(sint64 disp = 0, Label label = new Label)
+		this(sint64 disp, Label label)
 		{
 			disp_  = disp;
 			label_ = label;
@@ -752,7 +752,7 @@ public:
 		uint16 bit = 9; // 32/64/128/256 none if 0
 		uint16 idx = 7;
 
-		this(uint16 b = 0, uint16 i = 0)
+		this(uint16 b, uint16 i)
 		{
 			bit = b;
 			idx = i;
@@ -1273,7 +1273,7 @@ public:
 
 	void updateRegField(uint8 regIdx)
 	{
-		*(this.top_).ptr = (*(this.top_).ptr & 0B11000111) | ((regIdx << 3) & 0B00111000);
+		*(this.top_).ptr = (*(this.top_).ptr & 0xC7) | ((regIdx << 3) & 0x38);
 	}
 
 	void verify() const {
@@ -1456,7 +1456,7 @@ struct JmpLabel
 	inner.LabelMode mode;
 	uint64 disp;                            // disp for [rip + disp]
    
-	this(size_t endOfJmp = 0, int jmpSize = 0, inner.LabelMode mode = inner.LabelMode.LasIs, uint64 disp = 0)
+	this(size_t endOfJmp, int jmpSize, inner.LabelMode mode, uint64 disp)
 	{
 		this.endOfJmp = endOfJmp;
 		this.jmpSize  = jmpSize;
@@ -1994,12 +1994,12 @@ public class CodeGenerator : CodeArray {
 				db(shortCode);
 				db(0);
 			}
-			JmpLabel jmp = JmpLabel(size_, jmpSize, inner.LabelMode.LasIs);
+			JmpLabel jmp = JmpLabel(size_, jmpSize, inner.LabelMode.LasIs, 0);
 			labelMgr_.addUndefinedLabel(label, jmp);
 		}
 	}
 
-	void opJmpAbs(void* addr, LabelType type, uint8 shortCode, uint8 longCode)
+	void opJmpAbs(void* addr, LabelType type, uint8 shortCode, uint8 longCode, uint8 longPref = 0)
 	{
 		if (isAutoGrow)
 		{
@@ -2014,7 +2014,7 @@ public class CodeGenerator : CodeArray {
 		}
 		else
 		{
-			makeJmp(inner.VerifyInInt32(cast(uint8*) addr - getCurr), type, shortCode, longCode, 0);
+			makeJmp(inner.VerifyInInt32(cast(uint8*) addr - getCurr), type, shortCode, longCode, longPref);
 		}
 	}
 	void opAddr(Address addr, int immSize = 0)
@@ -2077,12 +2077,12 @@ public class CodeGenerator : CodeArray {
 		if (hasMMX2 && op.isREG(i32e))
 		{
 			if (mmx.isXMM) db(0x66);
-			opModR(cast(Reg) op, mmx, 0x0F, 0B11000101);
+			opModR(cast(Reg) op, mmx, 0x0F, 0xC5);
 			db(imm);
 		}
 		else
 		{
-			opGen(mmx, op, code, 0x66, &isXMM_REG32orMEM, imm, 0B00111010);
+			opGen(mmx, op, code, 0x66, &isXMM_REG32orMEM, imm, 0x3A);
 		}
 	}
 
@@ -2107,14 +2107,14 @@ public class CodeGenerator : CodeArray {
 	void opShift(Operand op, int imm, int ext)
 	{
 		verifyMemHasSize(op);
-		opR_ModM(op, 0, ext, (0B11000000 | ((imm == 1 ? 1 : 0) << 4)), NONE, NONE, false, (imm != 1) ? 1 : 0);
+		opR_ModM(op, 0, ext, (0xC0 | ((imm == 1 ? 1 : 0) << 4)), NONE, NONE, false, (imm != 1) ? 1 : 0);
 		if (imm != 1) db(imm);
 	}
 
 	void opShift(Operand op, Reg8 cl, int ext)
 	{
 		if (cl.getIdx != Code.CL) throw new XError(ERR.BAD_COMBINATION);
-		opR_ModM(op, 0, ext, 0B11010010);
+		opR_ModM(op, 0, ext, 0xD2);
 	}
 
 	void opModRM(Operand op1, Operand op2, bool condR, bool condM, int code0, int code1 = Kind.NONE, int code2 = Kind.NONE, int immSize = 0)
@@ -2172,7 +2172,7 @@ public class CodeGenerator : CodeArray {
 		else
 		{
 			int tmp = immBit < min(op.getBit, 32U) ? 2 : 0;
-			opR_ModM(op, 0, ext, 0B10000000 | tmp, NONE, NONE, false, immBit / 8);
+			opR_ModM(op, 0, ext, 0x80 | tmp, NONE, NONE, false, immBit / 8);
 		}
 		db(imm, immBit / 8);
 	}
@@ -2189,7 +2189,7 @@ public class CodeGenerator : CodeArray {
 				return;
 			}
 		}
-		code = 0B11111110;
+		code = 0xFE;
 		if (op.isREG)
 		{
 			opModR(REG(ext, Kind.REG, op.getBit), cast(Reg) op, code);
@@ -2559,12 +2559,12 @@ public:
 	}
 	void jmp(T)(T label, LabelType type = T_AUTO) if(is(T == string) || is(T == Label) )
 	{
-		opJmp(label, type, 0B11101011, 0B11101001, 0);
+		opJmp(label, type, 0xEB, 0xE9, 0);
 	}
 
 	void jmp(void* addr, LabelType type = T_AUTO)
 	{
-		opJmpAbs(addr, type, 0B11101011, 0B11101001);
+		opJmpAbs(addr, type, 0xEB, 0xE9);
 	}
 
 	void jmp(Operand op)
@@ -2580,7 +2580,7 @@ public:
 // (REG|MEM, REG)
 	void test(Operand op, Reg reg)
 	{
-		opModRM(reg, op, op.isREG && (op.getKind == reg.getKind), op.isMEM, 0B10000100);
+		opModRM(reg, op, op.isREG && (op.getKind == reg.getKind), op.isMEM, 0x84);
 	}
 
 // (REG|MEM, IMM)
@@ -2591,11 +2591,11 @@ public:
 		if (op.isREG && op.getIdx == 0)   // al, ax, eax
 		{
 			rex(op);
-			db(0B10101000 | (op.isBit(8) ? 0 : 1));
+			db(0xA8 | (op.isBit(8) ? 0 : 1));
 		}
 		else
 		{
-			opR_ModM(op, 0, 0, 0B11110110, NONE, NONE, false, immSize);
+			opR_ModM(op, 0, 0, 0xF6, NONE, NONE, false, immSize);
 		}
 		db(imm, immSize);
 	}
@@ -2604,50 +2604,50 @@ public:
 	{
 		if (imm)
 		{
-			db(0B11000010);
+			db(0xC2);
 			dw(imm);
 		}
 		else
 		{
-			db(0B11000011);
+			db(0xC3);
 		}
 	}
 
 // (REG16|REG32, REG16|REG32|MEM)
 	void imul(Reg reg, Operand op)
 	{
-		opModRM(reg, op, op.isREG && (reg.getKind == op.getKind), op.isMEM, 0x0F, 0B10101111);
+		opModRM(reg, op, op.isREG && (reg.getKind == op.getKind), op.isMEM, 0x0F, 0xAF);
 	}
 
 	void imul(Reg reg, Operand op, int imm)
 	{
 		int s = inner.IsInDisp8(imm) ? 1 : 0;
 		int immSize = s ? 1 : reg.isREG(16) ? 2 : 4;
-		opModRM(reg, op, op.isREG && (reg.getKind == op.getKind), op.isMEM, 0B01101001 | (s << 1), NONE, NONE, immSize);
+		opModRM(reg, op, op.isREG && (reg.getKind == op.getKind), op.isMEM, 0x69 | (s << 1), NONE, NONE, immSize);
 		db(imm, immSize);
 	}
 
 	void pop(Operand op)
 	{
-		opPushPop(op, 0B10001111, 0, 0B01011000);
+		opPushPop(op, 0x8F, 0, 0x58);
 	}
 	void push(Operand op)
 	{
-		opPushPop(op, 0B11111111, 6, 0B01010000);
+		opPushPop(op, 0xFF, 6, 0x50);
 	}
 	void push(AddressFrame af, uint32 imm)
 	{
 		if (af.bit_ == 8 && inner.IsInDisp8(imm))
 		{
-			db(0B01101010); db(imm);
+			db(0x6A); db(imm);
 		}
 		else if (af.bit_ == 16 && inner.IsInDisp16(imm))
 		{
-			db(0x66); db(0B01101000); dw(imm);
+			db(0x66); db(0x68); dw(imm);
 		}
 		else
 		{
-			db(0B01101000); dd(imm);
+			db(0x68); dd(imm);
 		}
 	}
 
@@ -2686,9 +2686,9 @@ else
 		case es: db(0x07); break;
 		case cs: throw new XError(ERR.BAD_COMBINATION);
 		case ss: db(0x17); break;
-		case ds: db(0x1f); break;
-		case fs: db(0x0f); db(0xa1); break;
-		case gs: db(0x0f); db(0xa9); break;
+		case ds: db(0x1F); break;
+		case fs: db(0x0F); db(0xA1); break;
+		case gs: db(0x0F); db(0xA9); break;
 		default:
 			//assert(0);
 		}
@@ -2708,13 +2708,13 @@ else
 		{
 			reg  = cast(Reg) reg1;
 			addr = cast(Address) reg2;
-			code = 0B10100000;
+			code = 0xA0;
 		}
 		else if (reg1.isMEM && reg2.isREG && reg2.getIdx == 0)     // mov [disp], eax|ax|al
 		{
 			reg  = cast(Reg) reg2;
 			addr = cast(Address) reg1;
-			code = 0B10100010;
+			code = 0xA2;
 		}
 		version (XBYAK64)
 		{
@@ -2730,7 +2730,7 @@ else
 					throw new XError(ERR.BAD_COMBINATION);
 			}
 			else
-				opRM_RM(reg1, reg2, 0B10001000);
+				opRM_RM(reg1, reg2, 0x88);
 		}
 		version (XBYAK32)
 		{
@@ -2751,7 +2751,7 @@ private:
 	{
 		int bit = reg.getBit();
 		const int idx  = reg.getIdx();
-		int code = 0B10110000 | ((bit == 8 ? 0 : 1) << 3);
+		int code = 0xB0 | ((bit == 8 ? 0 : 1) << 3);
 		if (bit == 64 && (imm & ~cast(size_t) (0xffffffffu)) == 0)
 		{
 			rex(REG32(idx));
@@ -2762,8 +2762,8 @@ private:
 			rex(reg);
 			if (bit == 64 && inner.IsInInt32(imm))
 			{
-				db(0B11000111);
-				code = 0B11000000;
+				db(0xC7);
+				code = 0xC0;
 				bit  = 32;
 			}
 		}
@@ -2818,7 +2818,7 @@ public:
 				if (!inner.IsInInt32(imm)) throw new XError(ERR.IMM_IS_TOO_BIG);
 				immSize = 4;
 			}
-			opModM(cast(Address) op, REG(0, Kind.REG, op.getBit), 0B11000110);
+			opModM(cast(Address) op, REG(0, Kind.REG, op.getBit), 0xC6);
 			db(cast(uint32) imm, immSize);
 		} else {
 			throw new XError(ERR.BAD_COMBINATION);
@@ -2849,9 +2849,9 @@ else
 	{
 		final switch(seg.getIdx()) with (Segment)
 		{
-		case es: db(0x2e); break;
+		case es: db(0x2E); break;
 		case cs: db(0x36); break;
-		case ss: db(0x3e); break;
+		case ss: db(0x3E); break;
 		case ds: db(0x26); break;
 		case fs: db(0x64); break;
 		case gs: db(0x65); break;
@@ -2897,23 +2897,23 @@ else
 
 	void cmpxchg8b(Address addr)
 	{
-		opModM(addr, REG32(1), 0x0F, 0B11000111);
+		opModM(addr, REG32(1), 0x0F, 0xC7);
 	}
 	version (XBYAK64)
 	{
 		void cmpxchg16b(Address addr)
 		{
-			opModM(addr, REG64(1), 0x0F, 0B11000111);
+			opModM(addr, REG64(1), 0x0F, 0xC7);
 		}
 	}
 	void xadd(Operand op, Reg reg)
 	{
-		opModRM(reg, op, (op.isREG && reg.isREG && op.getBit == reg.getBit), op.isMEM, 0x0F, 0B11000000 | (reg.isBit(8) ? 0 : 1));
+		opModRM(reg, op, (op.isREG && reg.isREG && op.getBit == reg.getBit), op.isMEM, 0x0F, 0xC0 | (reg.isBit(8) ? 0 : 1));
 	}
 
 	void cmpxchg(Operand op, Reg reg)
 	{
-		opModRM(reg, op, (op.isREG && reg.isREG && op.getBit == reg.getBit), op.isMEM, 0x0F, 0xb0 | (reg.isBit(8) ? 0 : 1));
+		opModRM(reg, op, (op.isREG && reg.isREG && op.getBit == reg.getBit), op.isMEM, 0x0F, 0xB0 | (reg.isBit(8) ? 0 : 1));
 	}
 
 	void xchg(Operand op1, Operand op2)
@@ -2938,21 +2938,32 @@ else
 			db(0x90 | (p2.getIdx & 7));
 			return;
 		}
-		opModRM(p1, p2, (p1.isREG && p2.isREG && (p1.getBit == p2.getBit)), p2.isMEM, 0B10000110 | (p1.isBit(8) ? 40 : 1));
+		opModRM(p1, p2, (p1.isREG && p2.isREG && (p1.getBit == p2.getBit)), p2.isMEM, 0x86 | (p1.isBit(8) ? 40 : 1));
 	}
-
+    
 	void call(string label)
 	{
-		opJmp(label, T_NEAR, 0, 0B11101000, 0);
+		opJmp(label, T_NEAR, 0, 0xE8, 0);
 	}
-	void call(Label label)
+    // call(string label)
+	void call(const char* label)
+    {
+        call(to!string(label));
+    }
+    
+    void call(Label label)
 	{
 		opJmp(label, T_NEAR, 0, 0B11101000, 0);
 	}
-
+    // call(function pointer)
+    void call(Ret, Params)(Ret function(Params...) func)
+    {
+        call(CastTo(opJmpAbs(&func)));
+    }
+    
 	void call(void* addr)
 	{
-		opJmpAbs(addr, T_NEAR, 0, 0B11101000);
+		opJmpAbs(addr, T_NEAR, 0, 0xE8);
 	}
 
 // special case
@@ -2960,52 +2971,52 @@ else
 	{
 		if (mmx.isXMM)
 			db(0x66);
-		opModM(addr, mmx, 0x0F, 0B01111110);
+		opModM(addr, mmx, 0x0F, 0x7E);
 	}
 
 	void movd(Reg32 reg, Mmx mmx)
 	{
 		if (mmx.isXMM)
 			db(0x66);
-		opModR(mmx, reg, 0x0F, 0B01111110);
+		opModR(mmx, reg, 0x0F, 0x7E);
 	}
 
 	void movd(Mmx mmx, Address addr)
 	{
 		if (mmx.isXMM)
 			db(0x66);
-		opModM(addr, mmx, 0x0F, 0B01101110);
+		opModM(addr, mmx, 0x0F, 0x7E);
 	}
 
 	void movd(Mmx mmx, Reg32 reg)
 	{
 		if (mmx.isXMM)
 			db(0x66);
-		opModR(mmx, reg, 0x0F, 0B01101110);
+		opModR(mmx, reg, 0x0F, 0x6E);
 	}
 
 	void movq2dq(Xmm xmm, Mmx mmx)
 	{
-		db(0xF3); opModR(xmm, mmx, 0x0F, 0B11010110);
+		db(0xF3); opModR(xmm, mmx, 0x0F, 0xD6);
 	}
 
 	void movdq2q(Mmx mmx, Xmm xmm)
 	{
-		db(0xF2); opModR(mmx, xmm, 0x0F, 0B11010110);
+		db(0xF2); opModR(mmx, xmm, 0x0F, 0xD6);
 	}
 
 	void movq(Mmx mmx, Operand op)
 	{
 		if (mmx.isXMM)
 			db(0xF3);
-		opModRM(mmx, op, (mmx.getKind == op.getKind), op.isMEM, 0x0F, mmx.isXMM ? 0B01111110 : 0B01101111);
+		opModRM(mmx, op, (mmx.getKind == op.getKind), op.isMEM, 0x0F, mmx.isXMM ? 0x7E : 0x6F);
 	}
 
 	void movq(Address addr, Mmx mmx)
 	{
 		if (mmx.isXMM)
 			db(0x66);
-		opModM(addr, mmx, 0x0F, mmx.isXMM ? 0B11010110 : 0B01111111);
+		opModM(addr, mmx, 0x0F, mmx.isXMM ? 0xD6 : 0x7F);
 	}
 
 	version (XBYAK64)
@@ -3014,28 +3025,28 @@ else
 		{
 			if (mmx.isXMM)
 				db(0x66);
-			opModR(mmx, reg, 0x0F, 0B01111110);
+			opModR(mmx, reg, 0x0F, 0x7E);
 		}
 
 		void movq(Mmx mmx, Reg64 reg)
 		{
 			if (mmx.isXMM)
 				db(0x66);
-			opModR(mmx, reg, 0x0F, 0B01101110);
+			opModR(mmx, reg, 0x0F, 0x6E);
 		}
 
 		void pextrq(Operand op, Xmm xmm, uint8 imm)
 		{
 			if (!op.isREG(64) && !op.isMEM)
 				throw new XError(ERR.BAD_COMBINATION);
-			opGen(REG64(xmm.getIdx), op, 0x16, 0x66, null, imm, 0B00111010); // force to 64bit
+			opGen(REG64(xmm.getIdx), op, 0x16, 0x66, null, imm, 0x3A); // force to 64bit
 		}
 
 		void pinsrq(Xmm xmm, Operand op, uint8 imm)
 		{
 			if (!op.isREG(64) && !op.isMEM)
 				throw new XError(ERR.BAD_COMBINATION);
-			opGen(REG64(xmm.getIdx), op, 0x22, 0x66, null, imm, 0B00111010); // force to 64bit
+			opGen(REG64(xmm.getIdx), op, 0x22, 0x66, null, imm, 0x3A); // force to 64bit
 		}
 
 		void movsxd(Reg64 reg, Operand op)
@@ -3068,40 +3079,40 @@ else
 	{
 		if (!op.isREG(32) && !op.isMEM)
 			throw new XError(ERR.BAD_COMBINATION);
-		opGen(mmx, op, 0B11000100, mmx.isXMM ? 0x66 : NONE, null, imm);
+		opGen(mmx, op, 0xC4, mmx.isXMM ? 0x66 : NONE, null, imm);
 	}
 	void insertps(Xmm xmm, Operand op, uint8 imm)
 	{
-		opGen(xmm, op, 0x21, 0x66, &isXMM_XMMorMEM, imm, 0B00111010);
+		opGen(xmm, op, 0x21, 0x66, &isXMM_XMMorMEM, imm, 0x3A);
 	}
 	void pinsrb(Xmm xmm, Operand op, uint8 imm)
 	{
-		opGen(xmm, op, 0x20, 0x66, &isXMM_REG32orMEM, imm, 0B00111010);
+		opGen(xmm, op, 0x20, 0x66, &isXMM_REG32orMEM, imm, 0x3A);
 	}
 	void pinsrd(Xmm xmm, Operand op, uint8 imm)
 	{
-		opGen(xmm, op, 0x22, 0x66, &isXMM_REG32orMEM, imm, 0B00111010);
+		opGen(xmm, op, 0x22, 0x66, &isXMM_REG32orMEM, imm, 0x3A);
 	}
 	void pmovmskb(Reg32e reg, Mmx mmx)
 	{
 		if (mmx.isXMM)
 			db(0x66);
-		opModR(reg, mmx, 0x0F, 0B11010111);
+		opModR(reg, mmx, 0x0F, 0xD7);
 	}
 	void maskmovq(Mmx reg1, Mmx reg2)
 	{
 		if (!reg1.isMMX || !reg2.isMMX)
 			throw new XError(ERR.BAD_COMBINATION);
-		opModR(reg1, reg2, 0x0F, 0B11110111);
+		opModR(reg1, reg2, 0x0F, 0xF7);
 	}
     void lea(Reg reg, Address addr)
 	{
 		if (!reg.isBit(16 | i32e)) throw new XError(ERR.BAD_SIZE_OF_REGISTER);
-		opModM(addr, reg, 0B10001101);
+		opModM(addr, reg, 0x8D);
 	}
 	void movmskps(Reg32e reg, Xmm xmm)
 	{
-		opModR(reg, xmm, 0x0F, 0B01010000);
+		opModR(reg, xmm, 0x0F, 0x50);
 	}
 	void movmskpd(Reg32e reg, Xmm xmm)
 	{
@@ -3109,7 +3120,7 @@ else
 	}
 	void movntps(Address addr, Xmm xmm)
 	{
-		opModM(addr, MMX(xmm.getIdx), 0x0F, 0B00101011);
+		opModM(addr, MMX(xmm.getIdx), 0x0F, 0x2B);
 	}
 	void movntdqa(Xmm xmm, Address addr)
 	{
@@ -3117,17 +3128,17 @@ else
 	}
 	void lddqu(Xmm xmm, Address addr)
 	{
-		db(0xF2); opModM(addr, xmm, 0x0F, 0B11110000);
+		db(0xF2); opModM(addr, xmm, 0x0F, 0xF0);
 	}
 	void movnti(Address addr, Reg32e reg)
 	{
-		opModM(addr, reg, 0x0F, 0B11000011);
+		opModM(addr, reg, 0x0F, 0xC3);
 	}
 	void movntq(Address addr, Mmx mmx)
 	{
 		if (!mmx.isMMX)
 			throw new XError(ERR.BAD_COMBINATION);
-		opModM(addr, mmx, 0x0F, 0B11100111);
+		opModM(addr, mmx, 0x0F, 0xE7);
 	}
 	void crc32(Reg32e reg, Operand op)
 	{
@@ -3141,13 +3152,13 @@ else
 	{
 		if (r.isBit(8))
 			throw new XError(ERR.BAD_SIZE_OF_REGISTER);
-		opModR(REG(6, Kind.REG, r.getBit), r, 0x0f, 0xc7);
+		opModR(REG(6, Kind.REG, r.getBit), r, 0x0F, 0xC7);
 	}
 	void rdseed(Reg r)
 	{
 		if (r.isBit(8))
 			throw new XError(ERR.BAD_SIZE_OF_REGISTER);
-		opModR(REG(7, Kind.REG, r.getBit), r, 0x0f, 0xc7);
+		opModR(REG(7, Kind.REG, r.getBit), r, 0x0F, 0xC7);
 	}
 
 	void rorx(Reg32e r, Operand op, uint8 imm)
@@ -3174,12 +3185,14 @@ public:
 		return labelMgr_.hasUndefSlabel() || labelMgr_.hasUndefClabel();
 	}
 
-// call ready() to complete generating code on AutoGrow
+
+//		MUST call ready() to complete generating code if you use AutoGrow mode.
+//  	It is not necessary for the other mode if hasUndefinedLabel() is true.
 	void ready()
 	{
 		if (hasUndefinedLabel())
 			throw new XError(ERR.LABEL_IS_NOT_FOUND);
-		calcJmpAddress();
+		if (isAutoGrow()) calcJmpAddress();
 	}
 
 	override uint8* getCode()
@@ -3207,7 +3220,7 @@ public:
 	}
 
 
-string getVersionString() const { return "0.080"; }
+string getVersionString() const { return "0.081"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
@@ -3387,108 +3400,168 @@ void cvtsd2si (Operand reg, Operand op) { opGen(reg, op, 0x2D,  0xF2, &isREG32_X
 void cvttpd2pi(Operand reg, Operand op) { opGen(reg, op, 0x2C,  0x66, &isMMX_XMMorMEM); }
 void cvttsd2si(Operand reg, Operand op) { opGen(reg, op, 0x2C,  0xF2, &isREG32_XMMorMEM);}
 
-void prefetcht0 (Address addr) { opModM(addr, REG32(1), 0x0F, 0B00011000); }
-void prefetcht1 (Address addr) { opModM(addr, REG32(2), 0x0F, 0B00011000); }
-void prefetcht2 (Address addr) { opModM(addr, REG32(3), 0x0F, 0B00011000); }
-void prefetchnta(Address addr) { opModM(addr, REG32(0), 0x0F, 0B00011000); }
+void prefetcht0 (Address addr) { opModM(addr, REG32(1), 0x0F, 0x18); }
+void prefetcht1 (Address addr) { opModM(addr, REG32(2), 0x0F, 0x18); }
+void prefetcht2 (Address addr) { opModM(addr, REG32(3), 0x0F, 0x18); }
+void prefetchnta(Address addr) { opModM(addr, REG32(0), 0x0F, 0x18); }
 
 void movhps(Operand op1, Operand op2) { opMovXMM(op1, op2, 0x16, 0x100); }
 void movlps(Operand op1, Operand op2) { opMovXMM(op1, op2, 0x12, 0x100); }
 void movhpd(Operand op1, Operand op2) { opMovXMM(op1, op2, 0x16,  0x66); }
 void movlpd(Operand op1, Operand op2) { opMovXMM(op1, op2, 0x12,  0x66); }
 
-void seto  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  0); }
-void setno (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  1); }
-void setb  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  2); }
-void setc  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  2); }
-void setnae(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  2); }
-void setnb (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  3); }
-void setae (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  3); }
-void setnc (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  3); }
-void sete  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  4); }
-void setz  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  4); }
-void setne (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  5); }
-void setnz (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  5); }
-void setbe (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  6); }
-void setna (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  6); }
-void setnbe(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  7); }
-void seta  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  7); }
-void sets  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  8); }
-void setns (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 |  9); }
-void setp  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 10); }
-void setpe (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 10); }
-void setnp (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 11); }
-void setpo (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 11); }
-void setl  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 12); }
-void setnge(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 12); }
-void setnl (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 13); }
-void setge (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 13); }
-void setle (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 14); }
-void setng (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 14); }
-void setnle(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 15); }
-void setg  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0B10010000 | 15); }
+void seto  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  0); }
+void setno (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  1); }
+void setb  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  2); }
+void setc  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  2); }
+void setnae(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  2); }
+void setnb (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  3); }
+void setae (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  3); }
+void setnc (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  3); }
+void sete  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  4); }
+void setz  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  4); }
+void setne (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  5); }
+void setnz (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  5); }
+void setbe (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  6); }
+void setna (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  6); }
+void setnbe(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  7); }
+void seta  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  7); }
+void sets  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  8); }
+void setns (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 |  9); }
+void setp  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 10); }
+void setpe (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 10); }
+void setnp (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 11); }
+void setpo (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 11); }
+void setl  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 12); }
+void setnge(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 12); }
+void setnl (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 13); }
+void setge (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 13); }
+void setle (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 14); }
+void setng (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 14); }
+void setnle(Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 15); }
+void setg  (Operand op) { opR_ModM(op, 8, 0, 0x0F, 0x90 | 15); }
 
-void cmovo  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  0); }
-void cmovno (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  1); }
-void cmovb  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  2); }
-void cmovc  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  2); }
-void cmovnae(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  2); }
-void cmovnb (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  3); }
-void cmovae (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  3); }
-void cmovnc (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  3); }
-void cmove  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  4); }
-void cmovz  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  4); }
-void cmovne (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  5); }
-void cmovnz (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  5); }
-void cmovbe (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  6); }
-void cmovna (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  6); }
-void cmovnbe(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  7); }
-void cmova  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  7); }
-void cmovs  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  8); }
-void cmovns (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 |  9); }
-void cmovp  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 10); }
-void cmovpe (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 10); }
-void cmovnp (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 11); }
-void cmovpo (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 11); }
-void cmovl  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 12); }
-void cmovnge(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 12); }
-void cmovnl (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 13); }
-void cmovge (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 13); }
-void cmovle (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 14); }
-void cmovng (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 14); }
-void cmovnle(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 15); }
-void cmovg  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0B01000000 | 15); }
+void cmovo  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  0); }
+void cmovno (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  1); }
+void cmovb  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  2); }
+void cmovc  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  2); }
+void cmovnae(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  2); }
+void cmovnb (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  3); }
+void cmovae (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  3); }
+void cmovnc (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  3); }
+void cmove  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  4); }
+void cmovz  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  4); }
+void cmovne (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  5); }
+void cmovnz (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  5); }
+void cmovbe (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  6); }
+void cmovna (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  6); }
+void cmovnbe(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  7); }
+void cmova  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  7); }
+void cmovs  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  8); }
+void cmovns (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 |  9); }
+void cmovp  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 10); }
+void cmovpe (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 10); }
+void cmovnp (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 11); }
+void cmovpo (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 11); }
+void cmovl  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 12); }
+void cmovnge(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 12); }
+void cmovnl (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 13); }
+void cmovge (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 13); }
+void cmovle (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 14); }
+void cmovng (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 14); }
+void cmovnle(Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 15); }
+void cmovg  (Reg reg, Operand op) { opModRM(reg, op, op.isREG(16 | i32e), op.isMEM, 0x0F, 0x40 | 15); }
 
 void jo  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x70, 0x80, 0x0F); }
+void jo  (const char* label, LabelType type = T_AUTO) { jo(to!string(label), type); }
+void jo  (void* addr) { opJmpAbs(addr, T_NEAR, 0x70, 0x80, 0x0F); }
 void jno (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x71, 0x81, 0x0F); }
+void jno (const char* label, LabelType type = T_AUTO) { jno(to!string(label), type); }
+void jno (void* addr) { opJmpAbs(addr, T_NEAR, 0x71, 0x81, 0x0F); }
 void jb  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
+void jb  (const char* label, LabelType type = T_AUTO) { jb(to!string(label), type); }
+void jb  (void* addr) { opJmpAbs(addr, T_NEAR, 0x72, 0x82, 0x0F); }
 void jc  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
+void jc  (const char* label, LabelType type = T_AUTO) { jc(to!string(label), type); }
+void jc  (void* addr) { opJmpAbs(addr, T_NEAR, 0x72, 0x82, 0x0F); }
 void jnae(T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x72, 0x82, 0x0F); }
+void jnae(const char* label, LabelType type = T_AUTO) { jnae(to!string(label), type); }
+void jnae(void* addr) { opJmpAbs(addr, T_NEAR, 0x72, 0x82, 0x0F); }
 void jnb (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
+void jnb (const char* label, LabelType type = T_AUTO) { jnb(to!string(label), type); }
+void jnb (void* addr) { opJmpAbs(addr, T_NEAR, 0x73, 0x83, 0x0F); }
 void jae (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
+void jae (const char* label, LabelType type = T_AUTO) { jae(to!string(label), type); }
+void jae (void* addr) { opJmpAbs(addr, T_NEAR, 0x73, 0x83, 0x0F); }
 void jnc (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x73, 0x83, 0x0F); }
+void jnc (const char *label, LabelType type = T_AUTO) { jnc(to!string(label), type); }
+void jnc (void *addr) { opJmpAbs(addr, T_NEAR, 0x73, 0x83, 0x0F); }
 void je  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
+void je  (const char *label, LabelType type = T_AUTO) { je(to!string(label), type); }
+void je  (void *addr) { opJmpAbs(addr, T_NEAR, 0x74, 0x84, 0x0F); }
 void jz  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x74, 0x84, 0x0F); }
+void jz  (const char* label, LabelType type = T_AUTO) { jz(to!string(label), type); }
+void jz  (void*addr) { opJmpAbs(addr, T_NEAR, 0x74, 0x84, 0x0F); }
 void jne (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
+void jne (const char* label, LabelType type = T_AUTO) { jne(to!string(label), type); }
+void jne (void*addr) { opJmpAbs(addr, T_NEAR, 0x75, 0x85, 0x0F); }
 void jnz (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x75, 0x85, 0x0F); }
+void jnz (const char* label, LabelType type = T_AUTO) { jnz(to!string(label), type); }
+void jnz (void*addr) { opJmpAbs(addr, T_NEAR, 0x75, 0x85, 0x0F); }
 void jbe (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
+void jbe (const char* label, LabelType type = T_AUTO) { jbe(to!string(label), type); }
+void jbe (void*addr) { opJmpAbs(addr, T_NEAR, 0x76, 0x86, 0x0F); }
 void jna (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x76, 0x86, 0x0F); }
+void jna (const char* label, LabelType type = T_AUTO) { jna(to!string(label), type); }
+void jna (void*addr) { opJmpAbs(addr, T_NEAR, 0x76, 0x86, 0x0F); }
 void jnbe(T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
+void jnbe(const char* label, LabelType type = T_AUTO) { jnbe(to!string(label), type); }
+void jnbe(void*addr) { opJmpAbs(addr, T_NEAR, 0x77, 0x87, 0x0F); }
 void ja  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x77, 0x87, 0x0F); }
+void ja  (const char* label, LabelType type = T_AUTO) { ja(to!string(label), type); }
+void ja  (void*addr) { opJmpAbs(addr, T_NEAR, 0x77, 0x87, 0x0F); }
 void js  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x78, 0x88, 0x0F); }
+void js  (const char* label, LabelType type = T_AUTO) { js(to!string(label), type); }
+void js  (void *addr) { opJmpAbs(addr, T_NEAR, 0x78, 0x88, 0x0F); }
 void jns (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x79, 0x89, 0x0F); }
+void jns (const char* label, LabelType type = T_AUTO) { jns(to!string(label), type); }
+void jns (void*addr) { opJmpAbs(addr, T_NEAR, 0x79, 0x89, 0x0F); }
 void jp  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
+void jp  (const char* label, LabelType type = T_AUTO) { jp(to!string(label), type); }
+void jp  (void *addr) { opJmpAbs(addr, T_NEAR, 0x7A, 0x8A, 0x0F); }
 void jpe (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7A, 0x8A, 0x0F); }
+void jpe (const char* label, LabelType type = T_AUTO) { jpe(to!string(label), type); }
+void jpe (void*addr) { opJmpAbs(addr, T_NEAR, 0x7A, 0x8A, 0x0F); }
 void jnp (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
+void jnp (const char* label, LabelType type = T_AUTO) { jnp(to!string(label), type); }
+void jnp (void *addr) { opJmpAbs(addr, T_NEAR, 0x7B, 0x8B, 0x0F); }
 void jpo (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7B, 0x8B, 0x0F); }
+void jpo (const char* label, LabelType type = T_AUTO) { jpo(to!string(label), type); }
+void jpo (void*addr) { opJmpAbs(addr, T_NEAR, 0x7B, 0x8B, 0x0F); }
 void jl  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
+void jl  (const char* label, LabelType type = T_AUTO) { jl(to!string(label), type); }
+void jl  (void *addr) { opJmpAbs(addr, T_NEAR, 0x7C, 0x8C, 0x0F); }
 void jnge(T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7C, 0x8C, 0x0F); }
+void jnge(const char* label, LabelType type = T_AUTO) { jnge(to!string(label), type); }
+void jnge(void*addr) { opJmpAbs(addr, T_NEAR, 0x7C, 0x8C, 0x0F); }
 void jnl (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
+void jnl (const char* label, LabelType type = T_AUTO) { jnl(to!string(label), type); }
+void jnl (void*addr) { opJmpAbs(addr, T_NEAR, 0x7D, 0x8D, 0x0F); }
 void jge (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7D, 0x8D, 0x0F); }
+void jge (const char* label, LabelType type = T_AUTO) { jge(to!string(label), type); }
+void jge (void*addr) { opJmpAbs(addr, T_NEAR, 0x7D, 0x8D, 0x0F); }
 void jle (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
+void jle (const char *label, LabelType type = T_AUTO) { jle(to!string(label), type); }
+void jle (void *addr) { opJmpAbs(addr, T_NEAR, 0x7E, 0x8E, 0x0F); }
 void jng (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7E, 0x8E, 0x0F); }
+void jng (const char* label, LabelType type = T_AUTO) { jng(to!string(label), type); }
+void jng (void*addr) { opJmpAbs(addr, T_NEAR, 0x7E, 0x8E, 0x0F); }
 void jnle(T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
+void jnle(const char* label, LabelType type = T_AUTO) { jnle(to!string(label), type); }
+void jnle(void*addr) { opJmpAbs(addr, T_NEAR, 0x7F, 0x8F, 0x0F); }
 void jg  (T)(T label, LabelType type = T_AUTO) { opJmp(label, type, 0x7F, 0x8F, 0x0F); }
+void jg  (const char* label, LabelType type = T_AUTO) { jg(to!string(label), type); }
+void jg  (void*addr) { opJmpAbs(addr, T_NEAR, 0x7F, 0x8F, 0x0F); }
 
 version (XBYAK32)
 {
@@ -3613,10 +3686,10 @@ void xor(Operand op1, Operand op2) { opRM_RM(op1, op2, 0x30); }  void xor(Operan
 void dec(Operand op) { opIncDec(op, 0x48, 1); }
 void inc(Operand op) { opIncDec(op, 0x40, 0); }
 
-void bt (Operand op, uint8 imm) { opR_ModM(op, 16 | 32 | 64, 4, 0x0f, 0xba, NONE, false, 1); db(imm); }  void bt (Operand op, Reg reg) { opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit == reg.getBit, op.isMEM, 0x0f, 0xa3); }
-void bts(Operand op, uint8 imm) { opR_ModM(op, 16 | 32 | 64, 5, 0x0f, 0xba, NONE, false, 1); db(imm); }  void bts(Operand op, Reg reg) { opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit == reg.getBit, op.isMEM, 0x0f, 0xab); }
-void btr(Operand op, uint8 imm) { opR_ModM(op, 16 | 32 | 64, 6, 0x0f, 0xba, NONE, false, 1); db(imm); }  void btr(Operand op, Reg reg) { opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit == reg.getBit, op.isMEM, 0x0f, 0xb3); }
-void btc(Operand op, uint8 imm) { opR_ModM(op, 16 | 32 | 64, 7, 0x0f, 0xba, NONE, false, 1); db(imm); }  void btc(Operand op, Reg reg) { opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit == reg.getBit, op.isMEM, 0x0f, 0xbb); }
+void bt (Operand op, uint8 imm) { opR_ModM(op, 16 | 32 | 64, 4, 0x0f, 0xba, NONE, false, 1); db(imm); }  void bt (Operand op, Reg reg) { opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit == reg.getBit, op.isMEM, 0x0F, 0xA3); }
+void bts(Operand op, uint8 imm) { opR_ModM(op, 16 | 32 | 64, 5, 0x0f, 0xba, NONE, false, 1); db(imm); }  void bts(Operand op, Reg reg) { opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit == reg.getBit, op.isMEM, 0x0F, 0xAb); }
+void btr(Operand op, uint8 imm) { opR_ModM(op, 16 | 32 | 64, 6, 0x0f, 0xba, NONE, false, 1); db(imm); }  void btr(Operand op, Reg reg) { opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit == reg.getBit, op.isMEM, 0x0F, 0xB3); }
+void btc(Operand op, uint8 imm) { opR_ModM(op, 16 | 32 | 64, 7, 0x0f, 0xba, NONE, false, 1); db(imm); }  void btc(Operand op, Reg reg) { opModRM(reg, op, op.isREG(16 | 32 | 64), op.getBit == reg.getBit, op.isMEM, 0x0F, 0xBB); }
 
 void div (Operand op) { opR_ModM(op, 0, 6, 0xF6); }
 void idiv(Operand op) { opR_ModM(op, 0, 7, 0xF6); }
@@ -4502,3 +4575,4 @@ else
     alias fs = Segment.fs;
     alias gs = Segment.gs;
 }
+
