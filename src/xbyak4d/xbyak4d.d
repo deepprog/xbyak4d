@@ -215,7 +215,8 @@ version(Windows)
 	uint8* alloc(size_t size)
 	{
         size_t alignment = inner.ALIGN_PAGE_SIZE;
-		void* mp = core.memory.GC.malloc(size + alignment);    
+		static import core.memory;
+        void* mp = core.memory.GC.malloc(size + alignment);    
         assert(mp);	
 		SizeTbl[mp] = size + alignment;
 		MemTbl[mp]  = getAlignedAddress(mp, alignment);
@@ -286,7 +287,7 @@ enum Kind
 version(XBYAK64){
 	enum Code : int
 	{
-    		RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
+        RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
 		R8D = 8, R9D, R10D, R11D, R12D, R13D, R14D, R15D,
 		R8W = 8, R9W, R10W, R11W, R12W, R13W, R14W, R15W,
 		R8B = 8, R9B, R10B, R11B, R12B, R13B, R14B, R15B,
@@ -1014,7 +1015,7 @@ protected:
 	}
 
 public:
-	this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator* allocator = null)
+	this(size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = null, Allocator* allocator = null)
 	{
 		type_    = (userPtr == AutoGrow) ? Type.AUTO_GROW : userPtr ? Type.USER_BUF : Type.ALLOC_BUF;
 		alloc_   = allocator ? allocator : &defaultAllocator_;
@@ -3167,9 +3168,9 @@ else
 	}
 	enum { NONE = 256 }
 public:
-	this(void* userPtr = null, size_t maxSize = DEFAULT_MAX_CODE_SIZE, Allocator* allocator = null)
+    this(size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = null,  Allocator* allocator = null)
 	{
-		super(userPtr, maxSize, allocator);
+		super(maxSize, userPtr, allocator);
 		labelMgr_.set(this);
 	}
 
