@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.081
- * Date: 2016/06/06
+ * Version: 0.082
+ * Date: 2016/06/11
  * See_Also:
  * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
  * Copyright: Copyright deepprog 2012-.
@@ -33,7 +33,7 @@ version (linux)
 enum : uint
 {
 	DEFAULT_MAX_CODE_SIZE = 4096,
-	VERSION               = 0x0080  // 0xABCD = A.BC(D)
+	VERSION               = 0x0082  // 0xABCD = A.BC(D)
 }
 
 alias uint64 = ulong ;
@@ -236,19 +236,19 @@ version(linux)
 		const size_t alignedSizeM1 = inner.ALIGN_PAGE_SIZE - 1;
 		size = (size + alignedSizeM1) & ~alignedSizeM1;
 	
-    		const int mode = MAP_PRIVATE | MAP_ANON;
+        const int mode = MAP_PRIVATE | MAP_ANON;
 		const int prot = PROT_EXEC | PROT_READ | PROT_WRITE;
-        	void* mp = mmap(null, size, prot, mode, -1, 0);
+        void* mp = mmap(null, size, prot, mode, -1, 0);
 
 		if (mp == MAP_FAILED) throw new XError(ERR.CANT_ALLOC);
 		assert(mp);
-        	size_t alignment = inner.ALIGN_PAGE_SIZE;	
+        size_t alignment = inner.ALIGN_PAGE_SIZE;	
 		SizeTbl[mp] = size + alignment;
 		MemTbl[mp]  = getAlignedAddress(mp, alignment);
 		return cast(uint8*)MemTbl[mp];
     	}
     
-    	void free(uint8 *p)
+    void free(uint8 *p)
 	{
 		if(p == null) return;
 		void* ret = MemTbl[p];
@@ -315,8 +315,8 @@ Operand OP(int idx = 0, Kind kind = Kind.NONE, int bit = 0, int ext8bit = 0)
 public class Operand {
 private:
 	uint8 idx_; // 0..15, MSB = 1 if spl/bpl/sil/dil
-	uint8 kind_;
-	uint16 bit_;
+	uint kind_;
+	uint bit_;
 public:
 	this()
 	{
@@ -325,8 +325,8 @@ public:
 	this(int idx, Kind kind, int bit, int ext8bit = 0)
 	{
 		idx_  = cast(uint8) (idx | (ext8bit ? 0x80 : 0));
-		kind_ = cast(uint8) kind;
-		bit_  = cast(uint16) bit;
+		kind_ = kind;
+		bit_  = bit;
 		assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
 	}
 
@@ -2182,24 +2182,24 @@ public class CodeGenerator : CodeArray {
 	{
 		verifyMemHasSize(op);
 		version (XBYAK64)
-		{}
-		else
-		{
+        {
+            code = 0xFE;
+		    if (op.isREG)
+		    {
+			    opModR(REG(ext, Kind.REG, op.getBit), cast(Reg) op, code);
+		    }
+		    else
+		    {
+			    opModM(cast(Address) op, REG(ext, Kind.REG, op.getBit), code);
+		    }
+        }
+        else
+        {
 			if (op.isREG && !op.isBit(8))
 			{
 				rex(op);
 				db(code | op.getIdx);
-				return;
 			}
-		}
-		code = 0xFE;
-		if (op.isREG)
-		{
-			opModR(REG(ext, Kind.REG, op.getBit), cast(Reg) op, code);
-		}
-		else
-		{
-			opModM(cast(Address) op, REG(ext, Kind.REG, op.getBit), code);
 		}
 	}
 
@@ -3223,7 +3223,7 @@ public:
 	}
 
 
-string getVersionString() const { return "0.081"; }
+string getVersionString() const { return "0.082"; }
 void packssdw (Mmx mmx, Operand op) { opMMX(mmx, op, 0x6B); }
 void packsswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x63); }
 void packuswb (Mmx mmx, Operand op) { opMMX(mmx, op, 0x67); }
