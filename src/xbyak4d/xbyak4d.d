@@ -2182,6 +2182,8 @@ public class CodeGenerator : CodeArray {
 	{
 		verifyMemHasSize(op);
 		version (XBYAK64)
+		{}
+		else
 		{
 			if (op.isREG && !op.isBit(8))
 			{
