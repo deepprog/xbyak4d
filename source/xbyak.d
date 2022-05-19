@@ -3,13 +3,12 @@
  * Version: 0.0940
  * Date: 2020/04/10
  * See_Also:
- * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
- * Copyright: Copyright deepprog 2019
+ * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
- * Authors: deepprog
+ * Authors: herumi, deepprog
  */
 
-module xbyak4d;
+module xbyak;
 
 version(X86)
 {
@@ -2868,7 +2867,7 @@ version (XBYAK64)
 public:
 	size_t getVersion() const
 	{
-		return xbyak4d.VERSION;
+		return xbyak.VERSION;
 	}
 	enum
 	{

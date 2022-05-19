@@ -1,5 +1,5 @@
 import std.stdio;
-import xbyak4d;
+import xbyak;
 
 class SampleCodeGenerator : CodeGenerator {
 	this(int n) {

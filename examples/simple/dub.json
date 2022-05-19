@@ -1,6 +1,6 @@
 {
     "name": "simple",
     "dependencies": {
-        "xbyak4d": { "path": "../.." }
+        "xbyak": { "path": "../.." }
     }
 }
