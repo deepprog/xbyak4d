@@ -1,6 +1,6 @@
 {
-    "name": "simple",
-    "dependencies": {
-        "xbyak": { "path": "../.." }
-    }
+	"dependencies": {
+		"xbyak": "~>4.87.0"
+	},
+	"name": "simple"
 }
