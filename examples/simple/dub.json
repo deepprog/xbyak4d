@@ -1,0 +1,6 @@
+{
+    "name": "simple",
+    "dependencies": {
+        "xbyak4d": { "path": "../.." }
+    }
+}
