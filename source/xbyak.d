@@ -34,7 +34,7 @@ version (Windows)
 	import core.sys.windows.windows;  // VirtualProtect
 }
 
-version (linux)
+version (Posix)
 {
     import core.sys.posix.sys.mman;
 }
@@ -246,7 +246,7 @@ version(Windows)
 	}
 }
 
-version(linux)
+version(Posix)
 {
 	uint8* alloc(size_t size)
 	{
@@ -1354,7 +1354,7 @@ else
 			return VirtualProtect(addr, size, mode, &oldProtect) != 0;
 		}
         
-		version (linux)
+		version (Posix)
 		{
 
 // size_t pageSize = sysconf(_SC_PAGESIZE);
