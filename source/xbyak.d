@@ -3,13 +3,12 @@
  * Version: 0.0940
  * Date: 2020/04/10
  * See_Also:
- * URL: <a href="https://github.com/deepprog/xbyak4d/index.html">xbyak4d</a>.
- * Copyright: Copyright deepprog 2019
+ * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
- * Authors: deepprog
+ * Authors: herumi, deepprog
  */
 
-module xbyak4d;
+module xbyak;
 
 version(X86)
 {
@@ -35,7 +34,7 @@ version (Windows)
 	import core.sys.windows.windows;  // VirtualProtect
 }
 
-version (linux)
+version (Posix)
 {
     import core.sys.posix.sys.mman;
 }
@@ -247,7 +246,7 @@ version(Windows)
 	}
 }
 
-version(linux)
+version(Posix)
 {
 	uint8* alloc(size_t size)
 	{
@@ -1355,7 +1354,7 @@ else
 			return VirtualProtect(addr, size, mode, &oldProtect) != 0;
 		}
         
-		version (linux)
+		version (Posix)
 		{
 
 // size_t pageSize = sysconf(_SC_PAGESIZE);
@@ -2868,7 +2867,7 @@ version (XBYAK64)
 public:
 	size_t getVersion() const
 	{
-		return xbyak4d.VERSION;
+		return xbyak.VERSION;
 	}
 	enum
 	{

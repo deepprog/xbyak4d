@@ -6,7 +6,7 @@ unittest
     import std.stdio;
     import std.string;
     import std.exception;
-    import xbyak4d;
+    import xbyak;
 
     class  gen0 : CodeGenerator
     {

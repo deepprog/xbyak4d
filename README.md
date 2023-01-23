@@ -1,4 +1,4 @@
-xbyak4d
+xbyak
 =====================================================
 
 xbyak for the D programming language
