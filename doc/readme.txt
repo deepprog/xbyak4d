@@ -1,16 +1,16 @@
-xbyak4d v0.036
+xbyak v0.036
 xbyak for the D programming language
 
-xbyak v3.60‚Ì”ñŒöŽ®‚Ì‚cŒ¾Œê‚Ö‚ÌˆÚA‚Å‚·B
-–{‰Æ‚ÉA‚±‚ê‚É‚Â‚¢‚Ä‚ÌŽ¿–â‚ÍA‚µ‚È‚¢‚Å‚­‚¾‚³‚¢B
+xbyak v3.60ï¿½Ì”ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚cï¿½ï¿½ï¿½ï¿½Ö‚ÌˆÚAï¿½Å‚ï¿½ï¿½B
+ï¿½{ï¿½Æ‚ÉAï¿½ï¿½ï¿½ï¿½É‚Â‚ï¿½ï¿½Ä‚ÌŽï¿½ï¿½ï¿½ÍAï¿½ï¿½ï¿½È‚ï¿½ï¿½Å‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½B
 
 
-Žg—pŠÂ‹«
-@dmd v2.060
-@Windows7 64bit
+ï¿½gï¿½pï¿½Â‹ï¿½
+ï¿½@dmd v2.060
+ï¿½@Windows7 64bit
 
-@Œ»ó‚ÌƒeƒXƒg‚ÍAÅ¬ŒÀ‚µ‚©s‚Á‚Ä‚¢‚Ü‚¹‚ñB
-@test.d‚ÅAƒRƒ“ƒpƒCƒ‹‚ÆŽÀs‚ªŠm”F‚µ‚½’ö“x‚Å‚·B
+ï¿½@ï¿½ï¿½ï¿½ï¿½Ìƒeï¿½Xï¿½gï¿½ÍAï¿½Åï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½ï¿½ï¿½B
+ï¿½@test.dï¿½ÅAï¿½Rï¿½ï¿½ï¿½pï¿½Cï¿½ï¿½ï¿½ÆŽï¿½ï¿½sï¿½ï¿½ï¿½mï¿½Fï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½xï¿½Å‚ï¿½ï¿½B
 
 
 Copyright 2012, deepprog

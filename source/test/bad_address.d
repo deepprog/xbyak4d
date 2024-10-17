@@ -3,7 +3,7 @@ module test.bad_address;
 unittest
 {
     import std.stdio;
-	import xbyak4d;
+	import xbyak;
     import std.exception;
 
     class Code : CodeGenerator

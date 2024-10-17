@@ -1,4 +1,4 @@
-module xbyak4d_cpuid;
+module xbyak_cpuid;
 import std.stdio;
 
 alias uint64 = ulong;
