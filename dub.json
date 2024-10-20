@@ -5,6 +5,6 @@
 	"copyright": "Copyright (c) 2007 MITSUNARI Shigeo",
 	"description": "A minimal D application.",
 	"license": "BSD 3",
-	"name": "xbyak",
+	"name": "xbyak4d",
 	"targetType": "library"
 }
