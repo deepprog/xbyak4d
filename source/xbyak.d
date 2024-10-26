@@ -3084,7 +3084,7 @@ public:
 	
 	Label L()
 	{
-		return new Label();
+		Label label = new Label(); L(label); return label;
 	}
 	void L(string label)
 	{
