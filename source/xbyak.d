@@ -28,6 +28,7 @@ import std.array;
 import std.string;
 import std.algorithm;
 import std.conv;
+import std.stdint;
 
 version (Windows)
 {
@@ -39,7 +40,7 @@ version (Posix)
     import core.sys.posix.sys.mman;
 }
 
-size_t	DEFAULT_MAX_CODE_SIZE = 4096 * 8;
+size_t	DEFAULT_MAX_CODE_SIZE = 4096;// * 8;
 size_t	VERSION               = 0x0099;  // 0xABCD = A.BC(D)
 
 alias uint64 = ulong ;
@@ -196,15 +197,16 @@ struct inner
 	const size_t ALIGN_PAGE_SIZE = 4096;
 	bool IsInDisp8(uint32 x)	{	return 0xFFFFFF80 <= x || x <= 0x7F; }
 	bool IsInDisp16(uint32 x)	{	return 0xFFFF8000 <= x || x <= 0x7FFF;	}
-	bool IsInInt32(uint64 x)    {	return (int32.min <= x) || (x <= int32.max); }
+	//bool IsInInt32(uint64_t x)    {	return (int32.min <= x) || (x <= int32.max); }
+	bool IsInInt32(uint64_t x) { return ~uint64_t(0x7fffffffu) <= x || x <= 0x7FFFFFFFU; }
 
-	uint32 VerifyInInt32(uint64 x)
+	uint32_t VerifyInInt32(uint64_t x)
 	{
 		version (XBYAK64)
 		{
 			if (!IsInInt32(x))	throw new XError(ERR.OFFSET_IS_TOO_BIG);
 		}
-		return cast(uint32)x;
+		return cast(uint32_t)x;
 	}
 
 	enum LabelMode
@@ -1134,13 +1136,8 @@ protected:
 	{
 		size_t newSize  = max(DEFAULT_MAX_CODE_SIZE, maxSize_ * 2);
 		uint8  * newTop = alloc_.alloc(newSize);
-		if (null == newTop)
-		{
-			throw new XError(ERR.CANT_ALLOC);
-		}
-
-		newTop[0..size_] = top_[0..size_];
-
+		if (newTop == null) throw new XError(ERR.CANT_ALLOC);
+		for (size_t i = 0; i < size_; i++) newTop[i] = top_[i];
 		alloc_.free(top_);
 		top_     = newTop;
 		maxSize_ = newSize;
@@ -1210,19 +1207,15 @@ public:
 
 	void db(int code)
 	{
-		
-		if (size_ >= maxSize_)
-		{
-			if (type_ == Type.AUTO_GROW)
-			{
-				growMemory;
-			}
-			else
-			{
+		if (this.size_ >= this.maxSize_)
+		{	
+			if (type_ == Type.AUTO_GROW) {
+				growMemory();
+			} else {
 				throw new XError(ERR.CODE_IS_TOO_BIG);
 			}
 		}
-		top_[size_++] = cast(uint8) code;
+		top_[size_++] = cast(uint8_t) code;
 	}
 
 	void db(uint8* code, size_t codeSize)
@@ -1536,9 +1529,7 @@ public:
 	{
 		id  = rhs.id;
 		mgr = rhs.mgr;
-		if (mgr is null) {
-			mgr.incRefCount(id, this);
-		}
+		if(mgr) mgr.incRefCount(id, this);
 	}
 
 	override bool opEquals(Object o)
@@ -1548,18 +1539,24 @@ public:
 		Label rhs = cast(Label) o;
 		id  = rhs.id;
 		mgr = rhs.mgr;
-		if (mgr is null) {
-			mgr.incRefCount(id, this);
-		}
+		if(mgr) mgr.incRefCount(id, this);
 		return this.id == rhs.id;
 	}
 
 	~this()
 	{
-		if (id && mgr) {
-			mgr.decRefCount(id, this);
-		}
+		if (id && mgr) mgr.decRefCount(id, this);
 	}
+	
+	uint8_t* getAddress()
+	{
+		if(mgr is null) return null;
+		if(!mgr.isReady()) return null;
+		size_t offset;
+		if(!mgr.getOffset(&offset, this)) return null;
+		return mgr.getCode() + offset;
+	}
+	
 	void clear() {
 		mgr = new LabelManager();
 		id = 0;
@@ -1567,7 +1564,7 @@ public:
 	
 	int getId() const { return id; }
 
-	string toStr(int num) const
+	static string toStr(int num)
 	{
 		return format(".%08x", num);
 	}
@@ -1633,12 +1630,10 @@ class LabelManager
 	}
 
 	void define_inner(DefList, UndefList, T)(ref DefList deflist, ref UndefList undeflist, T labelId, size_t addrOffset)
-	{
-		
+	{	
 		// add label
-//		if (labelId in deflist)	throw new XError(ERR.LABEL_IS_REDEFINED);
-//		deflist[labelId] = typeof(deflist[labelId])(addrOffset);
-
+		if (labelId in deflist)	throw new XError(ERR.LABEL_IS_REDEFINED);
+		deflist[labelId] = typeof(deflist[labelId])(addrOffset);
 
 		// search undefined label
 		if (null == (labelId in undeflist)) return;
@@ -1757,23 +1752,11 @@ public:
 	}
 	void leaveLocal()
 	{
-		if (stateList_.length <= 2)
-		{
-			throw new XError(ERR.UNDER_LOCAL_LABEL);
-		}
-
-		if (hasUndefinedLabel_inner(stateList_[$-1].undefList))
-		{
-				throw new XError(ERR.LABEL_IS_NOT_FOUND);
-		}
+		if (stateList_.length <= 2) throw new XError(ERR.UNDER_LOCAL_LABEL);
+		if (hasUndefinedLabel_inner(stateList_[$-1].undefList)) throw new XError(ERR.LABEL_IS_NOT_FOUND);
 		stateList_.popBack();
 	}
-
-	void set(CodeArray base)
-	{
-		base_ = base;
-	}
-
+	void set(CodeArray base) { base_ = base; }
 	void defineSlabel(string label)
 	{
 		if ("@b" == label || "@f" == label) throw new XError(ERR.BAD_LABEL_STR);
@@ -1794,23 +1777,13 @@ public:
 			}
 		}
 		
-		auto st = label[0] == '.' ? &stateList_[$-1] : &stateList_[0];
-
-		if (label in st.defList) throw new XError(ERR.LABEL_IS_REDEFINED);
-		st.defList[label] = SlabelVal(base_.getSize());
-
-		define_inner(stateList_[0].defList, st.undefList, label, base_.getSize());
+		SlabelState* st = label[0] == '.' ? &stateList_[$-1] : &stateList_[0];
+		define_inner(st.defList, st.undefList, label, base_.getSize());
 	}
 
 
 	void defineClabel(Label label)
 	{
-		
-		if (getId(label) in clabelDefList_)	throw new XError(ERR.LABEL_IS_REDEFINED);
-
-		clabelDefList_[getId(label)] = ClabelVal(base_.getSize());
-
-		
 		define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize);
 		label.mgr = this;
 		labelPtrList_ ~= label;
@@ -1883,36 +1856,11 @@ public:
 		return hasUndefinedLabel_inner(clabelUndefList_);
 	}
 	uint8* getCode() { return base_.getCode(); }
-	bool isReady() const { return !base_.isAutoGrow() || base_.isCalledCalcJmpAddress(); }
-
-/+
-inline Label::Label(const Label& rhs)
-{
-	id = rhs.id;
-	mgr = rhs.mgr;
-	if (mgr) mgr->incRefCount(id, this);
-}
-inline Label& Label::operator=(const Label& rhs)
-{
-	if (id) throw Error(ERR_LABEL_IS_ALREADY_SET_BY_L);
-	id = rhs.id;
-	mgr = rhs.mgr;
-	if (mgr) mgr->incRefCount(id, this);
-	return *this;
-}
-inline Label::~Label()
-{
-	if (id && mgr) mgr->decRefCount(id, this);
-}
-inline const uint8* Label::getAddress() const
-{
-	if (mgr == 0 || !mgr->isReady()) return 0;
-	size_t offset;
-	if (!mgr->getOffset(&offset, *this)) return 0;
-	return mgr->getCode() + offset;
-}
-+/
-	
+	bool isReady() const
+	{
+		if(base_ is null) return false;
+		return !base_.isAutoGrow() || base_.isCalledCalcJmpAddress();
+	}	
 }	
 	
 
