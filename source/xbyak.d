@@ -261,9 +261,8 @@ version(Posix)
 
 		if (mp == MAP_FAILED) throw new XError(ERR.CANT_ALLOC);
 		assert(mp);
-        size_t alignment = inner.ALIGN_PAGE_SIZE;	
-		SizeTbl[mp] = size + alignment;
-		MemTbl[mp]  = getAlignedAddress(mp, alignment);
+		SizeTbl[mp] = size;
+		MemTbl[mp]  = mp;
 		return cast(uint8*)MemTbl[mp];
     	}
     
