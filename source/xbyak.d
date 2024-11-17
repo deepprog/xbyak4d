@@ -359,11 +359,10 @@ version(Posix)
 
 		if (mp == MAP_FAILED) mixin(XBYAK_THROW(ERR.CANT_ALLOC));
 		assert(mp);
-        size_t alignment = inner.getPageSize();	
-		SizeTbl[mp] = size + alignment;
-		MemTbl[mp]  = getAlignedAddress(mp, alignment);
+		SizeTbl[mp] = size;
+		MemTbl[mp]  = mp;
 		return cast(uint8*)MemTbl[mp];
-    	}
+  }
     
     void free(uint8_t *p)
 	{
