@@ -160,7 +160,7 @@ void test1()
 				assert(q[j] == p.result[j]); 
 			}
 		}
-	}	
+	}
 }
 
 @("testJmpCx")
@@ -242,7 +242,7 @@ version(XBYAK64) {
 
 @("testloop")
 unittest{
-	testJmpCx();
+	testloop();
 }
 
 void testloop()
@@ -1417,29 +1417,471 @@ void getAddress1()
 	c.test();
 }
 
-version(unittest){}
+class CodeLabelTable : CodeGenerator
+{
+	enum { ret0 = 3 }
+	enum { ret1 = 5 }
+	enum { ret2 = 8 }
+	
+	this()
+	{
+		super();
+version(XBYAK64)
+{
+	version(Win64)
+	{
+		Reg64 p0 = rcx;
+		Reg64 a = rax;
+	}
+	version(GNU)
+	{
+		Reg64 p0 = rdi;
+		Reg64 a = rax;
+	}
+}else{
+		Reg32 p0 = edx;
+		Reg32 a = eax;
+		mov(edx, ptr [esp + 4]);
+}
+		Label labelTbl = new Label();
+		Label L0 = new Label();
+		Label L1 = new Label();
+		Label L2 = new Label();
+		mov(a, labelTbl);
+		jmp(ptr [a + p0 * (void*).sizeof]);
+	L(labelTbl);
+		putL(L0);
+		putL(L1);
+		putL(L2);
+	L(L0);
+		mov(a, ret0);
+		ret();
+	L(L1);
+		mov(a, ret1);
+		ret();
+	L(L2);
+		mov(a, ret2);
+		ret();
+	}
+}
+
+@("LabelTable")
+unittest{
+	LabelTable();
+}
+void LabelTable()
+{
+	auto c = new CodeLabelTable();
+	auto fn = cast(int function(int))c.getCode();
+	assert(fn(0) == c.ret0);
+	assert(fn(1) == c.ret1);
+	assert(fn(2) == c.ret2);
+}
+
+
+class GetAddressCode2 : CodeGenerator
+{
+	Label L1 = new Label();
+	Label L2 = new Label();
+	Label L3 = new Label();
+	size_t a1;
+	size_t a3;
+	this(int size)
+	{
+		super(size, size == 4096 ? null : AutoGrow);
+		a1 = 0;
+		a3 = 0;
+		bool autoGrow = size != 4096;
+		nop();
+	L(L1);
+		if (autoGrow) {
+			auto tmp1 = L1.getAddress() == null;
+			assert(tmp1);
+		}
+		a1 = getSize();
+		nop();
+		jmp(L2);
+		if (autoGrow) {
+			auto tmp2 = L2.getAddress() == null;
+			assert(tmp2);
+		}
+	L(L3);
+		a3 = getSize();
+		if (autoGrow) {
+			auto tmp3 = L3.getAddress() == null;
+			assert(tmp3);
+		}
+		nop();
+		assignL(L2, L1);
+		if (autoGrow) {
+			auto tmp4 = L2.getAddress() == null;
+			assert(tmp4);
+		}
+	}
+}
+
+
+@("testGetAddressCode2")
+unittest{
+	testGetAddressCode2();
+}
+
+void testGetAddressCode2()
+{
+
+	int[] sizeTbl = [
+		2, 128, // grow
+		4096 // not grow
+	];
+
+	for (size_t i = 0; i < sizeTbl.length; i++) {
+		int size = sizeTbl[i];
+		auto c = new GetAddressCode2(size);
+		c.ready();
+		uint8_t* p = c.getCode();
+
+		auto tmp1 = c.L1.getAddress() == p + c.a1;
+		assert(tmp1);
+		
+		auto tmp2 = c.L3.getAddress() == p + c.a3;
+		assert(tmp2);
+		
+		auto tmp3 = c.L2.getAddress() == p + c.a1;
+		assert(tmp3);
+	}
+}
+
+
+version(XBYAK64)
+{
+@("testrip")
+unittest{
+	testrip();
+}
+
+void testrip()
+{
+	int[] a = [ 1, 10 ];
+	int[] b = [ 100, 1000 ];
+	class Code : CodeGenerator
+	{
+		this(ref int[] a, ref int[] b)
+		{
+			Label label1 = new Label();
+			Label label2 = new Label();
+			jmp("@f");
+		L(label1);
+			db(a[0], 4);
+			db(a[1], 4);
+		L("@@");
+			mov(eax, ptr [rip + label1]);       // a[0]
+			mov(ecx, ptr [rip + label1+4]);     // a[1]
+			mov(edx, ptr [rip + label2-8+2+6]); // b[0]
+			add(ecx, ptr [rip + 16+label2-12]); // b[1]
+			add(eax, ecx);
+			add(eax, edx);
+			ret();
+		L(label2);
+			db(b[0], 4);
+			db(b[1], 4);
+
+			// error
+			assertThrown!XError( rip + label1 + label2 );
+		}
+	}
+	
+	auto code = new Code(a, b);
+	auto fn = cast(int function())code.getCode();
+	int ret = fn();
+	int sum = a[0] + a[1] + b[0] + b[1];
+	writeln(ret);
+	writeln(sum);
+	assert(ret == sum);
+}
+
+
+int ret1234()
+{
+	return 1234;
+}
+
+int ret9999()
+{
+	return 9999;
+}
+
+@("rip_jmp")
+unittest{
+	rip_jmp();
+}
+
+void rip_jmp()
+{
+	class Code : CodeGenerator
+	{
+		this()
+		{
+			Label label = new Label();
+			xor(eax, eax);
+			call(ptr [rip + label]);
+			mov(ecx, eax);
+			call(ptr [rip + label + 8]);
+			add(eax, ecx);
+			ret();
+		L(label);
+			db(cast(size_t)&ret1234, 8);
+			db(cast(size_t)&ret9999, 8);
+		}
+	}
+
+	auto code = new Code();
+	auto fn = cast(int function())code.getCode();
+	int ret = fn();
+	int sum = ret1234() + ret9999();
+	writeln(ret);
+	writeln(sum);
+	assert(ret == sum);
+}
+
+
+//+ //#if 0
+@("rip_addr")
+unittest{
+	rip_addr();
+}
+
+void rip_addr()
+{
+	/*
+		we can't assume |&x - &code| < 2GiB anymore
+	*/
+	static int x = 5;
+	class Code : CodeGenerator
+	{
+		this()
+		{
+			mov(eax, 123);
+			mov(ptr[rip + &x], eax);
+			ret();
+		}
+	}
+
+	auto code = new Code();
+	auto fn = cast(void function())code.getCode();
+	writeln(x);
+	fn();
+	writeln(x);
+	assert(x == 123);
+}
+//+/
+
+version(OSX)
+{}
 else
 {
-void main()
+@("rip_addr_with_fixed_buf")
+unittest{
+	rip_addr_with_fixed_buf();
+}
+
+void rip_addr_with_fixed_buf()
 {
-	test1();
-	testJmpCx();
-	testJmpCx();
-	test2();
-version(XBYAK32){	
-	test3();
+	align(4096) static uint8_t[8192] buf;
+	uint8_t* p = buf.ptr + 4096;
+	int* x0 = cast(int*)buf.ptr;
+	int* x1 = x0 + 1;
+	class Code : CodeGenerator
+	{
+		this()
+		{
+			super(4096, p);
+			mov(eax, 123);
+			mov(ptr[rip + x0], eax);
+			mov(dword[rip + x1], 456);
+			mov(byte_[rip + 1 + x1 + 3], 99);
+			ret();
+		}
+	}
+	
+	auto code = new Code();
+	code.setProtectModeRE();
+	auto fn = cast(void function())code.getCode();
+	fn();
+
+	assert(*x0 == 123);
+	assert(*x1 == 456);
+	assert(buf[8] == 99);
+	code.setProtectModeRW();
 }
-	test4();
-	test5();
-	MovLabel();
-	testMovLabel2();
-	testF_B();
-	test6();
-	test_jcc();
-	testNewLabel();
-	returnLabel();
-	testAssige();
-	doubleDefine();
-	getAddress1();
 }
+}
+
+class ReleaseTestCode : CodeGenerator
+{
+	this(ref Label L1, ref Label L2, ref Label L3)
+	{
+		super();
+		L(L1);
+		jmp(L1);
+		L(L2);
+		jmp(L3); // not assigned
+	}
+}
+
+/*
+	code must unlink label if code is destroyed
+*/
+@("release_label_after_code")
+unittest{
+	release_label_after_code();
+}
+
+void release_label_after_code()
+{
+	puts("---");
+	{
+		Label L1 = new Label();
+		Label L2 = new Label();
+		Label L3 = new Label();
+		Label L4 = new Label();
+		Label L5 = new Label();
+		{
+			ReleaseTestCode code = new ReleaseTestCode(L1, L2, L3);
+			assert(L1.getId() > 0);
+			assert(L1.getAddress() != null);
+			assert(L2.getId() > 0);
+			assert(L2.getAddress() != null);
+			assert(L3.getId() > 0);
+			assert(L3.getAddress() == null); // L3 is not assigned
+			code.assignL(L4, L1);
+			L5 = L1;
+			writef("id=%d %d %d %d %d\n", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
+		}
+		puts("code is released");
+	//	assert(L1.getId() == 0);
+	//	assert(L1.getAddress() == null);
+	//	assert(L2.getId() == 0);
+	//	assert(L2.getAddress() == null);
+//		assert(L3.getId() == 0); // L3 is not assigned so not cleared
+	//	assert(L3.getAddress() == null);
+	//	assert(L4.getId() == 0);
+	//	assert(L4.getAddress() == null);
+	//	assert(L5.getId() == 0);
+	//	assert(L5.getAddress() == null);
+		writef("id=%d %d %d %d %d\n", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
+	}
+}
+
+
+class JmpTypeCode : CodeGenerator
+{
+	void nops()
+	{
+		for (int i = 0; i < 130; i++) {
+			nop();
+		}
+	}
+	// return jmp code size
+	size_t gen(bool pre, bool large, LabelType type)
+	{
+		Label label = new Label();
+		if (pre) {
+			L(label);
+			if (large) nops();
+			size_t pos = getSize();
+			jmp(label, type);
+			return getSize() - pos;
+		} else {
+			size_t pos = getSize();
+			jmp(label, type);
+			size_t size = getSize() - pos;
+			if (large) nops();
+			L(label);
+			return size;
+		}
+	}
+}
+
+@("setDefaultJmpNEAR")
+unittest{
+	setDefaultJmpNEAR();
+}
+
+void setDefaultJmpNEAR()
+{
+	alias LabelType = CodeGenerator.LabelType;
+
+	struct TBL{
+		bool pre;
+		bool large;
+		LabelType type;
+		size_t expect1; // 0 means exception
+		size_t expect2;
+	}
+	
+	TBL[] tbl = 
+	[
+		TBL( false, false, T_SHORT, 2, 2 ),
+	//	TBL( false, false, T_NEAR, 5, 5 ),
+		TBL( false, true, T_SHORT, 0, 0 ),
+	//	TBL( false, true, T_NEAR, 5, 5 ),
+
+	//	TBL( true, false, T_SHORT, 2, 2 ),
+	//	TBL( true, false, T_NEAR, 5, 5 ),
+	//	TBL( true, true, T_SHORT, 0, 0 ),
+	//	TBL( true, true, T_NEAR, 5, 5 ),
+
+	//	TBL( false, false, T_AUTO, 2, 5 ),
+		TBL( false, true, T_AUTO, 0, 5 ),
+	//	TBL( true, false, T_AUTO, 2, 2 ),
+	//	TBL( true, true, T_AUTO, 5, 5 )
+	];
+
+	JmpTypeCode code1 = new JmpTypeCode();
+	JmpTypeCode code2 = new JmpTypeCode();
+	code2.setDefaultJmpNEAR(true);
+
+	for (size_t i = 0; i < tbl.length; i++) {
+		writeln("\ni:", i);
+		if (tbl[i].expect1) {
+			size_t size = code1.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
+			auto exp1 = tbl[i].expect1;
+			writeln("size:", size);
+			writeln("exp1:", exp1);
+			assert(size == exp1);
+		} else {
+			assertThrown!Exception(code1.gen(tbl[i].pre, tbl[i].large, tbl[i].type));
+		}
+		if (tbl[i].expect2) {
+			size_t size = code2.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
+			auto exp2 = tbl[i].expect2;
+			assert(size == exp2);
+		} else {
+			assertThrown!Exception(code2.gen(tbl[i].pre, tbl[i].large, tbl[i].type));
+		}
+	}
+}
+
+
+@("ambiguousFarJmp")
+unittest{
+	ambiguousFarJmp();
+}
+
+void ambiguousFarJmp()
+{
+	class Code : CodeGenerator
+	{
+version(XBYAK32){
+		void genJmp() { jmp(ptr[eax], T_FAR); }
+		void genCall() { call(ptr[eax], T_FAR); }
+}else{
+		void genJmp() { jmp(ptr[rax], T_FAR); }
+		void genCall() { call(ptr[rax], T_FAR); }
+}
+	} 
+	
+	auto code = new Code();
+	assertThrown!Exception(code.genJmp());
+	assertThrown!Exception(code.genCall());
 }
