@@ -17,21 +17,20 @@ Porting test programs and fixing bugs bit by bit
 
 詳細
 ----
- xbyak Xbyak 4.87（相当）のＤ言語版。
- Version: 0.078以降
+ xbyak Xbyak 7.21（相当）のＤ言語版。
+ Version: 0.7210 以降
 
 動作環境
 --------
  x86 CPU
- Windows 8.1(32bit)
- Windows 7(64bit,32bit)
+ Windows 10(64bit,32bit)
  Linux Mint 17(64bit)
 
 開発環境
 --------
 Windows
- DMD64 D Compiler v2.070.0-b1(Version: 0.078以降)
- Visual D
+ ldc2
+ vscode code-d
 
 Linux
  DMD64 D Compiler v2.070.0-b1(Version: 0.078以降)
