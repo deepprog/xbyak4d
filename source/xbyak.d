@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7210
- * Date: 2024/11/17
+ * Date: 2024/11/22
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -20,12 +20,10 @@ version(X86_64)
 	version = XBYAK64;
 }
 
-
-//version = XBYAK_DONT_USE_MMAP_ALLOCATOR;
+//version = XBYAK_USE_MMAP_ALLOCATOR;
+//version = XBYAK_USE_MEMFD;
 //version = XBYAK_GNUC_PREREQ;
 //version = XBYAK_TLS;
-
-//version = XBYAK_USE_MMAP_ALLOCATOR;
 
 //version = XBYAK_NO_EXCEPTION;
 //version = XBYAK_DISABLE_SEGMENT;
@@ -35,12 +33,17 @@ version(X86_64)
 //version = XBYAK_DONT_READ_LIST;
 //version = XBYAK_OLD_DISP_CHECK;
 
-import std.stdio;
-import std.array;
-import std.string;
+
+import core.stdc.stdio;
+import core.stdc.stdlib;
 import std.algorithm;
+import std.array;
 import std.conv;
+import std.file;
 import std.stdint;
+import std.stdio;
+import std.string;
+
 
 version (Windows)
 {
@@ -49,7 +52,10 @@ version (Windows)
 
 version (Posix)
 {
+    import core.sys.posix.fcntl;
     import core.sys.posix.sys.mman;
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.unistd;
 }
 
 size_t	DEFAULT_MAX_CODE_SIZE = 4096 * 8;
@@ -233,31 +239,7 @@ version(XBYAK_NO_EXCEPTION)
 }
 else
 {
-
-	
-
-	// dummy functions
-	void ClearError() { }
-	int GetError() { return 0; }
-
-	
-
-	string XBYAK_THROW(ERR err)
-	{
-		return "throw new XError(" ~ typeof(err).stringof ~ "." ~ to!string(err) ~ ");";
-	}
-	string XBYAK_THROW_RET(ERR err, string r)
-	{
-		return "throw new XError(" ~ typeof(err).stringof ~ "." ~ to!string(err) ~ ");";
-	}
-	string XBYAK_THROW_RET(string err, string r)
-	{
-		return "throw new XError(" ~ err ~ ");";
-	}
-
-} //version(XBYAK_NO_EXCEPTION)
-
-class XError : Exception
+	class XError : Exception
 	{
 		ERR err_;
 	public:
@@ -281,28 +263,95 @@ class XError : Exception
 	string ConvertErrorToString(XError err) {
 		return err.what();
 	}
+	
+	// dummy functions
+	void ClearError() { }
+	int GetError() { return 0; }
+
+	string XBYAK_THROW(ERR err)
+	{
+		return "throw new XError(" ~ typeof(err).stringof ~ "." ~ to!string(err) ~ ");";
+	}
+	string XBYAK_THROW_RET(ERR err, string r)
+	{
+		return "throw new XError(" ~ typeof(err).stringof ~ "." ~ to!string(err) ~ ");";
+	}
+	string XBYAK_THROW_RET(string err, string r)
+	{
+		return "throw new XError(" ~ err ~ ");";
+	}
+
+} //version(XBYAK_NO_EXCEPTION)
+
+version(CRuntime_Microsoft)
+{
+	@nogc nothrow pure private extern(C) void* _aligned_malloc(size_t, size_t);
+	@nogc nothrow pure private extern(C) void _aligned_free(void* memblock);
+	
+	void* AlignedMalloc(size_t size, size_t alignment)
+	{
+		return _aligned_malloc(size, alignment);
+	}
+	
+	void AlignedFree(void* p)
+	{
+		_aligned_free(p);
+	}
+}
+
+version (Posix)
+{
+	import core.sys.posix.stdlib : posix_memalign;
+
+	void* AlignedMalloc(size_t size, size_t alignment)
+	{
+		void* p;
+		int ret = posix_memalign(&p, alignment, size);
+		return (ret == 0) ? p : null;
+	}
+
+	void AlignedFree(void* p)
+	{
+		free(p);
+	}
+}
+
 
 To CastTo(To, From)(From p)
 {
 	return cast(To) (p);
 }
 
-//}
 struct inner
 {
 static:
-	size_t getPageSize() {
-		return 4096;
+	size_t getPageSize()
+	{
+		size_t pageSize = 4096;
+version(Windows)
+{		
+		import core.sys.windows.windows;
+		SYSTEM_INFO sysinfo;
+		GetSystemInfo(&sysinfo);
+		pageSize = sysinfo.dwAllocationGranularity;
+}
+version(Posix)
+{		
+		import core.sys.posix.unistd;
+		pageSize = cast(size_t) sysconf(_SC_PAGESIZE); 
+}
+		return pageSize;
 	}
 	
+	
 	bool IsInDisp8(uint32_t x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
-	bool IsInInt32(uint64_t x) { return ~uint64_t(0x7fffffffu) <= x || x <= 0x7FFFFFFFU; }
+	bool IsInInt32(uint64_t x) { return ~uint64_t(0x7fffffffu) <= x || x <= 0x7FFFFFFFu; }
 
 	uint32_t VerifyInInt32(uint64_t x)
 	{
 		version (XBYAK64)
 		{
-			if (!IsInInt32(x))	mixin(XBYAK_THROW_RET(ERR.OFFSET_IS_TOO_BIG, "0"));
+			if (!IsInInt32(x)) mixin(XBYAK_THROW_RET(ERR.OFFSET_IS_TOO_BIG, "0"));
 		}
 		return cast(uint32_t)x;
 	}
@@ -315,161 +364,114 @@ static:
 	}
 }// inner
 
-
-uint8_t* getAlignedAddress(void* addr, size_t alignedSize = 16)
- {
-	size_t mask = alignedSize - 1;
-	return cast(uint8_t*) ((cast(size_t) addr + mask) & ~mask);
-}
-
-// custom allocator
-
+/*
+	custom allocator
+*/
 class Allocator
 {
-
-version(Windows)
-{
-	uint8_t* alloc(size_t size)
-	{
-        size_t alignment = inner.getPageSize();
-		static import core.memory;
-        void* mp = core.memory.GC.malloc(size + alignment);    
-        assert(mp);	
-		SizeTbl[mp] = size + alignment;
-		MemTbl[mp]  = getAlignedAddress(mp, alignment);
-		return cast(uint8_t*)MemTbl[mp];
-	}
-	
-	void free(uint8_t* p)
-	{
-		//core.memory.GC.free(MemTbl[p]);
-	}
-}
-
-version(Posix)
-{
-	uint8_t* alloc(size_t size)
-	{
-		const size_t alignedSizeM1 = inner.getPageSize() - 1;
-		size = (size + alignedSizeM1) & ~alignedSizeM1;
-	
-        const int mode = MAP_PRIVATE | MAP_ANON;
-		const int prot = PROT_EXEC | PROT_READ | PROT_WRITE;
-        void* mp = mmap(null, size, prot, mode, -1, 0);
-
-		if (mp == MAP_FAILED) mixin(XBYAK_THROW(ERR.CANT_ALLOC));
-		assert(mp);
-		SizeTbl[mp] = size;
-		MemTbl[mp]  = mp;
-		return cast(uint8*)MemTbl[mp];
-  }
-    
-    void free(uint8_t *p)
-	{
-		if(p == null) return;
-		void* ret = MemTbl[p];
-		size_t size  = SizeTbl[p];
-
-		if (munmap(ret, size) < 0)
-		{
-			mixin(XBYAK_THROW(ERR.MUNMAP));
-		}
-		MemTbl.remove(p);
-		SizeTbl.remove(p);
-	}
-}
+	this(string = "") {} // same interface with MmapAllocator
+	// ~this() {}
+	uint8_t* alloc(size_t size) { return cast(uint8_t*)(AlignedMalloc(size, inner.getPageSize())); }
+	void free(uint8_t* p) { AlignedFree(p); } 
 	/* override to return false if you call protect() manually */
-	bool useProtect() { return true; }
-	
-static:
-	uint8_t*[void*] MemTbl;
-	size_t[void*] SizeTbl;	
+	bool useProtect() const { return true; }
 }
 
-/+
+
+//version = XBYAK_USE_MMAP_ALLOCATOR;
+version(XBYAK_USE_MEMFD)
+{
+		extern(C)	int memfd_create(const char*, uint);
+}
+
 version(XBYAK_USE_MMAP_ALLOCATOR)
 {
-
-class MmapAllocator : Allocator
- {
-	struct Allocation {
-		size_t size;
-version(XBYAK_USE_MEMFD)
-{
-		// fd_ is only used with XBYAK_USE_MEMFD. We keep the file open
-		// during the lifetime of each allocation in order to support
-		// checkpoint/restore by unprivileged users.
-		int fd;
-}
-	}
+	class MmapAllocator : Allocator
+ 	{
+		struct Allocation
+		{
+			size_t size;
+			version(XBYAK_USE_MEMFD)
+			{
+			// fd_ is only used with XBYAK_USE_MEMFD. We keep the file open
+			// during the lifetime of each allocation in order to support
+			// checkpoint/restore by unprivileged users.
+				int fd;
+			}	
+		}
 	
-	string name_; // only used with XBYAK_USE_MEMFD
-	//typedef XBYAK_STD_UNORDERED_MAP<uintptr_t, Allocation> AllocationList;
-	//AllocationList allocList_;
-public:
-	this(string name = "xbyak")
-	{
-		this.name_ = name;
-		uint8_t* alloc(size_t size);
+		string name_; // only used with XBYAK_USE_MEMFD
+		alias AllocationList = Allocation[uintptr_t];
+		AllocationList allocList_;
+	
+	public:
+		this(string name = "xbyak")
+		{
+			this.name_ = name;
+		}
 
-		const size_t alignedSizeM1 = inner.getPageSize() - 1;
-		size = (size + alignedSizeM1) & ~alignedSizeM1;
-		
-//#if defined(MAP_ANONYMOUS)
-		int mode = MAP_PRIVATE | MAP_ANONYMOUS;
-//#elif defined(MAP_ANON)
-//		int mode = MAP_PRIVATE | MAP_ANON;
-//#else
-//		#error "not supported"
-//#endif
-
-		int fd = -1;
+		override uint8_t* alloc(size_t size)
+		{
+			const size_t alignedSizeM1 = inner.getPageSize() - 1;
+			size = (size + alignedSizeM1) & ~alignedSizeM1;
+			int mode = MAP_PRIVATE | MAP_ANON;
+			int fd = -1;
+			
 version(XBYAK_USE_MEMFD)
 {
-		fd = memfd_create(name_.c_str(), MFD_CLOEXEC);
+		uint flag = 0;
+		fd = memfd_create(name_.toStringz(), flag);
 		if (fd != -1) {
 			mode = MAP_SHARED;
 			if (ftruncate(fd, size) != 0) {
 				close(fd);
-				mixin(XBYAK_THROW_RET(ERR_CANT_ALLOC, "0"));
+				mixin(XBYAK_THROW_RET(ERR.CANT_ALLOC, "0"));
 			}
 		}
 }
-		void* p = mmap(NULL, size, PROT_READ | PROT_WRITE, mode, fd, 0);
+
+		void* p = mmap(null, size, PROT_READ | PROT_WRITE, mode, fd, 0);
 		if (p == MAP_FAILED) {
-			if (fd != -1) close(fd);
+			if (fd != -1)
+			{
+				close(fd);
+			}
 			mixin(XBYAK_THROW_RET(ERR.CANT_ALLOC, "0"));
 		}
 		assert(p);
-		Allocation& alloc = allocList_[cast(uintptr_t)p];
+		Allocation alloc = allocList_[cast(uintptr_t)p];
 		alloc.size = size;
-		
+	
 version(XBYAK_USE_MEMFD)
 {
 		alloc.fd = fd;
 }
 		return cast(uint8_t*)p;
 	}
-	void free(uint8_t* p)
+
+	override void free(uint8_t* p)
 	{
-		if (p == 0) return;
-	//	AllocationList::iterator i = allocList_.find(cast(uintptr_t)p);
-	//	if (i == allocList_.end()) mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
-	//	if (munmap(cast(void*)i.first, i.second.size) < 0) mixin(XBYAK_THROW(ERR.MUNMAP));
+		if (p == null) return;
+		uintptr_t uintp = cast(uintptr_t)p;
+		if (null == (uintp in allocList_)) mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
+		if (munmap(cast(void*)uintp, allocList_[uintp].size) < 0) mixin(XBYAK_THROW(ERR.MUNMAP));
+
 version(XBYAK_USE_MEMFD)
 {
-		if (i.second.fd != -1) close(i.second.fd);
+		if (allocList_[uintp].fd != -1)
+		{
+			close(allocList_[uintp].fd);
+		}
 }
-		allocList_.erase(i);
+		allocList_.remove(uintp);
 	}
 }
 }
 
 version(XBYAK_USE_MMAP_ALLOCATOR)
 {}else{
-	//alias Allocator = MmapAllocator;
+	alias MmapAllocator = Allocator;
 }
-+/
 
 struct ApxFlagNF {}
 struct ApxFlagZU {}
@@ -1362,7 +1364,11 @@ class CodeArray
 	alias AddrInfoList = AddrInfo[] ;
 	AddrInfoList addrInfoList_;
 	Type type_;
+version(XBYAK_USE_MMAP_ALLOCATOR) {
+	MmapAllocator defaultAllocator_;
+} else {
 	Allocator defaultAllocator_;
+}
 	Allocator alloc_;
 
 protected:
@@ -1538,7 +1544,7 @@ public:
 	
 	static bool protect(void* addr, size_t size, ProtectMode protectMode_)
 	{
-version (Win64)
+version (Windows)
 {
 		const DWORD c_rw = PAGE_READWRITE;
 		const DWORD c_rwe = PAGE_EXECUTE_READWRITE;
@@ -1562,25 +1568,22 @@ else
 				return false;
 		}
 		
-version(Win32){}
-else{
-		
+version(Windows)
+{
 		DWORD oldProtect;
 		return VirtualProtect(addr, size, mode, &oldProtect) != 0;
-}    
-		version (Posix)
-		{
-/*
-#elif defined(__GNUC__)
+} else {   
+version (Posix)
+{
 		size_t pageSize = sysconf(_SC_PAGESIZE);
-		size_t iaddr = reinterpret_cast<size_t>(addr);
-		size_t roundAddr = iaddr & ~(pageSize - static_cast<size_t>(1));
-		return mprotect(reinterpret_cast<void*>(roundAddr), size + (iaddr - roundAddr), mode) == 0;
-#else
-*/		return true;
-		}
-	}
-
+		size_t iaddr = cast(size_t)(addr);
+		size_t roundAddr = iaddr & ~(pageSize - cast(size_t)(1));
+		return mprotect(cast(void*)(roundAddr), size + (iaddr - roundAddr), mode) == 0;
+}else{
+		return true;
+}
+}
+}
 //	get aligned memory pointer
 //	@param addr [in] address
 //	@param alingedSize [in] power of two
@@ -1769,10 +1772,10 @@ class Label
 public:
 	this()
 	{
-		mgr = new LabelManager();
-		id  = 0;
+		mgr = null;
+		id = 0;
 	}
-
+ 
 	this(Label rhs)
 	{
 		id  = rhs.id;
@@ -1806,7 +1809,7 @@ inline Label& Label::operator=(const Label& rhs)
 	
 	
 	void clear() {
-		mgr = new LabelManager();
+		mgr = null;
 		id = 0;
 	}
 	
@@ -1954,6 +1957,12 @@ version (XBYAK64)
 
 	bool hasUndefinedLabel_inner(T)(T list) const
 	{
+debug
+{
+		foreach(c; list) {
+			writeln("undefined label:", c);
+		}
+}		
 		return !list.empty();
 	}
 	
@@ -2052,19 +2061,20 @@ public:
 	{
 		define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize);
 		
-		label.mgr = this; //new LabelManager(this);
+		label.mgr = this;
 		labelPtrList_ ~= label;
 	}
 
 	void assign(ref Label dst, Label src)
 	{	
+		if(dst is null) dst = new Label();
 		if(null == (src.id in clabelDefList_)){
 			mixin(XBYAK_THROW(ERR.LABEL_ISNOT_SET_BY_L));
 		}
 
 		define_inner(clabelDefList_, clabelUndefList_, dst.id, clabelDefList_[src.id].offset);
 
-		dst.mgr = this; //new LabelManager(this);
+		dst.mgr = this;
 		labelPtrList_ ~= dst;
 	}
 
@@ -3752,7 +3762,7 @@ version (XBYAK64)
 }
 
 private:
-	bool isDefaultJmpNEAR_ = false;
+	bool isDefaultJmpNEAR_;
 	PreferredEncoding[2] defaultEncoding_; // 0:vnni, 1:vmpsadbw
 public:
 	void L(string label) { labelMgr_.defineSlabel(label); }
@@ -3934,7 +3944,7 @@ else
 
 	void mov(NativeReg reg, ref Label label)
 	{
-		assert(label);
+	//	assert(label);
 		mov_imm(reg, dummyAddr);
 		putL(label);
 	}
@@ -4027,6 +4037,7 @@ public:
 	{
 		super(maxSize, userPtr, allocator);
 		this.reset();	////fix
+		this.isDefaultJmpNEAR_ = false;
 		setDefaultEncoding();
 		setDefaultEncodingAVX10();
 		labelMgr_.set(this);
