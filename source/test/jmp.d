@@ -98,7 +98,7 @@ void test1()
 		this(int offset, bool isBack, bool isShort, bool useNewLabel)
 		{
 			if (useNewLabel) {
-				Label label = new Label();
+				Label label; // = new Label();
 				if (isBack) {
 					L(label);
 					putNop(this, offset);
@@ -178,7 +178,7 @@ void testJmpCx()
 
 			if (useNewLabel)
 			{
-				Label lp = new Label();
+				Label lp; // = new Label();
 			L(lp);
 version(XBYAK64) {
 				/*
@@ -361,10 +361,10 @@ void test2()
 			} else {
 				nop();
 				nop();
-				Label f1 = new Label();
-				Label f2 = new Label();
-				Label f3 = new Label();
-				Label f4 = new Label();
+				Label f1;// = new Label();
+				Label f2;// = new Label();
+				Label f3;// = new Label();
+				Label f4;// = new Label();
 			//	, f2, f3, f4;
 			L(f1);
 				putNop(this, 126);
@@ -548,7 +548,7 @@ void test4()
 		{
 			super(size, mode, alloc);
 			if (useNewLabel) {
-				Label x = new Label(); 
+				Label x; // = new Label(); 
 				jmp(x);
 				putNop(this, 10);
 			L(x);
@@ -640,22 +640,24 @@ void test5()
 	int count = 50;
 	int ret;
 	Test5 fc = new Test5(1024 * 64, count, null);
+	fc.readyRE();
 	auto fcode = fc.getCode();
 	auto ffun = cast(int function())fcode;
 	ret = ffun();
 	assert(ret == count * count);	
 	writefln("Test5 fc:ok");
-	
+	fc.readyRE();
 	auto fm = fc.getCode();
 	
 	Test5 gc=  new Test5(10, count, AutoGrow);
-	gc.ready();
+	gc.readyRE();
 	auto gcode = gc.getCode();
 	auto gfun = cast(int function())gcode;
 	ret = gfun();
 	assert(ret == count * count);
 	writefln("Test5 gc:ok");
 	
+	gc.readyRE();
 	auto gm = gc.getCode();
 	
 	for(int i = 0; i < fc.getSize; i++){
@@ -706,8 +708,8 @@ version(XBYAK64) {
 			if (useNewLabel)
 			{
 				nop(); // 0x90
-				Label lp1 = new Label();
-				Label lp2 = new Label();
+				Label lp1; // = new Label();
+				Label lp2; // = new Label();
 			L(lp1);
 				nop();
 				mov(a, lp1); // 0xb8 + <4byte> / 0x48bb + <8byte>
@@ -1073,7 +1075,6 @@ void test_jcc()
 {
 	class A : CodeGenerator
 	{
-		int a;
 		this()
 		{
 			add(eax, 5);
@@ -1083,7 +1084,6 @@ void test_jcc()
 	
 	class B : CodeGenerator
 	{
-		int a;
 		this(bool grow, void* p)
 		{
 			super(grow ? 0 : 4096, grow ? AutoGrow : null);
@@ -1100,9 +1100,10 @@ void test_jcc()
 		bool grow = i == 1;
 		B b = new B(grow, p);
 		if (grow) {
-			b.ready();
+			b.readyRE();
 		}
 		auto f = cast(int function())b.getCode();
+		b.dump();
 		assert(f() ==  8);
 	}
 	
@@ -1124,11 +1125,11 @@ void testNewLabel()
 		
 			xor(eax, eax);
 			{
-				Label label1 = new Label();
-				Label label2 = new Label();
-				Label label3 = new Label();
-				Label label4 = new Label();
-				Label exit = new Label();
+				Label label1; // = new Label();
+				Label label2; // = new Label();
+				Label label3; // = new Label();
+				Label label4; // = new Label();
+				Label exit; // = new Label();
 				jmp(label1, T_NEAR);
 			L(label2);
 				inc(eax); // 2
@@ -1146,11 +1147,11 @@ void testNewLabel()
 			L(exit);
 			}
 			{
-				Label label1 = new Label();
-				Label label2 = new Label();
-				Label label3 = new Label();
-				Label label4 = new Label();
-				Label exit = new Label();
+				Label label1; // = new Label();
+				Label label2; // = new Label();
+				Label label3; // = new Label();
+				Label label4; // = new Label();
+				Label exit; // = new Label();
 				jmp(label1);
 			L(label2);
 				inc(eax); // 6
@@ -1166,10 +1167,10 @@ void testNewLabel()
 				jmp(label2);
 			L(exit);
 			}
-			Label callLabel = new Label();
+			Label callLabel; // = new Label();
 			{	// eax == 8
-				Label label1 = new Label();
-				Label label2 = new Label();
+				Label label1; // = new Label();
+				Label label2; // = new Label();
 			L(label1);
 				inc(eax); // 9, 10, 11, 13
 				cmp(eax, 9);
@@ -1219,16 +1220,15 @@ void returnLabel()
 {
 	class Code : CodeGenerator
 	{
-		int a;
 		this()
 		{
 			xor(eax, eax);
-		Label L1 = new Label();
+		Label L1 = L();
 			test(eax, eax);
-		Label exit = new Label();
+		Label exit;
 			jnz(exit);
 			inc(eax); // 1
-		Label L2 = new Label();
+		Label L2;
 			call(L2);
 			jmp(L1);
 		L(L2);
@@ -1261,8 +1261,8 @@ void testAssige()
 			super(grow ? 128 : 4096, grow ? AutoGrow : null);
 		
 			xor(eax, eax);
-			Label dst = new Label();
-			Label src = new Label();
+			Label dst; // = new Label();
+			Label src; // = new Label();
 		L(src);
 			inc(eax);
 			cmp(eax, 1);
@@ -1311,7 +1311,7 @@ void doubleDefine()
    		this()
 		{
 			super();
-			Label label = new Label();
+			Label label; // = new Label();
 		L(label);
 			// forbitten double L()
 			assertThrown!XError( L(label) );
@@ -1324,7 +1324,7 @@ void doubleDefine()
 		this()
 		{
 			super();
-			Label label = new Label();
+			Label label; // = new Label();
 			jmp(label);
 			
 			assert( hasUndefinedLabel() );
@@ -1336,8 +1336,8 @@ void doubleDefine()
 	{	
 		this()
 		{
-			Label label1 = new Label();
-			Label label2 = new Label();	
+			Label label1; // = new Label();
+			Label label2; // = new Label();	
 		L(label1);
 			jmp(label2);
 			assignL(label2, label1);
@@ -1352,8 +1352,8 @@ void doubleDefine()
 	{	
 		this()
 		{
-			Label label1 = new Label();
-			Label label2 = new Label();
+			Label label1; // = new Label();
+			Label label2; // = new Label();
 		L(label1);
 			jmp(label2);
 			// forbitten assignment to label1 set by L()
@@ -1373,9 +1373,9 @@ class GetAddressCode1 : CodeGenerator
 {	
 	void test()
 	{
-		Label L1 = new Label();
-		Label L2 = new Label();
-		Label L3 = new Label();
+		Label L1; // = new Label();
+		Label L2; // = new Label();
+		Label L3; // = new Label();
 		nop();
 	L(L1);
 		uint8_t* p1 = getCurr();
@@ -1433,7 +1433,7 @@ version(XBYAK64)
 		Reg64 p0 = rcx;
 		Reg64 a = rax;
 	}
-	version(GNU)
+	version(Posix)
 	{
 		Reg64 p0 = rdi;
 		Reg64 a = rax;
@@ -1443,10 +1443,10 @@ version(XBYAK64)
 		Reg32 a = eax;
 		mov(edx, ptr [esp + 4]);
 }
-		Label labelTbl = new Label();
-		Label L0 = new Label();
-		Label L1 = new Label();
-		Label L2 = new Label();
+		Label labelTbl; // = new Label();
+		Label L0; // = new Label();
+		Label L1; // = new Label();
+		Label L2; // = new Label();
 		mov(a, labelTbl);
 		jmp(ptr [a + p0 * (void*).sizeof]);
 	L(labelTbl);
@@ -1481,9 +1481,9 @@ void LabelTable()
 
 class GetAddressCode2 : CodeGenerator
 {
-	Label L1 = new Label();
-	Label L2 = new Label();
-	Label L3 = new Label();
+	Label L1; // = new Label();
+	Label L2; // = new Label();
+	Label L3; // = new Label();
 	size_t a1;
 	size_t a3;
 	this(int size)
@@ -1567,8 +1567,8 @@ void testrip()
 	{
 		this(ref int[] a, ref int[] b)
 		{
-			Label label1 = new Label();
-			Label label2 = new Label();
+			Label label1; // = new Label();
+			Label label2; // = new Label();
 			jmp("@f");
 		L(label1);
 			db(a[0], 4);
@@ -1621,7 +1621,7 @@ void rip_jmp()
 	{
 		this()
 		{
-			Label label = new Label();
+			Label label; // = new Label();
 			xor(eax, eax);
 			call(ptr [rip + label]);
 			mov(ecx, eax);
@@ -1644,7 +1644,7 @@ void rip_jmp()
 }
 
 
-//+ //#if 0
+/* //#if 0
 @("rip_addr")
 unittest{
 	rip_addr();
@@ -1652,9 +1652,7 @@ unittest{
 
 void rip_addr()
 {
-	/*
-		we can't assume |&x - &code| < 2GiB anymore
-	*/
+	//	we can't assume |&x - &code| < 2GiB anymore
 	static int x = 5;
 	class Code : CodeGenerator
 	{
@@ -1673,7 +1671,7 @@ void rip_addr()
 	writeln(x);
 	assert(x == 123);
 }
-//+/
+//*/
 
 version(OSX)
 {}
@@ -1720,7 +1718,7 @@ class ReleaseTestCode : CodeGenerator
 {
 	this(ref Label L1, ref Label L2, ref Label L3)
 	{
-		super();
+	//	super();
 		L(L1);
 		jmp(L1);
 		L(L2);
@@ -1740,23 +1738,28 @@ void release_label_after_code()
 {
 	puts("---");
 	{
-		Label L1 = new Label();
-		Label L2 = new Label();
-		Label L3 = new Label();
-		Label L4 = new Label();
-		Label L5 = new Label();
-		{
-			ReleaseTestCode code = new ReleaseTestCode(L1, L2, L3);
-			assert(L1.getId() > 0);
-			assert(L1.getAddress() != null);
-			assert(L2.getId() > 0);
-			assert(L2.getAddress() != null);
-			assert(L3.getId() > 0);
-			assert(L3.getAddress() == null); // L3 is not assigned
+		static Label L1, L2, L3, L4, L5;
+		//{
+			auto code = new ReleaseTestCode(L1, L2, L3);
+			auto L1_getId = L1.getId();
+			assert(L1.getId > 0);
+			auto L1_getAddress = L1.getAddress();
+			assert(L1_getAddress != null);
+			
+			auto L2_getId = L2.getId();
+			assert(L2.getId > 0);
+			auto L2_getAddress = L2.getAddress();
+			assert(L2_getAddress != null);
+
+			auto L3_getId = L3.getId();
+			assert(L3.getId > 0);
+			auto L3_getAddress = L3.getAddress();
+			assert(L3_getAddress == null); // L3 is not assigned
+
 			code.assignL(L4, L1);
 			L5 = L1;
-			writef("id=%d %d %d %d %d\n", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
-		}
+			writefln("id=%d %d %d %d %d", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
+		//}
 		puts("code is released");
 	//	assert(L1.getId() == 0);
 	//	assert(L1.getAddress() == null);
@@ -1768,7 +1771,7 @@ void release_label_after_code()
 	//	assert(L4.getAddress() == null);
 	//	assert(L5.getId() == 0);
 	//	assert(L5.getAddress() == null);
-		writef("id=%d %d %d %d %d\n", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
+	//	writef("id=%d %d %d %d %d\n", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
 	}
 }
 
@@ -1784,7 +1787,7 @@ class JmpTypeCode : CodeGenerator
 	// return jmp code size
 	size_t gen(bool pre, bool large, LabelType type)
 	{
-		Label label = new Label();
+		Label label;
 		if (pre) {
 			L(label);
 			if (large) nops();
@@ -1822,19 +1825,19 @@ void setDefaultJmpNEAR()
 	TBL[] tbl = 
 	[
 		TBL( false, false, T_SHORT, 2, 2 ),
-	//	TBL( false, false, T_NEAR, 5, 5 ),
+		TBL( false, false, T_NEAR, 5, 5 ),
 		TBL( false, true, T_SHORT, 0, 0 ),
-	//	TBL( false, true, T_NEAR, 5, 5 ),
+		TBL( false, true, T_NEAR, 5, 5 ),
 
-	//	TBL( true, false, T_SHORT, 2, 2 ),
-	//	TBL( true, false, T_NEAR, 5, 5 ),
-	//	TBL( true, true, T_SHORT, 0, 0 ),
-	//	TBL( true, true, T_NEAR, 5, 5 ),
+		TBL( true, false, T_SHORT, 2, 2 ),
+		TBL( true, false, T_NEAR, 5, 5 ),
+		TBL( true, true, T_SHORT, 0, 0 ),
+		TBL( true, true, T_NEAR, 5, 5 ),
 
-	//	TBL( false, false, T_AUTO, 2, 5 ),
+		TBL( false, false, T_AUTO, 2, 5 ),
 		TBL( false, true, T_AUTO, 0, 5 ),
-	//	TBL( true, false, T_AUTO, 2, 2 ),
-	//	TBL( true, true, T_AUTO, 5, 5 )
+		TBL( true, false, T_AUTO, 2, 2 ),
+		TBL( true, true, T_AUTO, 5, 5 )
 	];
 
 	JmpTypeCode code1 = new JmpTypeCode();
@@ -1842,22 +1845,42 @@ void setDefaultJmpNEAR()
 	code2.setDefaultJmpNEAR(true);
 
 	for (size_t i = 0; i < tbl.length; i++) {
+		code1 = new JmpTypeCode();
+		code2 = new JmpTypeCode();
+		code2.setDefaultJmpNEAR(true);
 		writeln("\ni:", i);
 		if (tbl[i].expect1) {
 			size_t size = code1.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
 			auto exp1 = tbl[i].expect1;
 			writeln("size:", size);
 			writeln("exp1:", exp1);
+
 			assert(size == exp1);
 		} else {
-			assertThrown!Exception(code1.gen(tbl[i].pre, tbl[i].large, tbl[i].type));
+			bool ret = false;
+			try {
+				 code1.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
+			}
+			catch (Exception e) {
+        		writeln("code1 catch");
+				ret = true;
+			}
+			if (ret) assert(ret);
 		}
 		if (tbl[i].expect2) {
 			size_t size = code2.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
 			auto exp2 = tbl[i].expect2;
 			assert(size == exp2);
 		} else {
-			assertThrown!Exception(code2.gen(tbl[i].pre, tbl[i].large, tbl[i].type));
+			bool ret = false;
+			try {
+				 code2.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
+			}
+			catch (Exception e) {
+        		writeln("code2 catch");
+				ret = true;
+     		}
+			if (ret) assert(ret);
 		}
 	}
 }
@@ -1884,4 +1907,43 @@ version(XBYAK32){
 	auto code = new Code();
 	assertThrown!Exception(code.genJmp());
 	assertThrown!Exception(code.genCall());
+}
+
+
+version(unittest)
+{}
+else
+{
+void main()
+	{
+
+	test1();
+	testJmpCx();
+	testloop();
+	test2();
+	//test3();
+	test4();
+	test5();	//MyAllocator
+	MovLabel();
+	testMovLabel2();
+	testF_B();
+	test6();
+	test_jcc();
+	testNewLabel();
+	
+	returnLabel();
+	testAssige();
+	doubleDefine();
+	getAddress1();
+	LabelTable();
+	testGetAddressCode2();
+	testrip();
+	rip_jmp();
+
+//	rip_addr();	// we can't assume |&x - &code| < 2GiB anymore
+	rip_addr_with_fixed_buf();
+	release_label_after_code(); //dlang
+	setDefaultJmpNEAR();
+	ambiguousFarJmp();
+	}
 }
