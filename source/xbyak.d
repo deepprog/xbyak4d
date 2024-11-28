@@ -1165,7 +1165,7 @@ version (XBYAK64)
 		}
 		RegRip opBinary(string op:"+") (ref Label label)
 		{
-			if (this.label_) mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegRip()"));
+			if (this.label_ || this.isAddr_) mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegRip()"));
 			if (label is null) label = new Label();
 			return RegRip(this.disp_, label);
 		}
@@ -1452,7 +1452,7 @@ public:
 	void resetSize()
 	{
 		size_ = 0;
-		addrInfoList_.destroy;
+		addrInfoList_.length = 0;
 		isCalledCalcJmpAddress_ = false;
 	}
 
@@ -1767,8 +1767,8 @@ struct JmpLabel
 
 class Label
 {
-	LabelManager mgr;
-	int id;
+	LabelManager mgr = null;
+	int id = 0;
 public:
 	this()
 	{
@@ -1776,23 +1776,13 @@ public:
 		id = 0;
 	}
  
-	this(Label rhs)
+	this(ref Label rhs)
 	{
 		id  = rhs.id;
 		mgr = rhs.mgr;
 		if (mgr) mgr.incRefCount(id, this);
 	}
 
-/+
-inline Label& Label::operator=(const Label& rhs)
-{
-	if (id) XBYAK_THROW_RET(ERR_LABEL_IS_ALREADY_SET_BY_L, *this)
-	id = rhs.id;
-	mgr = rhs.mgr;
-	if (mgr) mgr->incRefCount(id, this);
-	return *this;
-}
-+/
 	~this()
 	{
 		if(id && mgr) mgr.decRefCount(id, this);
@@ -1807,7 +1797,6 @@ inline Label& Label::operator=(const Label& rhs)
 		return mgr.getCode() + offset;
 	}
 	
-	
 	void clear() {
 		mgr = null;
 		id = 0;
@@ -1815,7 +1804,7 @@ inline Label& Label::operator=(const Label& rhs)
 	
 	int getId() const { return id; }
 
-	static string toStr(int num) //const
+	static string toStr(int num)
 	{
 		return format(".%08x", num);
 	}
@@ -1827,7 +1816,7 @@ class LabelManager
 // for string label
 	struct SlabelVal
 	{
-		size_t offset = 0;
+		size_t offset;
         this(size_t offset)
 		{
 			this.offset = offset;
@@ -1843,7 +1832,7 @@ class LabelManager
 		SlabelUndefList undefList;
 	}
 
-	alias StateList = SlabelState[] ;
+	alias StateList = SlabelState[];
 
 // for Label class
 	struct ClabelVal
@@ -1859,18 +1848,18 @@ class LabelManager
 
 	alias ClabelDefList = ClabelVal[int] ;
 	alias ClabelUndefList = JmpLabel[][int] ;
-	alias LabelPtrList = Label[] ;
+	alias LabelPtrList = Label[];
 
 	CodeArray base_;
 
-// global : stateList_[0], local : stateList_{$-1]
+// global : stateList_[0], local : stateList_[$-1]
 	StateList stateList_;
 	int labelId_;
 	ClabelDefList clabelDefList_;
 	ClabelUndefList clabelUndefList_;
 	LabelPtrList labelPtrList_;
 	
-	int getId(Label label)
+	int getId(ref Label label)
 	{
 		if (label.id == 0) label.id = labelId_++;
 		return label.id;
@@ -1935,7 +1924,7 @@ version (XBYAK64)
 
 	void decRefCount(int id, Label label)
 	{
-		for(int i; i<labelPtrList_.length ; i++)
+		for(int i; i < labelPtrList_.length; i++)
 		{
 			if(labelPtrList_[i] != label)
 				labelPtrList_.remove(i);
@@ -1969,10 +1958,7 @@ debug
 	// detach all labels linked to LabelManager
 	void resetLabelPtrList()
 	{
-		foreach (i; labelPtrList_) {
-			i.clear();
-		}
-		labelPtrList_.destroy();
+		labelPtrList_.length = 0;
 	}
 	
 public:
@@ -1985,28 +1971,22 @@ public:
 	{
 		resetLabelPtrList();
 	}
-	
-	this(LabelManager lm)
-	{
-		reset();
-		this.base_    = lm.base_;
-		this.labelId_ = lm.labelId_;
-		this.stateList_ = lm.stateList_;
-		
-		this.clabelDefList_ = lm.clabelDefList_;
-		this.clabelUndefList_ = lm.clabelUndefList_;
-		this.labelPtrList_ = lm.labelPtrList_;
-	}
-	
+
 	void reset()
 	{
 		base_    = null;
 		labelId_ = 1;
-		stateList_.destroy;
+		stateList_.length = 0;
 		stateList_ = [SlabelState(), SlabelState()];
 
-		clabelDefList_.destroy;
-		clabelUndefList_.destroy;
+		foreach(key; clabelDefList_.keys) {
+			clabelDefList_.remove(key);
+		}
+		
+		foreach(key; clabelUndefList_.keys) {
+			clabelUndefList_.remove(key);
+		}
+
 		resetLabelPtrList();
 	}
 	void enterLocal()
@@ -2057,7 +2037,7 @@ public:
 	}
 
 
-	void defineClabel(Label label)
+	void defineClabel(ref Label label)
 	{
 		define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize);
 		
@@ -2065,7 +2045,7 @@ public:
 		labelPtrList_ ~= label;
 	}
 
-	void assign(ref Label dst, Label src)
+	void assign(ref Label dst, ref Label src)
 	{	
 		if(dst is null) dst = new Label();
 		if(null == (src.id in clabelDefList_)){
@@ -4036,18 +4016,19 @@ public:
     this(size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = null, Allocator allocator = new Allocator())
 	{
 		super(maxSize, userPtr, allocator);
-		this.reset();	////fix
 		this.isDefaultJmpNEAR_ = false;
 		setDefaultEncoding();
 		setDefaultEncodingAVX10();
+		
+		labelMgr_.reset();	////fix
 		labelMgr_.set(this);
 	}
 
 	void reset()
 	{
 		ClearError();
-		resetSize;
-		labelMgr_.reset;
+		resetSize();
+		labelMgr_.reset();
 		labelMgr_.set(this);
 	}
 
