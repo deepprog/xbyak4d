@@ -97,8 +97,9 @@ void test1()
 	*/
 		this(int offset, bool isBack, bool isShort, bool useNewLabel)
 		{
+			super();
 			if (useNewLabel) {
-				Label label; // = new Label();
+				Label label;
 				if (isBack) {
 					L(label);
 					putNop(this, offset);
@@ -258,6 +259,7 @@ void testloop()
 	class Code : CodeGenerator {
 		this(bool useLabel)
 		{
+			super();
 			if (useLabel) {
  			Label lp = L();
 				xor(eax, eax);
@@ -361,10 +363,7 @@ void test2()
 			} else {
 				nop();
 				nop();
-				Label f1;// = new Label();
-				Label f2;// = new Label();
-				Label f3;// = new Label();
-				Label f4;// = new Label();
+				Label f1, f2, f3, f4;
 			//	, f2, f3, f4;
 			L(f1);
 				putNop(this, 126);
@@ -548,7 +547,7 @@ void test4()
 		{
 			super(size, mode, alloc);
 			if (useNewLabel) {
-				Label x; // = new Label(); 
+				Label x;
 				jmp(x);
 				putNop(this, 10);
 			L(x);
@@ -708,8 +707,7 @@ version(XBYAK64) {
 			if (useNewLabel)
 			{
 				nop(); // 0x90
-				Label lp1; // = new Label();
-				Label lp2; // = new Label();
+				Label lp1, lp2;
 			L(lp1);
 				nop();
 				mov(a, lp1); // 0xb8 + <4byte> / 0x48bb + <8byte>
@@ -822,7 +820,7 @@ void testMovLabel2()
 	{
 		this()
 		{
-			
+			super();
 version(XBYAK64){
 			Reg64 a = rax;
 			Reg64 c = rcx;
@@ -872,7 +870,6 @@ void testF_B()
 {
 	class Code : CodeGenerator
 	{
-		int a;
 		this(int type)
 		{
 			super();
@@ -1077,6 +1074,7 @@ void test_jcc()
 	{
 		this()
 		{
+			super();
 			add(eax, 5);
 			ret();
 		}
@@ -1125,11 +1123,8 @@ void testNewLabel()
 		
 			xor(eax, eax);
 			{
-				Label label1; // = new Label();
-				Label label2; // = new Label();
-				Label label3; // = new Label();
-				Label label4; // = new Label();
-				Label exit; // = new Label();
+				Label label1, label2, label3, label4;
+				Label exit;
 				jmp(label1, T_NEAR);
 			L(label2);
 				inc(eax); // 2
@@ -1147,11 +1142,8 @@ void testNewLabel()
 			L(exit);
 			}
 			{
-				Label label1; // = new Label();
-				Label label2; // = new Label();
-				Label label3; // = new Label();
-				Label label4; // = new Label();
-				Label exit; // = new Label();
+				Label label1, label2, label3, label4;
+				Label exit;
 				jmp(label1);
 			L(label2);
 				inc(eax); // 6
@@ -1222,6 +1214,7 @@ void returnLabel()
 	{
 		this()
 		{
+			super();
 			xor(eax, eax);
 		Label L1 = L();
 			test(eax, eax);
@@ -1261,8 +1254,7 @@ void testAssige()
 			super(grow ? 128 : 4096, grow ? AutoGrow : null);
 		
 			xor(eax, eax);
-			Label dst; // = new Label();
-			Label src; // = new Label();
+			Label dst, src;
 		L(src);
 			inc(eax);
 			cmp(eax, 1);
@@ -1311,7 +1303,7 @@ void doubleDefine()
    		this()
 		{
 			super();
-			Label label; // = new Label();
+			Label label;
 		L(label);
 			// forbitten double L()
 			assertThrown!XError( L(label) );
@@ -1324,7 +1316,7 @@ void doubleDefine()
 		this()
 		{
 			super();
-			Label label; // = new Label();
+			Label label;
 			jmp(label);
 			
 			assert( hasUndefinedLabel() );
@@ -1336,8 +1328,8 @@ void doubleDefine()
 	{	
 		this()
 		{
-			Label label1; // = new Label();
-			Label label2; // = new Label();	
+			super();
+			Label label1, label2;
 		L(label1);
 			jmp(label2);
 			assignL(label2, label1);
@@ -1352,8 +1344,8 @@ void doubleDefine()
 	{	
 		this()
 		{
-			Label label1; // = new Label();
-			Label label2; // = new Label();
+			super();
+			Label label1, label2;
 		L(label1);
 			jmp(label2);
 			// forbitten assignment to label1 set by L()
@@ -1373,9 +1365,7 @@ class GetAddressCode1 : CodeGenerator
 {	
 	void test()
 	{
-		Label L1; // = new Label();
-		Label L2; // = new Label();
-		Label L3; // = new Label();
+		Label L1, L2, L3;
 		nop();
 	L(L1);
 		uint8_t* p1 = getCurr();
@@ -1443,10 +1433,8 @@ version(XBYAK64)
 		Reg32 a = eax;
 		mov(edx, ptr [esp + 4]);
 }
-		Label labelTbl; // = new Label();
-		Label L0; // = new Label();
-		Label L1; // = new Label();
-		Label L2; // = new Label();
+		Label labelTbl;
+		Label L0, L1, L2;
 		mov(a, labelTbl);
 		jmp(ptr [a + p0 * (void*).sizeof]);
 	L(labelTbl);
@@ -1473,6 +1461,7 @@ void LabelTable()
 {
 	auto c = new CodeLabelTable();
 	auto fn = cast(int function(int))c.getCode();
+	c.dump();
 	assert(fn(0) == c.ret0);
 	assert(fn(1) == c.ret1);
 	assert(fn(2) == c.ret2);
@@ -1481,9 +1470,7 @@ void LabelTable()
 
 class GetAddressCode2 : CodeGenerator
 {
-	Label L1; // = new Label();
-	Label L2; // = new Label();
-	Label L3; // = new Label();
+	Label L1, L2, L3;
 	size_t a1;
 	size_t a3;
 	this(int size)
@@ -1567,8 +1554,8 @@ void testrip()
 	{
 		this(ref int[] a, ref int[] b)
 		{
-			Label label1; // = new Label();
-			Label label2; // = new Label();
+			super();
+			Label label1, label2;
 			jmp("@f");
 		L(label1);
 			db(a[0], 4);
@@ -1591,6 +1578,7 @@ void testrip()
 	}
 	
 	auto code = new Code(a, b);
+	code.dump;
 	auto fn = cast(int function())code.getCode();
 	int ret = fn();
 	int sum = a[0] + a[1] + b[0] + b[1];
@@ -1621,7 +1609,8 @@ void rip_jmp()
 	{
 		this()
 		{
-			Label label; // = new Label();
+			super();
+			Label label;
 			xor(eax, eax);
 			call(ptr [rip + label]);
 			mov(ecx, eax);
@@ -1658,6 +1647,7 @@ void rip_addr()
 	{
 		this()
 		{
+			super();
 			mov(eax, 123);
 			mov(ptr[rip + &x], eax);
 			ret();
@@ -1718,7 +1708,7 @@ class ReleaseTestCode : CodeGenerator
 {
 	this(ref Label L1, ref Label L2, ref Label L3)
 	{
-	//	super();
+		super();
 		L(L1);
 		jmp(L1);
 		L(L2);
@@ -1738,7 +1728,7 @@ void release_label_after_code()
 {
 	puts("---");
 	{
-		static Label L1, L2, L3, L4, L5;
+		Label L1, L2, L3, L4, L5;
 		//{
 			auto code = new ReleaseTestCode(L1, L2, L3);
 			auto L1_getId = L1.getId();
@@ -1921,9 +1911,9 @@ void main()
 	testJmpCx();
 	testloop();
 	test2();
-	//test3();
+//	test3();
 	test4();
-	test5();	//MyAllocator
+//	test5();	//MyAllocator
 	MovLabel();
 	testMovLabel2();
 	testF_B();
