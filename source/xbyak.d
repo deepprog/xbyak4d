@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7210
- * Date: 2024/11/22
+ * Date: 2024/12/02
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -506,7 +506,7 @@ private:
 	uint bit_= 14;
 
 protected:
-	bool zero_= true;
+	bool zero_= false;
 	uint mask_=3;
 	uint rounding_ = 3;
 	uint NF_ =1;
@@ -562,18 +562,19 @@ version(XBYAK32){
 		idx_ = 0;
 		kind_ = 0;
 		bit_ = 0;
-		zero_ = 0;
+		zero_ = false;
 		mask_ = 0;
 		rounding_ =0;
 		NF_ = 0;
 		ZU_ = 0;
 	}
-	this(int idx, int kind, int bit =0, bool ext8bit = 0)
+
+	this(int idx, int kind, int bit = 0, bool ext8bit = false)
 	{
 		idx_ = cast(uint8_t)(idx | (ext8bit ? EXT8BIT : 0));
 		kind_ = kind;
 		bit_  = bit;
-		zero_ = 0;
+		zero_ = false;
 		mask_ = 0;
 		rounding_ = 0;
 		NF_ = 0;
@@ -581,7 +582,20 @@ version(XBYAK32){
 		assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
 	}
 
-	int getKind() const { return cast(Kind)kind_;	} ///
+	this(Operand op)
+	{
+		idx_ = op.idx_;
+		kind_ = op.kind_;
+		bit_  = op.bit_;
+		zero_ = op.zero_;
+		mask_ = op.mask_;
+		rounding_ = op.rounding_;
+		NF_ = op.NF_;
+		ZU_ = op.ZU_;
+		assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
+	}
+
+	int getKind() const { return cast(Kind)kind_; } ///
 	int  getIdx () const { return idx_ & (EXT8BIT - 1); }
 	bool hasIdxBit(int bit) const { return 1 == (idx_ & (1<<bit)); }
 	bool isNone () const {	return (kind_ == Kind.NONE); }
@@ -600,7 +614,7 @@ version(XBYAK32){
 	bool isREG(int bit = 0) const {	return isKind(Kind.REG, bit);	}
 	bool isMEM(int bit = 0) const {	return isKind(Kind.MEM, bit);	}
 	bool isFPU  () const {	return isKind(Kind.FPU);}
-	bool isExt8bit() const {	return (idx_ & EXT8BIT) != 0;	}
+	bool isExt8bit() const { return (idx_ & EXT8BIT) != 0;	}
 	bool isExtIdx() const { return (getIdx() & 8) != 0; }
 	bool isExtIdx2() const { return (getIdx() & 16) != 0; }
 	bool hasEvex() const { return isZMM() || isExtIdx2() || getOpmaskIdx() || getRounding(); }
@@ -777,15 +791,20 @@ version(XBYAK32){
 
 	bool isEqualIfNotInherited(Operand rhs) const
 	{
-		return idx_ == rhs.idx_ && kind_ == rhs.kind_ && bit_ == rhs.bit_ && zero_ == rhs.zero_ && mask_ == rhs.mask_ && rounding_ == rhs.rounding_;
-	}
+		bool Idx_ = this.idx_ == rhs.idx_;
+		bool Kind_ = this.kind_ == rhs.kind_;
+		bool Bit_ = this.bit_ == rhs.bit_;
+		bool Zero_ = this.zero_ == rhs.zero_;
+		bool Mask_ = this.mask_ == rhs.mask_;
+		bool Rounding_ = this.rounding_ == rhs.rounding_;
+		return Idx_ && Kind_ && Bit_ && Zero_ && Mask_ && Rounding_;
+ 	}
 
 	override bool opEquals(Object o) const
 	{
-		auto rhs = cast(Operand) o;
-		if(rhs is null) return false;
+		Operand rhs = cast(Operand) o;
 			
-		if (isMEM() && rhs.isMEM()) return this.getAddress() == rhs.getAddress();
+		if (this.isMEM() && rhs.isMEM()) return this.getAddress() == rhs.getAddress();
 		return isEqualIfNotInherited(rhs);
 	}
 
@@ -906,16 +925,21 @@ class EvexModifierRounding {
 		T_SAE = 5
 	}
 	
-	this(int r)
+	this(int rounding)
 	{
-		rounding = r;
+		this.rounding = rounding;
 	}
 	
 	int rounding;
 	
 	T opBinaryRight(string op:"|", T)(T x)
 	{		
-		T r = new T();
+		T r = new T(x);
+		r.zero_ = x.zero_;
+		r.mask_ = x.mask_;
+		r.rounding_ = x.rounding_;
+		r.NF_ = x.NF_;
+		r.ZU_ = x.ZU_;
 		r.setRounding(this.rounding);
 		return r;
 	}
@@ -923,10 +947,14 @@ class EvexModifierRounding {
 
 class EvexModifierZero
 {
-
 	T opBinaryRight(string op:"|", T)(T x)
 	{
-		T r = new T();
+		T r = new T(x);
+		r.zero_ = x.zero_;
+		r.mask_ = x.mask_;
+		r.rounding_ = x.rounding_;
+		r.NF_ = x.NF_;
+		r.ZU_ = x.ZU_;
 		r.setZero();
 		return r;
 	}
@@ -966,8 +994,14 @@ public:
 	}
 	
 	Xmm opBinary(string op:"|") (EvexModifierRounding emr)
-	{
-		Xmm r = this;
+	{		
+		Xmm r = new Xmm(this);
+		r.zero_ = this.zero_;
+		r.mask_ = this.mask_;
+		r.rounding_ = this.rounding_;
+		r.NF_ = this.NF_;
+		r.ZU_ = this.ZU_;
+	
 		r.setRounding(emr.rounding);
 		return r;
 	}
@@ -975,6 +1009,12 @@ public:
 	Xmm copyAndSetIdx(int idx)
 	{
 		Xmm ret = new Xmm(this);
+		ret.zero_ = this.zero_;
+		ret.mask_ = this.mask_;
+		ret.rounding_ = this.rounding_;
+		ret.NF_ = this.NF_;
+		ret.ZU_ = this.ZU_;
+		
 		ret.setIdx(idx);
 		return ret;
 	}
@@ -982,6 +1022,12 @@ public:
 	Xmm copyAndSetKind(int kind)
 	{
 		Xmm ret = new Xmm(this);
+		ret.zero_ = this.zero_;
+		ret.mask_ = this.mask_;
+		ret.rounding_ = this.rounding_;
+		ret.NF_ = this.NF_;
+		ret.ZU_ = this.ZU_;
+		
 		ret.setKind(kind);
 		return ret;
 	}
@@ -1001,8 +1047,14 @@ public:
 	}
 	
 	Ymm opBinary(string op:"|")(EvexModifierRounding emr)
-	{
-		Ymm r = new YMM(this);
+	{	
+		Ymm r = new Ymm(this);
+		r.zero_ = this.zero_;
+		r.mask_ = this.mask_;
+		r.rounding_ = this.rounding_;
+		r.NF_ = this.NF_;
+		r.ZU_ = this.ZU_;
+		
 		r.setRounding(emr.rounding);
 		return r;
 	}
@@ -1043,6 +1095,12 @@ public:
 	Zmm opBinary(string op:"|")(EvexModifierRounding emr)
 	{
 		Zmm r = new Zmm(this);
+		r.zero_ = this.zero_;
+		r.mask_ = this.mask_;
+		r.rounding_ = this.rounding_;
+		r.NF_ = this.NF_;
+		r.ZU_ = this.ZU_;
+		
 		r.setRounding(emr.rounding);
 		return r;
 	}
@@ -1068,8 +1126,8 @@ class Opmask : Reg {
 	
 	T opBinaryRight(string op:"|", T)(T x)
 	{
-		T r = new T();
-		r.setOpmaskIdx(k.getIdx());
+		T r = new T(x);
+		r.setOpmaskIdx(this.getIdx());
 		return r;
 	}
 }
@@ -1245,9 +1303,15 @@ else
 		return exp;
 	}
 	
-	bool opEquals(RegExp rhs) const
+	override bool opEquals(Object o) const
 	{
-		return base_ == rhs.base_ && index_ == rhs.index_ && disp_ == rhs.disp_ && scale_ == rhs.scale_;
+		RegExp rhs = cast(RegExp) o;
+		
+		bool Base_ = this.base_ == rhs.base_;
+		bool Index_ = this.index_ == rhs.index_;
+		bool Dsip_ = this.disp_ == rhs.disp_;
+		bool Scale_ = this.scale_ == rhs.scale_;
+		return Base_ && Index_ && Dsip_ && Scale_;
 	}
 	
 	Reg getBase() const { return cast(Reg)base_; }
@@ -1619,15 +1683,15 @@ public:
    	this(uint32_t sizeBit, bool broadcast, RegExp e)
 	{
 		super(0, Kind.MEM, sizeBit);
-		e_ = e;
-		label_ = new Label();
-		mode_ = Mode.M_ModRM;
-		broadcast_ = broadcast;
-		immSize = 0;
-		disp8N = 0;
-		permitVsib = false;
-		broadcast_ = broadcast;
-		optimize_ = true;
+		this.e_ = e;
+		this.label_ = null;
+		this.mode_ = Mode.M_ModRM;
+		this.broadcast_ = broadcast;
+		this.immSize = 0;
+		this.disp8N = 0;
+		this.permitVsib = false;
+		this.broadcast_ = broadcast;
+		this.optimize_ = true;
 		
 		e_.verify();
 	}
@@ -1638,7 +1702,7 @@ version(XBYAK64)
 	{
 		super(0, Kind.MEM, 64);
 		e_ = new RegExp(disp);
-		label_ = new Label();
+		label_ = null;
 		mode_ = Mode.M_64bitDisp;
 		immSize = 0;
 		disp8N = 0;
@@ -1679,9 +1743,18 @@ version(XBYAK64)
 
 	override bool opEquals(Object o) const
 	{
-		Address rhs = cast(Address)o;
-		if(!rhs) return false;
-		return this.getBit() == rhs.getBit() && this.e_ == rhs.e_ && this.label_ == rhs.label_ && this.mode_ == rhs.mode_ && this.broadcast_ == rhs.broadcast_;
+		Address rhs = cast(Address) o;
+
+		bool Bit_ = this.getBit() == rhs.getBit();
+		bool E_ = this.e_ == rhs.e_;
+		bool Label_ = this.label_ == rhs.label_;
+		bool Mode_ = this.mode_ == rhs.mode_;
+		bool ImmSize = this.immSize == rhs.immSize;
+		bool Disp8N_ = this.disp8N == rhs.disp8N;
+		bool PermitVsib = this.permitVsib == rhs.permitVsib;
+		bool Broadcast_ = this.broadcast_ == rhs.broadcast_;
+		bool Optimize_ = this.optimize_ == rhs.optimize_;
+		return Bit_ && E_ && Label_ && Mode_ && ImmSize && Disp8N_&& PermitVsib && Broadcast_ && Optimize_;
 	}
 
 	bool isVsib() const { return e_.isVsib(); }
@@ -2358,8 +2431,8 @@ enum : uint64_t
 		return v;
 	}
 	
-	int evex(Reg reg, Reg base, Operand v, uint64_t type, int code, Reg x = new Reg(), bool b = false, int aaa = 0, uint32_t VL = 0, bool Hi16Vidx = false)
-	{
+	int evex(Reg reg, Reg base, Operand v, uint64_t type, int code, Reg x = null, bool b = false, int aaa = 0, uint32_t VL = 0, bool Hi16Vidx = false)
+ 	{
 		if (!(type & (T_EVEX | T_MUST_EVEX))) mixin(XBYAK_THROW_RET(ERR.EVEX_IS_INVALID, "0"));
 		int w = (type & T_EW1) ? 1 : 0;
 		uint32_t mmm = getMap(type);
@@ -2368,9 +2441,9 @@ enum : uint64_t
 		int idx = v ? v.getIdx() : 0;
 		uint32_t vvvv = ~idx;
 		
-		bool R = !reg.isExtIdx();
+		bool R = reg.isExtIdx();
 		bool X3 = (x && x.isExtIdx()) || (base.isSIMD() && base.isExtIdx2());
-		bool B4 = base.isREG() && base.isExtIdx2();
+		uint8_t B4 = (base.isREG() && base.isExtIdx2()) ? 8 : 0;
 		uint8_t U = (x && (x.isREG() && x.isExtIdx2())) ? 0 : 4;
 		bool B = base.isExtIdx();
 		bool Rp = reg.isExtIdx2();
@@ -2405,11 +2478,15 @@ enum : uint64_t
 				}
 			}
 		}
-		bool V4 = !((v ? v.isExtIdx2() : 0) | Hi16Vidx);
-		bool z = reg.hasZero() || base.hasZero() || (v ? v.hasZero() : false);
+		bool V4 = ((v ? v.isExtIdx2() : 0) | Hi16Vidx);
+
+		bool f1 = reg.hasZero();
+		bool f2 = base.hasZero();
+		bool f3 = (v ? v.hasZero() : false);
+		bool z = f1 || f2 || f3 ;
+
 		if (aaa == 0) aaa = verifyDuplicate(base.getOpmaskIdx(), reg.getOpmaskIdx(), (v ? v.getOpmaskIdx() : 0), ERR.OPMASK_IS_ALREADY_SET);
-		
-		if (aaa == 0) z = 0; // clear T_z if mask is not set
+		if (aaa == 0) z = false; // clear T_z if mask is not set
 		db(0x62);
 		db((R ? 0 : 0x80) | (X3 ? 0 : 0x40) | (B ? 0 : 0x20) | (Rp ? 0 : 0x10) | B4 | mmm);
 		db((w == 1 ? 0x80 : 0) | ((vvvv & 15) << 3) | U | (pp & 3));
@@ -2518,7 +2595,6 @@ version (XBYAK64)
 			dd(disp);
 		}
 	}
-
 
 	LabelManager labelMgr_ = new LabelManager();
 	bool isInDisp16(uint32_t x) const { return 0xFFFF8000 <= x || x <= 0x7FFF; }
@@ -3872,11 +3948,12 @@ version (XBYAK64)
 			} else {
 				mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
 			}
-		} else
+		}
+		else
 		{
 			opRO_MR(op1, op2, 0x88);
 		}
-		//return;
+		return;
 }
 else
 {
@@ -3885,11 +3962,12 @@ else
 			rex(reg, addr);
 			db(code | (reg.isBit(8) ? 0 : 1));
 			dd(cast(uint32_t) (addr.getDisp()));
-		} else
+		}
+		else
 		{
 			opRO_MR(op1, op2, 0x88);
 		}
-		//return;
+		return;
 }
 	}
 
@@ -3919,8 +3997,8 @@ else
 	// The template is used to avoid ambiguity when the 2nd argument is 0.
 	// When the 2nd argument is 0 the call goes to
 	// `void mov(const Operand& op, uint64_t imm)`.
-//	template <typename T1, typename T2>
-//	void mov(const T1&, const T2 *) { T1::unexpected; }
+	//	template <typename T1, typename T2>
+	//	void mov(const T1&, const T2 *) { T1::unexpected; }
 
 	void mov(NativeReg reg, ref Label label)
 	{
@@ -4146,8 +4224,14 @@ version(XBYAK_TEST) {
 		}
 	}
 
-version(XBYAK_DONT_READ_LIST) {
-	void align_(size_t x = 16, bool useMultiByteNop = true)
+version(XBYAK_DONT_READ_LIST)
+{}
+else
+{
+	/*
+		use single byte nop if useMultiByteNop = false
+	*/
+	void xbayk_align(size_t x = 16, bool useMultiByteNop = true)
 	{
 		if (x == 1) return;
 		if (x < 1 || (x & (x - 1))) mixin(XBYAK_THROW(ERR.BAD_ALIGN));
@@ -4159,6 +4243,10 @@ version(XBYAK_DONT_READ_LIST) {
 	}
 }
 
+version(XBYAK_DONT_READ_LIST)
+{}
+else
+{
 string getVersionString() const { return "0.0721"; }
 void aadd(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38, 0x0FC, T_APX); }
 void aand(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38|T_66, 0x0FC, T_APX|T_66); }
@@ -6148,6 +6236,8 @@ version(XBYAK64) {
 }
 
 version(XBYAK_DISABLE_AVX512)
+{}
+else
 {
 	void kaddb(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_66 | T_W0, 0x4A); }
 	void kaddd(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_66 | T_W1, 0x4A); }
@@ -6847,6 +6937,8 @@ version(XBYAK_DISABLE_AVX512)
 		void vpbroadcastq(Xmm x, Reg64 r) { opVex(x, null, r, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x7C); }
 	}
 }
+}// version(XBYAK_DONT_READ_LIST) else
+
 }// CodeGenerator
 
 alias T_SHORT = CodeGenerator.LabelType.T_SHORT;
