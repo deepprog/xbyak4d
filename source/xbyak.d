@@ -514,7 +514,7 @@ protected:
 	void setIdx(int idx) { idx_ = idx; }
 
 public:
-	enum Kind
+	enum Kind : int
 	{
 		NONE = 0,
 		MEM = 1 << 0,
@@ -647,10 +647,10 @@ version(XBYAK32){
 		}
 		
 		if (isKind(Kind.REG | Kind.XMM | Kind.YMM | Kind.ZMM | Kind.TMM)) {
-			int idx = getIdx;
+			int idx = getIdx();
 			// err if converting ah, bh, ch, dh
 			if (isREG(8) && (4 <= idx && idx < 8) && !isExt8bit) goto ERR;
-			int kind = Kind.REG;
+			Kind kind = Kind.REG;
 			switch (bit)
 			{
 				case 8:
@@ -707,7 +707,7 @@ version(XBYAK32){
 	// ah, ch, dh, bh?
 	bool isHigh8bit() const
 	{
-		if (!isBit(8))	return false;
+		if (!isBit(8)) return false;
 		if (isExt8bit()) return false;
 		const int idx = getIdx();
 		return Operand.AH <= idx && idx <= Operand.BH;
@@ -723,15 +723,15 @@ version(XBYAK32){
 
 	override string toString() const
 	{
-		int idx = getIdx;
+		const int idx = getIdx();
 		if (kind_ == Kind.REG)
 		{
 			if (isExt8bit()) {
-				string[] tbl = [ "spl", "bpl", "sil", "dil" ];
+				string[4] tbl = [ "spl", "bpl", "sil", "dil" ];
 				return tbl[idx - 4];
 			}
 			
-			string[][] tbl = [
+			string[32][4] tbl = [
 			        [ "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b",
 					"r16b", "r17b", "r18b", "r19b", "r20b", "r21b", "r22b", "r23b", "r24b", "r25b", "r26b", "r27b", "r28b", "r29b", "r30b", "r31b" ],
 			        [ "ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w",
@@ -742,48 +742,46 @@ version(XBYAK32){
 					"r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23", "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31" ],
 			];
 			return tbl[bit_ == 8 ? 0 : bit_ == 16 ? 1 : bit_ == 32 ? 2 : 3][idx];
-		} else if (isOPMASK) {
-			string[] tbl = [ 
-				"k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7"
-			];
+		} else if (isOPMASK()) {
+			string[8] tbl = [ "k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7" ];
 			return tbl[idx];
 		} else if (isTMM()) {
-			string[] tbl = [
+			string[8] tbl = [
 				"tmm0", "tmm1", "tmm2", "tmm3", "tmm4", "tmm5", "tmm6", "tmm7"
 			];
 			return tbl[idx];
-		} else if (isZMM) {
-			string[] tbl = [ 
+		} else if (isZMM()) {
+			string[32] tbl = [ 
 				"zmm0", "zmm1", "zmm2", "zmm3", "zmm4", "zmm5", "zmm6", "zmm7",
 				"zmm8",	"zmm9", "zmm10", "zmm11", "zmm12", "zmm13", "zmm14", "zmm15",
 				"zmm16", "zmm17", "zmm18","zmm19","zmm20", "zmm21", "zmm22", "zmm23", 
 				"zmm24", "zmm25" ,"zmm26", "zmm27", "zmm28","zmm29", "zmm30", "zmm31"
 			];
 			return tbl[idx];
-		} else if (isYMM) {
-			string[] tbl = [ 
+		} else if (isYMM()) {
+			string[32] tbl = [ 
 				"ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5", "ymm6", "ymm7",
 				"ymm8", "ymm9",	"ymm10", "ymm11", "ymm12", "ymm13", "ymm14", "ymm15",
 				"ymm16", "ymm17", "ymm18","ymm19", "ymm20", "ymm21", "ymm22", "ymm23",
 				"ymm24", "ymm25", "ymm26", "ymm27", "ymm28", "ymm29", "ymm30", "ymm31"
 			];
 			return tbl[idx];
-		} else if (isXMM) {
-			string[] tbl = [ 
-				"ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5", "ymm6", "ymm7",
-				"ymm8", "ymm9",	"ymm10", "ymm11", "ymm12", "ymm13", "ymm14", "ymm15",
-				"ymm16", "ymm17", "ymm18","ymm19", "ymm20", "ymm21", "ymm22", "ymm23",
-				"ymm24", "ymm25", "ymm26", "ymm27", "ymm28", "ymm29", "ymm30", "ymm31"
+		} else if (isXMM()) {
+			string[32] tbl = [ 
+				"xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7",
+				"xmm8", "xmm9",	"xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15",
+				"xmm16", "xmm17", "xmm18","xmm19", "xmm20", "xmm21", "xmm22", "xmm23",
+				"xmm24", "xmm25", "xmm26", "xmm27", "xmm28", "xmm29", "xmm30", "xmm31"
 			];
-			return "xmm" ~ tbl[idx];
-		} else if (isMMX) {
-			string[] tbl = [ "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7" ];
 			return tbl[idx];
-		} else if (isFPU) {
-			string[] tbl = [ "st0", "st1", "st2", "st3", "st4", "st5", "st6", "st7" ];
+		} else if (isMMX()) {
+			string[8] tbl = [ "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7" ];
+			return tbl[idx];
+		} else if (isFPU()) {
+			string[8] tbl = [ "st0", "st1", "st2", "st3", "st4", "st5", "st6", "st7" ];
 			return tbl[idx];
 		} else if (isBNDREG()) {
-			string[] tbl = [ "bnd0", "bnd1", "bnd2", "bnd3" ];
+			string[4] tbl = [ "bnd0", "bnd1", "bnd2", "bnd3" ];
 			return tbl[idx];
 		}
 		mixin(XBYAK_THROW_RET(ERR.INTERNAL, "null"));
@@ -2333,58 +2331,56 @@ version (XBYAK64)
 		return false;
 	}
 
-enum : uint64_t
-{
-	T_NONE = 0,
-	// low 3 bit
-	T_N1 = 1uL,
-	T_N2 = 2uL,
-	T_N4 = 3uL,
-	T_N8 = 4uL,
-	T_N16 = 5uL,
-	T_N32 = 6uL,
-	T_NX_MASK = 7uL,
-	T_DUP = T_NX_MASK,	//1 << 4, // N = (8, 32, 64)
-	T_N_VL = 1uL << 3,	// N * (1, 2, 4) for VL
-	T_APX = 1uL << 4,
-	T_66 = 1uL << 5,	// pp = 1
-	T_F3 = 1uL << 6,	// pp = 2
-	T_ER_R = 1uL << 7,	// reg{er}
-	T_0F = 1uL << 8,
-	T_0F38 = 1uL << 9,
-	T_0F3A = 1uL << 10,
-	T_L0 = 1uL << 11,
-	T_L1 = 1uL << 12,
-	T_W0 = 1uL << 13,
-	T_W1 = 1uL << 14,
-	T_EW0 = 1uL << 15,
-	T_EW1 = 1uL << 16,
-	T_YMM = 1uL << 17,	// support YMM, ZMM
-	T_EVEX = 1uL << 18,
-	T_ER_X = 1uL << 19,	// xmm{er}
-	T_ER_Y = 1uL << 20,	// ymm{er}
-	T_ER_Z = 1uL << 21,	// zmm{er}
-	T_SAE_X = 1uL << 22,	// xmm{sae}
-	T_SAE_Y = 1uL << 23,	// ymm{sae}
-	T_SAE_Z = 1uL << 24,	// zmm{sae}
-	T_MUST_EVEX = 1uL << 25,	// contains T_EVEX
-	T_B32 = 1uL << 26,	// m32bcst
-	T_B64 = 1uL << 27,	// m64bcst
-	T_B16 = T_B32 | T_B64,	// m16bcst (Be carefuL)
-	T_M_K = 1uL << 28,	// mem{k}
-	T_VSIB = 1uL << 29,
-	T_MEM_EVEX = 1uL << 30,	// use evex if mem
-	T_FP16 = 1uL << 31,	// avx512-fp16
-	T_MAP5 = T_FP16 | T_0F,
-	T_MAP6 = T_FP16 | T_0F38,
-	T_NF = 1uL << 32,	// T_nf
-	T_CODE1_IF1 = 1uL << 33,	// code|=1 if !r.isBit(8)
+static const uint64_t	T_NONE = 0;
+// low 3 bit
+static const uint64_t	T_N1 = 1uL;
+static const uint64_t	T_N2 = 2uL;
+static const uint64_t	T_N4 = 3uL;
+static const uint64_t	T_N8 = 4uL;
+static const uint64_t	T_N16 = 5uL;
+static const uint64_t	T_N32 = 6uL;
+static const uint64_t	T_NX_MASK = 7uL;
+static const uint64_t	T_DUP = T_NX_MASK;	//1 << 4, // N = (8, 32, 64)
+static const uint64_t	T_N_VL = 1uL << 3;	// N * (1, 2, 4) for VL
+static const uint64_t	T_APX = 1uL << 4;
+static const uint64_t	T_66 = 1uL << 5;	// pp = 1
+static const uint64_t	T_F3 = 1uL << 6;	// pp = 2
+static const uint64_t	T_ER_R = 1uL << 7;	// reg{er}
+static const uint64_t	T_0F = 1uL << 8;
+static const uint64_t	T_0F38 = 1uL << 9;
+static const uint64_t	T_0F3A = 1uL << 10;
+static const uint64_t	T_L0 = 1uL << 11;
+static const uint64_t	T_L1 = 1uL << 12;
+static const uint64_t	T_W0 = 1uL << 13;
+static const uint64_t	T_W1 = 1uL << 14;
+static const uint64_t	T_EW0 = 1uL << 15;
+static const uint64_t	T_EW1 = 1uL << 16;
+static const uint64_t	T_YMM = 1uL << 17;	// support YMM, ZMM
+static const uint64_t	T_EVEX = 1uL << 18;
+static const uint64_t	T_ER_X = 1uL << 19;	// xmm{er}
+static const uint64_t	T_ER_Y = 1uL << 20;	// ymm{er}
+static const uint64_t	T_ER_Z = 1uL << 21;	// zmm{er}
+static const uint64_t	T_SAE_X = 1uL << 22;	// xmm{sae}
+static const uint64_t	T_SAE_Y = 1uL << 23;	// ymm{sae}
+static const uint64_t	T_SAE_Z = 1uL << 24;	// zmm{sae}
+static const uint64_t	T_MUST_EVEX = 1uL << 25;	// contains T_EVEX
+static const uint64_t	T_B32 = 1uL << 26;	// m32bcst
+static const uint64_t	T_B64 = 1uL << 27;	// m64bcst
+static const uint64_t	T_B16 = T_B32 | T_B64;	// m16bcst (Be carefuL)
+static const uint64_t	T_M_K = 1uL << 28;	// mem{k}
+static const uint64_t	T_VSIB = 1uL << 29;
+static const uint64_t	T_MEM_EVEX = 1uL << 30;	// use evex if mem
+static const uint64_t	T_FP16 = 1uL << 31;	// avx512-fp16
+static const uint64_t	T_MAP5 = T_FP16 | T_0F;
+static const uint64_t	T_MAP6 = T_FP16 | T_0F38;
+static const uint64_t	T_NF = 1uL << 32;	// T_nf
+static const uint64_t	T_CODE1_IF1 = 1uL << 33;	// code|=1 if !r.isBit(8)
 
-	T_ND1 = 1uL << 35,	// ND=1
-	T_ZU = 1uL << 36,	// ND=ZU
-	T_F2 = 1uL << 37,	// pp = 3
-}
-	// T_66 = 1, T_F3 = 2, T_F2 = 3
+static const uint64_t	T_ND1 = 1uL << 35;	// ND=1
+static const uint64_t	T_ZU = 1uL << 36;	// ND=ZU
+static const uint64_t	T_F2 = 1uL << 37;	// pp = 3
+
+// T_66 = 1, T_F3 = 2, T_F2 = 3
 	uint32_t getPP(uint64_t type) { return (type & T_66) ? 1 : (type & T_F3) ? 2 : (type & T_F2) ? 3 : 0; }
 
 	uint32_t getMap(uint64_t type) { return (type & T_0F) ? 1 : (type & T_0F38) ? 2 : (type & T_0F3A) ? 3 : 0; }
@@ -3181,7 +3177,7 @@ version(XBYAK64) {
 	
 	void opCvt(Xmm x, Operand op, uint64_t type, int code)
 	{
-		int kind = x.isXMM() ? (op.isBit(256) ? Kind.YMM : Kind.XMM) : Kind.ZMM;
+		Kind kind = x.isXMM() ? (op.isBit(256) ? Kind.YMM : Kind.XMM) : Kind.ZMM;
 		opVex(x.copyAndSetKind(kind), xm0, op, type, code);
 	}
 	
@@ -3779,14 +3775,14 @@ version (XBYAK64)
 			zmm30 = new Zmm(30),
 			zmm31 = new Zmm(31),
 
-			tmm0 = new Zmm(0),
-			tmm1 = new Zmm(1),
-			tmm2 = new Zmm(2),
-			tmm3 = new Zmm(3),
-			tmm4 = new Zmm(4),
-			tmm5 = new Zmm(5),
-			tmm6 = new Zmm(6),
-			tmm7 = new Zmm(7),
+			tmm0 = new Tmm(0),
+			tmm1 = new Tmm(1),
+			tmm2 = new Tmm(2),
+			tmm3 = new Tmm(3),
+			tmm4 = new Tmm(4),
+			tmm5 = new Tmm(5),
+			tmm6 = new Tmm(6),
+			tmm7 = new Tmm(7),
 						
 			// for my convenience
 			xm8 = xmm8, xm9 = xmm9, xm10 = xmm10, xm11 = xmm11, xm12 = xmm12, xm13 = xmm13, xm14 = xmm14, xm15 = xmm15, 
@@ -6948,11 +6944,11 @@ alias T_AUTO  = CodeGenerator.LabelType.T_AUTO;
 
 string def_alias(string[] names)
 {
- string result;
-  foreach(name; names){
-	  result ~="alias "~name~" = CodeGenerator."~name~";\n"; 
+	string result;
+  	foreach(name; names){
+		result ~="alias "~name~" = CodeGenerator."~name~";\n"; 
 	}
- return result;
+	return result;
 }
 
 mixin(["mm0","mm1","mm2","mm3","mm4","mm5","mm6","mm7"].def_alias);
@@ -6963,57 +6959,52 @@ mixin(["zmm0","zmm1","zmm2","zmm3","zmm4","zmm5","zmm6","zmm7"].def_alias);
 mixin(["eax","ecx","edx","ebx","esp","ebp","esi","edi"].def_alias);
 mixin(["ax","cx","dx","bx","sp","bp","si","di"].def_alias);
 mixin(["al","cl","dl","bl","ah","ch","dh","bh"].def_alias);
-mixin(["ptr","byte_","word","dword","qword"].def_alias);
+mixin(["ptr","byte_","word","dword","qword", "xword", "yword", "zword"].def_alias);
+mixin(["ptr_b", "xword_b", "yword_b", "zword_b"].def_alias);
 
 mixin(["st0","st1","st2","st3","st4","st5","st6","st7"].def_alias);
+mixin(["k0","k1","k2","k3","k4","k5","k6","k7"].def_alias);
+mixin(["bnd0","bnd1","bnd2","bnd3"].def_alias);
+mixin(["T_sae","T_rn_sae","T_rd_sae","T_ru_sae","T_rz_sae"].def_alias);
 
-/*
-static const XBYAK_CONSTEXPR AddressFrame ptr(0), byte(8), word(16), dword(32), qword(64), xword(128), yword(256), zword(512);
-static const XBYAK_CONSTEXPR AddressFrame ptr_b(0, true), xword_b(128, true), yword_b(256, true), zword_b(512, true);
-static const XBYAK_CONSTEXPR Fpu st0(0), st1(1), st2(2), st3(3), st4(4), st5(5), st6(6), st7(7);
-static const XBYAK_CONSTEXPR Opmask k0(0), k1(1), k2(2), k3(3), k4(4), k5(5), k6(6), k7(7);
-static const XBYAK_CONSTEXPR BoundsReg bnd0(0), bnd1(1), bnd2(2), bnd3(3);
-static const XBYAK_CONSTEXPR EvexModifierRounding T_sae(EvexModifierRounding::T_SAE), T_rn_sae(EvexModifierRounding::T_RN_SAE), T_rd_sae(EvexModifierRounding::T_RD_SAE), T_ru_sae(EvexModifierRounding::T_RU_SAE), T_rz_sae(EvexModifierRounding::T_RZ_SAE);
-static const XBYAK_CONSTEXPR EvexModifierZero T_z;
- */
-
+mixin(["T_z"].def_alias);
 
 version (XBYAK64)
 {
     mixin(["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi"].def_alias);
     mixin(["r8","r9","r10","r11","r12","r13","r14","r15"].def_alias);
-    mixin(["r8d","r9d","r10d","r11d","r12d","r13d","r14d","r15d"].def_alias);
-    mixin(["r8w","r9w","r10w","r11w","r12w","r13w","r14w","r15w"].def_alias);
-    mixin(["r8b","r9b","r10b","r11b","r12b","r13b","r14b","r15b"].def_alias);
-    
-    mixin(["spl","bpl","sil","dil"].def_alias);
-    mixin(["xmm8","xmm9","xmm10","xmm11","xmm12","xmm13","xmm14","xmm15"].def_alias);
-    mixin(["ymm8","ymm9","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15"].def_alias);
-    mixin(["rip"].def_alias);
+	mixin(["r16","r17","r18","r19","r20","r21","r22","r23"].def_alias);
+	mixin(["r24","r25","r26","r27","r28","r29","r30","r31"].def_alias);
 
-/*
-static const XBYAK_CONSTEXPR Reg64 rax(Operand::RAX), rcx(Operand::RCX), rdx(Operand::RDX), rbx(Operand::RBX), rsp(Operand::RSP), rbp(Operand::RBP), rsi(Operand::RSI), rdi(Operand::RDI), r8(Operand::R8), r9(Operand::R9), r10(Operand::R10), r11(Operand::R11), r12(Operand::R12), r13(Operand::R13), r14(Operand::R14), r15(Operand::R15);
-static const XBYAK_CONSTEXPR Reg64 r16(16), r17(17), r18(18), r19(19), r20(20), r21(21), r22(22), r23(23), r24(24), r25(25), r26(26), r27(27), r28(28), r29(29), r30(30), r31(31);
-static const XBYAK_CONSTEXPR Reg32 r8d(8), r9d(9), r10d(10), r11d(11), r12d(12), r13d(13), r14d(14), r15d(15);
-static const XBYAK_CONSTEXPR Reg32 r16d(16), r17d(17), r18d(18), r19d(19), r20d(20), r21d(21), r22d(22), r23d(23), r24d(24), r25d(25), r26d(26), r27d(27), r28d(28), r29d(29), r30d(30), r31d(31);
-static const XBYAK_CONSTEXPR Reg16 r8w(8), r9w(9), r10w(10), r11w(11), r12w(12), r13w(13), r14w(14), r15w(15);
-static const XBYAK_CONSTEXPR Reg16 r16w(16), r17w(17), r18w(18), r19w(19), r20w(20), r21w(21), r22w(22), r23w(23), r24w(24), r25w(25), r26w(26), r27w(27), r28w(28), r29w(29), r30w(30), r31w(31);
-static const XBYAK_CONSTEXPR Reg8 r8b(8), r9b(9), r10b(10), r11b(11), r12b(12), r13b(13), r14b(14), r15b(15), spl(Operand::SPL, true), bpl(Operand::BPL, true), sil(Operand::SIL, true), dil(Operand::DIL, true);
-static const XBYAK_CONSTEXPR Reg8 r16b(16), r17b(17), r18b(18), r19b(19), r20b(20), r21b(21), r22b(22), r23b(23), r24b(24), r25b(25), r26b(26), r27b(27), r28b(28), r29b(29), r30b(30), r31b(31);
-static const XBYAK_CONSTEXPR Xmm xmm8(8), xmm9(9), xmm10(10), xmm11(11), xmm12(12), xmm13(13), xmm14(14), xmm15(15);
-static const XBYAK_CONSTEXPR Xmm xmm16(16), xmm17(17), xmm18(18), xmm19(19), xmm20(20), xmm21(21), xmm22(22), xmm23(23);
-static const XBYAK_CONSTEXPR Xmm xmm24(24), xmm25(25), xmm26(26), xmm27(27), xmm28(28), xmm29(29), xmm30(30), xmm31(31);
-static const XBYAK_CONSTEXPR Ymm ymm8(8), ymm9(9), ymm10(10), ymm11(11), ymm12(12), ymm13(13), ymm14(14), ymm15(15);
-static const XBYAK_CONSTEXPR Ymm ymm16(16), ymm17(17), ymm18(18), ymm19(19), ymm20(20), ymm21(21), ymm22(22), ymm23(23);
-static const XBYAK_CONSTEXPR Ymm ymm24(24), ymm25(25), ymm26(26), ymm27(27), ymm28(28), ymm29(29), ymm30(30), ymm31(31);
-static const XBYAK_CONSTEXPR Zmm zmm8(8), zmm9(9), zmm10(10), zmm11(11), zmm12(12), zmm13(13), zmm14(14), zmm15(15);
-static const XBYAK_CONSTEXPR Zmm zmm16(16), zmm17(17), zmm18(18), zmm19(19), zmm20(20), zmm21(21), zmm22(22), zmm23(23);
-static const XBYAK_CONSTEXPR Zmm zmm24(24), zmm25(25), zmm26(26), zmm27(27), zmm28(28), zmm29(29), zmm30(30), zmm31(31);
-static const XBYAK_CONSTEXPR Zmm tmm0(0), tmm1(1), tmm2(2), tmm3(3), tmm4(4), tmm5(5), tmm6(6), tmm7(7);
-static const XBYAK_CONSTEXPR RegRip rip;
-static const XBYAK_CONSTEXPR ApxFlagNF T_nf;
-static const XBYAK_CONSTEXPR ApxFlagZU T_zu;
-*/
+    mixin(["r8d","r9d","r10d","r11d","r12d","r13d","r14d","r15d"].def_alias);
+	mixin(["r16d","r17d","r18d","r19d","r20d","r21d","r22d","r23d"].def_alias);
+    mixin(["r24d","r25d","r26d","r27d","r28d","r29d","r30d","r31d"].def_alias);
+
+    mixin(["r8w","r9w","r10w","r11w","r12w","r13w","r14w","r15w"].def_alias);
+	mixin(["r16w","r17w","r18w","r19w","r20w","r21w","r22w","r23w"].def_alias);
+    mixin(["r24w","r25w","r26w","r27w","r28w","r29w","r30w","r31w"].def_alias);
+    
+	mixin(["r8b","r9b","r10b","r11b","r12b","r13b","r14b","r15b"].def_alias);
+    mixin(["r16b","r17b","r18b","r19b","r20b","r21b","r22b","r23b"].def_alias);
+	mixin(["r24b","r25b","r26b","r27b","r28b","r29b","r30b","r31b"].def_alias);
+    mixin(["spl","bpl","sil","dil"].def_alias);
+	
+	mixin(["xmm8","xmm9","xmm10","xmm11","xmm12","xmm13","xmm14","xmm15"].def_alias);
+	mixin(["xmm16","xmm17","xmm18","xmm19","xmm20","xmm21","xmm22","xmm23"].def_alias);
+	mixin(["xmm24","xmm25","xmm26","xmm27","xmm28","xmm29","xmm30","xmm31"].def_alias);
+
+    mixin(["ymm8","ymm9","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15"].def_alias);
+	mixin(["ymm16","ymm17","ymm18","ymm19","ymm20","ymm21","ymm22","ymm23"].def_alias);
+	mixin(["ymm24","ymm25","ymm26","ymm27","ymm28","ymm29","ymm30","ymm31"].def_alias);
+
+	mixin(["zmm8","zmm9","zmm10","zmm11","zmm12","zmm13","zmm14","zmm15"].def_alias);
+	mixin(["zmm16","zmm17","zmm18","zmm19","zmm20","zmm21","zmm22","zmm23"].def_alias);
+	mixin(["zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm30","zmm31"].def_alias);
+
+	mixin(["tmm0","tmm1","tmm2","tmm3","tmm4","tmm5","tmm6","tmm7"].def_alias);
+	mixin(["rip"].def_alias);
+	mixin(["T_nf"].def_alias);
+	mixin(["T_zu"].def_alias);
 }
 
 version(XBYAK_DISABLE_SEGMENT){}
@@ -7027,3 +7018,64 @@ else
     alias gs = Segment.gs;
 }
 
+@("test_toString")
+unittest
+{
+	string def_string(string[] names)
+	{
+		string result;
+		foreach(name; names){
+			result ~= "assert(" ~ name ~ ".stringof == " ~ name ~ ".toString);\n";
+		}
+		return result;
+	}
+
+	mixin(def_string(["mm0","mm1","mm2","mm3","mm4","mm5","mm6","mm7"]));
+	mixin(def_string(["xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7"]));
+	mixin(def_string(["ymm0","ymm1","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7"]));
+	mixin(def_string(["zmm0","zmm1","zmm2","zmm3","zmm4","zmm5","zmm6","zmm7"]));
+
+	mixin(def_string(["eax","ecx","edx","ebx","esp","ebp","esi","edi"]));
+	mixin(def_string(["ax","cx","dx","bx","sp","bp","si","di"]));
+	mixin(def_string(["al","cl","dl","bl","ah","ch","dh","bh"]));
+
+	mixin(def_string(["st0","st1","st2","st3","st4","st5","st6","st7"]));
+	mixin(def_string(["k0","k1","k2","k3","k4","k5","k6","k7"]));
+	mixin(def_string(["bnd0","bnd1","bnd2","bnd3"]));
+
+version (XBYAK64)
+{
+    mixin(def_string(["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi"]));
+    mixin(def_string(["r8","r9","r10","r11","r12","r13","r14","r15"]));
+	mixin(def_string(["r16","r17","r18","r19","r20","r21","r22","r23"]));
+	mixin(def_string(["r24","r25","r26","r27","r28","r29","r30","r31"]));
+
+    mixin(def_string(["r8d","r9d","r10d","r11d","r12d","r13d","r14d","r15d"]));
+	mixin(def_string(["r16d","r17d","r18d","r19d","r20d","r21d","r22d","r23d"]));
+    mixin(def_string(["r24d","r25d","r26d","r27d","r28d","r29d","r30d","r31d"]));
+
+    mixin(def_string(["r8w","r9w","r10w","r11w","r12w","r13w","r14w","r15w"]));
+	mixin(def_string(["r16w","r17w","r18w","r19w","r20w","r21w","r22w","r23w"]));
+    mixin(def_string(["r24w","r25w","r26w","r27w","r28w","r29w","r30w","r31w"]));
+    
+	mixin(def_string(["r8b","r9b","r10b","r11b","r12b","r13b","r14b","r15b"]));
+    mixin(def_string(["r16b","r17b","r18b","r19b","r20b","r21b","r22b","r23b"]));
+	mixin(def_string(["r24b","r25b","r26b","r27b","r28b","r29b","r30b","r31b"]));
+    mixin(def_string(["spl","bpl","sil","dil"]));
+	
+	mixin(def_string(["xmm8","xmm9","xmm10","xmm11","xmm12","xmm13","xmm14","xmm15"]));
+	mixin(def_string(["xmm16","xmm17","xmm18","xmm19","xmm20","xmm21","xmm22","xmm23"]));
+	mixin(def_string(["xmm24","xmm25","xmm26","xmm27","xmm28","xmm29","xmm30","xmm31"]));
+
+    mixin(def_string(["ymm8","ymm9","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15"]));
+	mixin(def_string(["ymm16","ymm17","ymm18","ymm19","ymm20","ymm21","ymm22","ymm23"]));
+	mixin(def_string(["ymm24","ymm25","ymm26","ymm27","ymm28","ymm29","ymm30","ymm31"]));
+
+	mixin(def_string(["zmm8","zmm9","zmm10","zmm11","zmm12","zmm13","zmm14","zmm15"]));
+	mixin(def_string(["zmm16","zmm17","zmm18","zmm19","zmm20","zmm21","zmm22","zmm23"]));
+	mixin(def_string(["zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm30","zmm31"]));
+
+	mixin(def_string(["tmm0","tmm1","tmm2","tmm3","tmm4","tmm5","tmm6","tmm7"]));
+}
+	
+}
