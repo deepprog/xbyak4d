@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7210
- * Date: 2024/12/02
+ * Date: 2024/12/03
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -597,7 +597,7 @@ version(XBYAK32){
 
 	int getKind() const { return cast(Kind)kind_; } ///
 	int  getIdx () const { return idx_ & (EXT8BIT - 1); }
-	bool hasIdxBit(int bit) const { return 1 == (idx_ & (1<<bit)); }
+	bool hasIdxBit(int bit) const { return cast(bool)(idx_ & (1<<bit)); }
 	bool isNone () const {	return (kind_ == Kind.NONE); }
 	bool isMMX  () const {	return isKind(Kind.MMX);}
 	bool isXMM  () const {	return isKind(Kind.XMM);}
@@ -1121,6 +1121,16 @@ class Opmask : Reg {
 	{
 		super(idx, Kind.OPMASK, 64);
 	}
+
+	this(Opmask opmask)
+	{
+		super(opmask.idx_, Kind.OPMASK, 64);
+		this.zero_ = opmask.zero_;
+		this.mask_ = opmask.mask_;
+		this.rounding_ = opmask.rounding_;
+		this.NF_ = opmask.NF_;
+		this.ZU_ = opmask.ZU_;
+	}
 	
 	T opBinaryRight(string op:"|", T)(T x)
 	{
@@ -1180,6 +1190,17 @@ public class Reg32 : Reg32e {
 	{
 		super(idx, 32);
 	}
+
+	this(Reg32 reg32)
+	{
+		super(reg32.idx_, 32);
+		this.zero_ = reg32.zero_;
+		this.mask_ = reg32.mask_;
+		this.rounding_ = reg32.rounding_;
+		this.NF_ = reg32.NF_;
+		this.ZU_ = reg32.ZU_;
+	}
+
 }
 
 version (XBYAK64)
@@ -1188,6 +1209,16 @@ version (XBYAK64)
 		this(int idx = 0)
 		{
 			super(idx, 64);
+		}
+
+		this(Reg64 reg64)
+		{
+			super(reg64.idx_, 64);
+			this.zero_ = reg64.zero_;
+			this.mask_ = reg64.mask_;
+			this.rounding_ = reg64.rounding_;
+			this.NF_ = reg64.NF_;
+			this.ZU_ = reg64.ZU_;
 		}
 	}
 
@@ -2201,6 +2232,12 @@ enum PreferredEncoding
 	AVX10v2Encoding
 }
 
+alias DefaultEncoding	 = PreferredEncoding.DefaultEncoding;
+alias VexEncoding        = PreferredEncoding.VexEncoding;
+alias EvexEncoding       = PreferredEncoding.EvexEncoding;
+alias PreAVX10v2Encoding = PreferredEncoding.PreAVX10v2Encoding;
+alias AVX10v2Encoding    = PreferredEncoding.AVX10v2Encoding;
+
 public class CodeGenerator : CodeArray
 {
 public:
@@ -2266,11 +2303,11 @@ version (XBYAK64)
 	}
 	uint8_t rexRXB(int bit, int bit3, Reg r, Reg b, Reg x = new Reg())
 	{
-		uint8_t v = bit3 ? 8 : 0;
+		int v = bit3 ? 8 : 0;
 		if (r.hasIdxBit(bit)) v |= 4;
 		if (x.hasIdxBit(bit)) v |= 2;
 		if (b.hasIdxBit(bit)) v |= 1;
-		return v;
+		return cast(uint8_t)v;
 	}
 	void rex2(int bit3, int rex4bit, Reg r, Reg b, Reg x = new Reg())
 	{
@@ -2299,7 +2336,7 @@ version (XBYAK64)
 		if (type & T_F3) {
 			db(0xF3);
 		}
-		bool is0F = 1 == (type & T_0F);
+		bool is0F = cast(bool)(type & T_0F);
 		if (p2.isMEM())
 		{		
 			Reg r = cast(Reg)(p1);
