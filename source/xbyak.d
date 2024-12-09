@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7210
- * Date: 2024/12/03
+ * Date: 2024/12/09
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -26,10 +26,11 @@ version(X86_64)
 //version = XBYAK_TLS;
 
 //version = XBYAK_NO_EXCEPTION;
+
 //version = XBYAK_DISABLE_SEGMENT;
-//version = XBYAK_ENABLE_OMITTED_OPERAND;
+version = XBYAK_ENABLE_OMITTED_OPERAND;
 //version = XBYAK_DISABLE_AVX512;
-//version = XBYAK_TEST;
+version = XBYAK_TEST;
 //version = XBYAK_DONT_READ_LIST;
 //version = XBYAK_OLD_DISP_CHECK;
 
@@ -473,8 +474,25 @@ version(XBYAK_USE_MMAP_ALLOCATOR)
 	alias MmapAllocator = Allocator;
 }
 
-struct ApxFlagNF {}
-struct ApxFlagZU {}
+struct ApxFlagNF
+{
+	T opBinaryRight(string op:"|", T) (T t)
+	{		
+		T r = new T(t);
+		r.setNF();
+		return r;
+	}
+}
+
+struct ApxFlagZU
+{
+	T opBinaryRight(string op:"|", T) (T t)
+	{		
+		T r = new T(t);
+		r.setZU();
+		return r;
+	}
+}
 
 // dfv (default flags value) is or operation of these flags
 static const int T_of = 8;
@@ -497,6 +515,7 @@ enum Kind
 	BNDREG = 1 << 8,
 	TMM = 1 << 9
 }
+
 
 public class Operand {
 private:
@@ -529,7 +548,8 @@ public:
 		TMM = 1 << 9
 	}
 	
-version(XBYAK64){
+version(XBYAK64)
+{
 	enum : int //Code
 	{
         RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
@@ -541,21 +561,14 @@ version(XBYAK64){
 		R8B = 8, R9B, R10B, R11B, R12B, R13B, R14B, R15B,
 		R16B, R17B, R18B, R19B, R20B, R21B, R22B, R23B, R24B, R25B, R26B, R27B, R28B, R29B, R30B, R31B,
 		SPL = 4, BPL, SIL, DIL,
-		EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
-		AX  = 0, CX, DX, BX, SP, BP, SI, DI,
-		AL  = 0, CL, DL, BL, AH, CH, DH, BH
 	}
 }
-
-version(XBYAK32){
 	enum : int //Code 
 	{
 		EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
 		AX  = 0, CX, DX, BX, SP, BP, SI, DI,
 		AL  = 0, CL, DL, BL, AH, CH, DH, BH
 	}
-}
-
 
 	this()
 	{
@@ -584,7 +597,7 @@ version(XBYAK32){
 
 	this(Operand op)
 	{
-		idx_ = op.idx_;
+		setIdx(op.idx_);
 		kind_ = op.kind_;
 		bit_  = op.bit_;
 		zero_ = op.zero_;
@@ -594,18 +607,22 @@ version(XBYAK32){
 		ZU_ = op.ZU_;
 		assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
 	}
+	
+	static Operand opCall()
+	{
+		return new Operand();
+	}
 
 	int getKind() const { return cast(Kind)kind_; } ///
 	int  getIdx () const { return idx_ & (EXT8BIT - 1); }
 	bool hasIdxBit(int bit) const { return cast(bool)(idx_ & (1<<bit)); }
-	bool isNone () const {	return (kind_ == Kind.NONE); }
+	bool isNone () const {	return this.kind_ == 0; }
 	bool isMMX  () const {	return isKind(Kind.MMX);}
 	bool isXMM  () const {	return isKind(Kind.XMM);}
 	bool isYMM  () const {	return isKind(Kind.YMM);}
 	bool isZMM  () const {	return isKind(Kind.ZMM);}
 	bool isSIMD() const { return isKind(Kind.XMM | Kind.YMM | Kind.ZMM); }
 	bool isTMM() const { return isKind(Kind.TMM); }
-	 
 	bool isXMEM() const { return isKind(Kind.XMM | Kind.MEM); }
 	bool isYMEM() const { return isKind(Kind.YMM | Kind.MEM); }
 	bool isZMEM() const { return isKind(Kind.ZMM | Kind.MEM); }
@@ -619,17 +636,14 @@ version(XBYAK32){
 	bool isExtIdx2() const { return (getIdx() & 16) != 0; }
 	bool hasEvex() const { return isZMM() || isExtIdx2() || getOpmaskIdx() || getRounding(); }
 	bool hasRex() const { return isExt8bit() || isREG(64) || isExtIdx(); }
-	
 	bool hasRex2() const {
 		return (isREG() && isExtIdx2()) || (isMEM() && (cast(Address)this).hasRex2());
 	} 	
 	bool hasRex2NF() const { return hasRex2() || NF_; }
 	bool hasRex2NFZU() const { return hasRex2() || NF_ || ZU_; }
-	
 	bool hasZero() const { return zero_; }
 	int getOpmaskIdx() const { return mask_; }
 	int getRounding() const { return rounding_; }
-	
 	void setKind(int kind)
 	{
 		if ((kind & (Kind.XMM | Kind.YMM | Kind.ZMM | Kind.TMM)) == 0) return;
@@ -687,7 +701,6 @@ version(XBYAK32){
 	ERR:
 		mixin(XBYAK_THROW(ERR.CANT_CONVERT));
 	}
-		
 	void setOpmaskIdx(int idx, bool /*ignore_idx0*/ = true)
 	{
 		if (mask_) mixin(XBYAK_THROW(ERR.OPMASK_IS_ALREADY_SET));
@@ -703,7 +716,6 @@ version(XBYAK32){
 	int getNF() const { return NF_; }
 	void setZU() { ZU_ = true; }
 	int getZU() const { return ZU_; }
-	
 	// ah, ch, dh, bh?
 	bool isHigh8bit() const
 	{
@@ -712,7 +724,6 @@ version(XBYAK32){
 		const int idx = getIdx();
 		return Operand.AH <= idx && idx <= Operand.BH;
 	}
-
 	// any bit is accetable if bit == 0
 	bool isKind(int kind, uint32_t bit = 0) const
 	{
@@ -809,8 +820,7 @@ version(XBYAK32){
 	Address getAddress() const
 	{
 		assert(isMEM());
-		Address ret = cast(Address)this;
-		return ret;
+		return cast(Address)this;
 	}
 	
 	Address getAddress(int immSize) const
@@ -823,7 +833,7 @@ version(XBYAK32){
 	Reg getReg() const
 	{
 		assert(!isMEM());
-		Reg ret = new Reg(this.getIdx(), this.getKind(), this.getBit(), this.isExt8bit() );
+		Reg ret = new Reg(this.getIdx(), this.getKind(), this.getBit(), this.isExt8bit());
 		return ret;
 	}	
 }
@@ -832,13 +842,25 @@ version(XBYAK32){
 public class Reg : Operand {
 public:
 	this(){}
-	this(Reg r)
-	{
-		super(r.getIdx(), r.getKind(), r.getBit(), r.isExt8bit() );
-	}
+
 	this(int idx, int kind, int bit = 0, bool ext8bit = false)
 	{
 		super(idx, kind, bit, ext8bit);
+	}
+
+	this(Reg r)
+	{
+		super(cast(Operand)r);
+	}
+	
+	static Reg opCall()
+	{
+		return new Reg();
+	}
+	
+	static Reg opCall(int idx, int kind, int bit = 0, bool ext8bit = false)
+	{
+		return new Reg(idx, kind, bit, ext8bit);
 	}
 	// convert to Reg8/Reg16/Reg32/Reg64/XMM/YMM/ZMM
 	Reg changeBit(int bit) 
@@ -850,7 +872,7 @@ public:
 	
 	Reg8 cvt8()
 	{
-		Reg r = this.changeBit(8); return new Reg8(r.getIdx(), r.isExt8bit() );
+		Reg r = this.changeBit(8); return new Reg8(r.getIdx(), r.isExt8bit());
 	}
 	
 	Reg16 cvt16()
@@ -870,32 +892,60 @@ version (XBYAK64) {
 	}
 }
 
-	Reg opBinary(string op:"|")(ApxFlagNF a)
-	{		
-		Reg r = new Reg(this); 
-		r.setNF();
-		return r; 
-	}
-	
-	Reg opBinary(string op:"|")(ApxFlagZU a)
-	{		
-		Reg r = new Reg(this); 
-		r.setZU();
-		return r; 
-	}
-	 
 	override Reg getReg() const
 	{
 		assert(!isMEM());
-		return cast(Reg)this;
+		Reg r = new Reg(cast(Reg)this);
+		return r;
+	}
+	
+	RegExp opBinary(string op:"+") (Reg b)
+	{
+		return new RegExp(this) + new RegExp(b);
+	}
+
+	RegExp opBinaryRight(string op:"+") (Reg a)
+	{
+		return new RegExp(a) + new RegExp(this);
+	}
+
+	RegExp opBinary(string op:"*") (int scale)
+	{
+		return new RegExp(this, scale);
+	}
+	
+	RegExp opBinaryRight(string op:"*") (int scale)
+	{
+		return new RegExp(this, scale);
+	}
+
+	RegExp opBinary(string op:"+") (int disp)
+	{
+		return new RegExp(this) + disp;
+	}
+	
+	RegExp opBinaryRight(string op:"+") (int disp)
+	{
+		return new RegExp(this) + disp;
 	}
 }
 
 
 public class Reg8 : Reg {
 public:
-	this(int idx = 0, bool ext8bit = false) {
+	this(int idx = 0, bool ext8bit = false)
+	{
 		super(idx, Kind.REG, 8, ext8bit);
+	}
+
+	this(Reg8 r)
+	{
+		super(cast(Reg)r);
+	}
+	
+	static Reg8 opCall(int idx = 0, bool ext8bit = false)
+	{
+		return new Reg8(idx, ext8bit);
 	}
 }
 
@@ -904,6 +954,16 @@ public:
 	this(int idx = 0) {
 		super(idx, Kind.REG, 16);
 	}
+
+	this(Reg16 r)
+	{
+		super(cast(Reg)r);	
+	}
+
+	static Reg16 opCall(int idx)
+	{
+		return new Reg16(idx);
+	}
 }
 
 public class Mmx : Reg {
@@ -911,8 +971,17 @@ public:
 	this(int idx = 0, int kind = Kind.MMX, int bit = 64) {
 		super(idx, kind, bit);
 	}
-}
 
+	this(Mmx m)
+	{
+		super(cast(Reg)m);
+	}
+	
+	static Mmx opCall(int idx)
+	{
+		return new Mmx(idx);
+	}
+}
 
 class EvexModifierRounding {
 	enum {
@@ -933,11 +1002,6 @@ class EvexModifierRounding {
 	T opBinaryRight(string op:"|", T)(T x)
 	{		
 		T r = new T(x);
-		r.zero_ = x.zero_;
-		r.mask_ = x.mask_;
-		r.rounding_ = x.rounding_;
-		r.NF_ = x.NF_;
-		r.ZU_ = x.ZU_;
 		r.setRounding(this.rounding);
 		return r;
 	}
@@ -947,12 +1011,7 @@ class EvexModifierZero
 {
 	T opBinaryRight(string op:"|", T)(T x)
 	{
-		T r = new T(x);
-		r.zero_ = x.zero_;
-		r.mask_ = x.mask_;
-		r.rounding_ = x.rounding_;
-		r.NF_ = x.NF_;
-		r.ZU_ = x.ZU_;
+		T r = new T(x);	
 		r.setZero();
 		return r;
 	}
@@ -965,54 +1024,25 @@ public:
 	{
 		super(idx, kind, bit);
 	}
-
+	
 	this(Xmm x)
 	{
-		super(x.getIdx, x.getKind(), x.getBit() );
+		super(cast(Mmx)x);
 	}
 	
-	RegExp opBinary(string op:"+") (Reg32e b)
+	static Xmm opCall(int idx)
 	{
-		return new RegExp(this) + new RegExp(b);
+		return new Xmm(idx);
+	}
+	
+	static Xmm opCall(int kind, int idx)
+	{
+		return new Xmm(idx, kind, kind == Kind.XMM ? 128 : kind == Kind.YMM ? 256 : 512);
 	}
 
-	RegExp opBinaryRight(string op:"+") (Reg32e a)
-	{
-		return new RegExp(a) + new RegExp(this);
-	}
-
-	RegExp opBinary(string op:"*") (int scale)
-	{
-		return new RegExp(this, scale);
-	}
-
-	RegExp opBinary(string op:"+") (int disp)
-	{
-		return new RegExp(this) + disp;
-	}
-	
-	Xmm opBinary(string op:"|") (EvexModifierRounding emr)
-	{		
-		Xmm r = new Xmm(this);
-		r.zero_ = this.zero_;
-		r.mask_ = this.mask_;
-		r.rounding_ = this.rounding_;
-		r.NF_ = this.NF_;
-		r.ZU_ = this.ZU_;
-	
-		r.setRounding(emr.rounding);
-		return r;
-	}
-	
 	Xmm copyAndSetIdx(int idx)
 	{
 		Xmm ret = new Xmm(this);
-		ret.zero_ = this.zero_;
-		ret.mask_ = this.mask_;
-		ret.rounding_ = this.rounding_;
-		ret.NF_ = this.NF_;
-		ret.ZU_ = this.ZU_;
-		
 		ret.setIdx(idx);
 		return ret;
 	}
@@ -1020,12 +1050,6 @@ public:
 	Xmm copyAndSetKind(int kind)
 	{
 		Xmm ret = new Xmm(this);
-		ret.zero_ = this.zero_;
-		ret.mask_ = this.mask_;
-		ret.rounding_ = this.rounding_;
-		ret.NF_ = this.NF_;
-		ret.ZU_ = this.ZU_;
-		
 		ret.setKind(kind);
 		return ret;
 	}
@@ -1034,75 +1058,38 @@ public:
 
 public class Ymm : Xmm {
 public:
-	this(int idx = 0)
+	this(int idx = 0, int kind = Kind.YMM, int bit = 256)
 	{
-		super(idx, Kind.YMM, 256);
+		super(idx, kind, bit);
 	}
 	
 	this(Ymm y)
 	{
-		super(y.getIdx, y.getKind(), y.getBit() );
+		super(cast(Xmm)y);
 	}
 	
-	Ymm opBinary(string op:"|")(EvexModifierRounding emr)
-	{	
-		Ymm r = new Ymm(this);
-		r.zero_ = this.zero_;
-		r.mask_ = this.mask_;
-		r.rounding_ = this.rounding_;
-		r.NF_ = this.NF_;
-		r.ZU_ = this.ZU_;
-		
-		r.setRounding(emr.rounding);
-		return r;
-	}
-	
-	RegExp opBinary(string op:"+") (Reg32e b)
+	static Ymm opCall(int idx)
 	{
-		return new RegExp(this) + new RegExp(b);
-	}
-
-	RegExp opBinaryRight(string op:"+") (Reg32e a)
-	{
-		return new RegExp(a) + new RegExp(this);
-	}
-
-	RegExp opBinary(string op:"*") (int scale)
-	{
-		return new RegExp(this, scale);
-	}
-
-	RegExp opBinary(string op:"+") (int disp)
-	{
-		return new RegExp(this) + disp;
+		return new Ymm(idx);
 	}
 }
 
-public class Zmm : Xmm {
+public class Zmm : Ymm {
 public:
-	this(int idx = 0)
+	this(int idx = 0, int kind = Kind.ZMM, int bit = 512)
 	{
-		super(idx, Kind.ZMM, 512);
+		super(idx, kind, bit);
 	}
 	
 	this(Zmm z)
 	{
-		super(z.getIdx, z.getKind(), z.getBit() );
+		super(cast(Ymm)z);
 	}
 	
-	Zmm opBinary(string op:"|")(EvexModifierRounding emr)
+	static Zmm opCall(int idx)
 	{
-		Zmm r = new Zmm(this);
-		r.zero_ = this.zero_;
-		r.mask_ = this.mask_;
-		r.rounding_ = this.rounding_;
-		r.NF_ = this.NF_;
-		r.ZU_ = this.ZU_;
-		
-		r.setRounding(emr.rounding);
-		return r;
+		return new Zmm(idx);
 	}
-	
 }
 
 version(XBYAK64) {
@@ -1111,6 +1098,16 @@ version(XBYAK64) {
 		this(int idx = 0, Kind kind = Kind.TMM, int bit = 8192)
 		{
 			super(idx, kind, bit);
+		}
+
+		this(Tmm t)
+		{
+			super(cast(Reg)t);
+		}
+		
+		static Tmm opCall(int idx)
+		{
+			return new Tmm(idx);
 		}
 	}
 }
@@ -1124,12 +1121,12 @@ class Opmask : Reg {
 
 	this(Opmask opmask)
 	{
-		super(opmask.idx_, Kind.OPMASK, 64);
-		this.zero_ = opmask.zero_;
-		this.mask_ = opmask.mask_;
-		this.rounding_ = opmask.rounding_;
-		this.NF_ = opmask.NF_;
-		this.ZU_ = opmask.ZU_;
+		super(cast(Reg)opmask);
+	}
+	
+	static Opmask opCall(int idx)
+	{
+		return new Opmask(idx);
 	}
 	
 	T opBinaryRight(string op:"|", T)(T x)
@@ -1145,6 +1142,16 @@ class BoundsReg : Reg {
 	{
 		super(idx, Kind.BNDREG, 128);
 	}
+
+	this(BoundsReg b)
+	{
+		super(cast(Reg)b);
+	}
+	
+	static BoundsReg opCall(int idx)
+	{
+		return new BoundsReg(idx);
+	}
 }
 
 
@@ -1153,6 +1160,16 @@ public:
 	this(int idx)
 	{
 		super(idx, Kind.FPU, 32);
+	}
+
+	this(Fpu f)
+	{
+		super(cast(Reg)f);
+	}
+	
+	static Fpu opCall(int idx)
+	{
+		return new Fpu(idx);
 	}
 }
 
@@ -1163,6 +1180,16 @@ public class Reg32e : Reg {
 		super(idx, Kind.REG, bit);
 	}
 	
+	this(Reg32e r)
+	{
+		super(cast(Reg)r);
+	}
+	
+	static Reg32e opCall(int idx, int bit)
+	{
+		return new Reg32e(idx, bit);
+	}
+
 	RegExp opBinary(string op:"+") (Reg32e b)
 	{
 		return new RegExp(this) + new RegExp(b);
@@ -1172,53 +1199,63 @@ public class Reg32e : Reg {
 	{
 		return new RegExp(this, scale);
 	}
+	
+	RegExp opBinaryRight(string op:"*") (int scale)
+	{
+		return this * scale;
+	}
 
 	RegExp opBinary(string op:"+") (int disp)
 	{
 		return new RegExp(this) + disp;
 	}
 
- 	RegExp opBinaryRight(string op:"+") (int disp)
+	RegExp opBinaryRight(string op:"+") (int disp)
 	{
 		return new RegExp(this) + disp;
+	}
+
+	RegExp opBinary(string op:"-") (int disp)
+	{
+		return new RegExp(this) - disp;
 	}
 }
 
 
 public class Reg32 : Reg32e {
-	this(int idx)
+	this(int idx = 0, int bit = 32)
 	{
-		super(idx, 32);
+		super(idx, bit);
 	}
 
 	this(Reg32 reg32)
 	{
-		super(reg32.idx_, 32);
-		this.zero_ = reg32.zero_;
-		this.mask_ = reg32.mask_;
-		this.rounding_ = reg32.rounding_;
-		this.NF_ = reg32.NF_;
-		this.ZU_ = reg32.ZU_;
+		super(cast(Reg32e)reg32);
 	}
 
+	static Reg32 opCall(int idx)
+	{
+		return new Reg32(idx);
+	}
 }
 
 version (XBYAK64)
 {
-	public class Reg64 : Reg32e {
-		this(int idx = 0)
+	public class Reg64 : Reg32e
+	{
+		this(int idx = 0, int bit = 64)
 		{
-			super(idx, 64);
+			super(idx, bit);
 		}
 
 		this(Reg64 reg64)
 		{
-			super(reg64.idx_, 64);
-			this.zero_ = reg64.zero_;
-			this.mask_ = reg64.mask_;
-			this.rounding_ = reg64.rounding_;
-			this.NF_ = reg64.NF_;
-			this.ZU_ = reg64.ZU_;
+			super(cast(Reg32e)reg64);
+		}
+		
+		static Reg64 opCall(int idx)
+		{
+			return new Reg64(idx);
 		}
 	}
 
@@ -1234,6 +1271,7 @@ version (XBYAK64)
 			label_ = label;
 			isAddr_ = isAddr;
 		}
+
 		RegRip opBinary(string op:"+") (int disp)
 		{
 			return RegRip(this.disp_ + disp, this.label_, this.isAddr_);
@@ -1392,16 +1430,20 @@ else
 	
 	RegExp opBinary(string op:"+") (int disp)
 	{
-		RegExp ret = this;
-		ret.disp_ += disp;
-		return ret;
+		this.disp_ += disp;
+		return this;
+	}
+	
+	RegExp opBinaryRight(string op:"+") (int disp)
+	{
+		this.disp_ += disp;
+		return this;
 	}
 	
 	RegExp opBinary(string op:"-") (int disp)
 	{
-		RegExp ret = this;
-		ret.disp_ -= disp;
-		return ret;
+		this.disp_ -= disp;
+		return this;
 	}
 
 private:
@@ -1409,8 +1451,8 @@ private:
 		[base_ + index_ * scale_ + disp_]
 		base : Reg32e, index : Reg32e(w/o esp), Xmm, Ymm
 	*/
-	Reg base_ = new Reg();
-	Reg index_ = new Reg();
+	Reg base_ = Reg();
+	Reg index_ = Reg();
 	int scale_;
 	size_t disp_;
 }
@@ -1586,7 +1628,7 @@ public:
 		size_ = size;
 	}
 
-	void dump() 
+	void dump(bool doClear = true) 
 	{
 		uint8_t* p     = getCode();
 		size_t bufSize = getSize();
@@ -1607,6 +1649,10 @@ public:
 				break;
 			}
 		}
+version(XBYAK_TEST)
+{
+		if (doClear) size_ = 0;
+}	
 	}
 
 //	@param data [in] address of jmp data
@@ -1842,13 +1888,13 @@ public:
 		RegExp ret = new RegExp(reg);
 		return opIndex(ret);
 	}
-/+
+
 	Address opIndex(Mmx mmx)
 	{
 		RegExp ret = new RegExp(mmx);
 		return opIndex(ret);
 	}
-+/
+
 }
 
 struct JmpLabel
@@ -2292,7 +2338,7 @@ version (XBYAK64)
 		return op1.isREG(i32e) && (op2.isXMM() || op2.isMEM());
 	}
 	// (REG32, REG32|MEM)
-	bool isREG32_REG32orMEM(Operand op1 = new Operand(), Operand op2 = new Operand())
+	bool isREG32_REG32orMEM(Operand op1 = Operand(), Operand op2 = Operand())
 	{
 		return op1.isREG(i32e) && ((op2.isREG(i32e) && op1.getBit() == op2.getBit()) || op2.isMEM());
 	}
@@ -2301,7 +2347,7 @@ version (XBYAK64)
 		// SSE instructions do not support XMM16 - XMM31
 		return !(op1.isXMM() && op1.getIdx() >= 16);
 	}
-	uint8_t rexRXB(int bit, int bit3, Reg r, Reg b, Reg x = new Reg())
+	uint8_t rexRXB(int bit, int bit3, Reg r, Reg b, Reg x = Reg())
 	{
 		int v = bit3 ? 8 : 0;
 		if (r.hasIdxBit(bit)) v |= 4;
@@ -2309,14 +2355,14 @@ version (XBYAK64)
 		if (b.hasIdxBit(bit)) v |= 1;
 		return cast(uint8_t)v;
 	}
-	void rex2(int bit3, int rex4bit, Reg r, Reg b, Reg x = new Reg())
+	void rex2(int bit3, int rex4bit, Reg r, Reg b, Reg x = Reg())
 	{
 		db(0xD5);
 		db((rexRXB(4, bit3, r, b, x) << 4) | rex4bit);
 	}
 	
 	// return true if rex2 is selected
-	bool rex(Operand op1, Operand op2 = new Reg(), uint64_t type = 0)
+	bool rex(Operand op1, Operand op2 = Reg(), uint64_t type = 0)
 	{
 		if (op1.getNF() | op2.getNF()) mixin(XBYAK_THROW_RET(ERR.INVALID_NF, "false"));
 		if (op1.getZU() | op2.getZU()) mixin(XBYAK_THROW_RET(ERR.INVALID_ZU, "false"));
@@ -2368,54 +2414,54 @@ version (XBYAK64)
 		return false;
 	}
 
-static const uint64_t	T_NONE = 0;
+static const uint64_t T_NONE = 0;
 // low 3 bit
-static const uint64_t	T_N1 = 1uL;
-static const uint64_t	T_N2 = 2uL;
-static const uint64_t	T_N4 = 3uL;
-static const uint64_t	T_N8 = 4uL;
-static const uint64_t	T_N16 = 5uL;
-static const uint64_t	T_N32 = 6uL;
-static const uint64_t	T_NX_MASK = 7uL;
-static const uint64_t	T_DUP = T_NX_MASK;	//1 << 4, // N = (8, 32, 64)
-static const uint64_t	T_N_VL = 1uL << 3;	// N * (1, 2, 4) for VL
-static const uint64_t	T_APX = 1uL << 4;
-static const uint64_t	T_66 = 1uL << 5;	// pp = 1
-static const uint64_t	T_F3 = 1uL << 6;	// pp = 2
-static const uint64_t	T_ER_R = 1uL << 7;	// reg{er}
-static const uint64_t	T_0F = 1uL << 8;
-static const uint64_t	T_0F38 = 1uL << 9;
-static const uint64_t	T_0F3A = 1uL << 10;
-static const uint64_t	T_L0 = 1uL << 11;
-static const uint64_t	T_L1 = 1uL << 12;
-static const uint64_t	T_W0 = 1uL << 13;
-static const uint64_t	T_W1 = 1uL << 14;
-static const uint64_t	T_EW0 = 1uL << 15;
-static const uint64_t	T_EW1 = 1uL << 16;
-static const uint64_t	T_YMM = 1uL << 17;	// support YMM, ZMM
-static const uint64_t	T_EVEX = 1uL << 18;
-static const uint64_t	T_ER_X = 1uL << 19;	// xmm{er}
-static const uint64_t	T_ER_Y = 1uL << 20;	// ymm{er}
-static const uint64_t	T_ER_Z = 1uL << 21;	// zmm{er}
-static const uint64_t	T_SAE_X = 1uL << 22;	// xmm{sae}
-static const uint64_t	T_SAE_Y = 1uL << 23;	// ymm{sae}
-static const uint64_t	T_SAE_Z = 1uL << 24;	// zmm{sae}
-static const uint64_t	T_MUST_EVEX = 1uL << 25;	// contains T_EVEX
-static const uint64_t	T_B32 = 1uL << 26;	// m32bcst
-static const uint64_t	T_B64 = 1uL << 27;	// m64bcst
-static const uint64_t	T_B16 = T_B32 | T_B64;	// m16bcst (Be carefuL)
-static const uint64_t	T_M_K = 1uL << 28;	// mem{k}
-static const uint64_t	T_VSIB = 1uL << 29;
-static const uint64_t	T_MEM_EVEX = 1uL << 30;	// use evex if mem
-static const uint64_t	T_FP16 = 1uL << 31;	// avx512-fp16
-static const uint64_t	T_MAP5 = T_FP16 | T_0F;
-static const uint64_t	T_MAP6 = T_FP16 | T_0F38;
-static const uint64_t	T_NF = 1uL << 32;	// T_nf
-static const uint64_t	T_CODE1_IF1 = 1uL << 33;	// code|=1 if !r.isBit(8)
+static const uint64_t T_N1 = 1uL;
+static const uint64_t T_N2 = 2uL;
+static const uint64_t T_N4 = 3uL;
+static const uint64_t T_N8 = 4uL;
+static const uint64_t T_N16 = 5uL;
+static const uint64_t T_N32 = 6uL;
+static const uint64_t T_NX_MASK = 7uL;
+static const uint64_t T_DUP = T_NX_MASK; //1 << 4, // N = (8, 32, 64)
+static const uint64_t T_N_VL = 1uL << 3; // N * (1, 2, 4) for VL
+static const uint64_t T_APX = 1uL << 4;
+static const uint64_t T_66 = 1uL << 5; // pp = 1
+static const uint64_t T_F3 = 1uL << 6; // pp = 2
+static const uint64_t T_ER_R = 1uL << 7; // reg{er}
+static const uint64_t T_0F = 1uL << 8;
+static const uint64_t T_0F38 = 1uL << 9;
+static const uint64_t T_0F3A = 1uL << 10;
+static const uint64_t T_L0 = 1uL << 11;
+static const uint64_t T_L1 = 1uL << 12;
+static const uint64_t T_W0 = 1uL << 13;
+static const uint64_t T_W1 = 1uL << 14;
+static const uint64_t T_EW0 = 1uL << 15;
+static const uint64_t T_EW1 = 1uL << 16;
+static const uint64_t T_YMM = 1uL << 17; // support YMM, ZMM
+static const uint64_t T_EVEX = 1uL << 18;
+static const uint64_t T_ER_X = 1uL << 19; // xmm{er}
+static const uint64_t T_ER_Y = 1uL << 20; // ymm{er}
+static const uint64_t T_ER_Z = 1uL << 21; // zmm{er}
+static const uint64_t T_SAE_X = 1uL << 22; // xmm{sae}
+static const uint64_t T_SAE_Y = 1uL << 23; // ymm{sae}
+static const uint64_t T_SAE_Z = 1uL << 24; // zmm{sae}
+static const uint64_t T_MUST_EVEX = 1uL << 25; // contains T_EVEX
+static const uint64_t T_B32 = 1uL << 26; // m32bcst
+static const uint64_t T_B64 = 1uL << 27; // m64bcst
+static const uint64_t T_B16 = T_B32 | T_B64; // m16bcst (Be carefuL)
+static const uint64_t T_M_K = 1uL << 28; // mem{k}
+static const uint64_t T_VSIB = 1uL << 29;
+static const uint64_t T_MEM_EVEX = 1uL << 30; // use evex if mem
+static const uint64_t T_FP16 = 1uL << 31; // avx512-fp16
+static const uint64_t T_MAP5 = T_FP16 | T_0F;
+static const uint64_t T_MAP6 = T_FP16 | T_0F38;
+static const uint64_t T_NF = 1uL << 32; // T_nf
+static const uint64_t T_CODE1_IF1 = 1uL << 33; // code|=1 if !r.isBit(8)
 
-static const uint64_t	T_ND1 = 1uL << 35;	// ND=1
-static const uint64_t	T_ZU = 1uL << 36;	// ND=ZU
-static const uint64_t	T_F2 = 1uL << 37;	// pp = 3
+static const uint64_t T_ND1 = 1uL << 35; // ND=1
+static const uint64_t T_ZU = 1uL << 36; // ND=ZU
+static const uint64_t T_F2 = 1uL << 37; // pp = 3
 
 // T_66 = 1, T_F3 = 2, T_F2 = 3
 	uint32_t getPP(uint64_t type) { return (type & T_66) ? 1 : (type & T_F3) ? 2 : (type & T_F2) ? 3 : 0; }
@@ -2656,7 +2702,7 @@ version (XBYAK64)
 	void opMR(Address addr, Reg r, uint64_t type, int code, uint64_t type2 = 0, int code2 = NONE)
 	{
 		if (code2 == NONE) code2 = code;
-		if (type2 && opROO(new Reg(), addr, r, type2, code2)) return;
+		if (type2 && opROO(Reg(), addr, r, type2, code2)) return;
 		if (addr.is64bitDisp()) mixin(XBYAK_THROW(ERR.CANT_USE_64BIT_DISP));
 		bool rex2 = rex(addr, r, type);
 		writeCode(type, r, code, rex2);
@@ -2875,7 +2921,7 @@ version (XBYAK64)
 			addr.immSize = immSize;
 			opAddr(addr, r.getIdx());
 		} else {
-			evexLeg(cast(Reg)(op2), cast(Reg)(op1), new Reg(), d, type, sc);
+			evexLeg(cast(Reg)op2, cast(Reg)op1, Reg(), d, type, sc);
 			writeCode(type, d, code);
 			setModRM(3, op2.getIdx(), op1.getIdx());
 		}
@@ -2887,7 +2933,7 @@ version (XBYAK64)
 		int opBit = op.getBit();
 		if (disableRex && opBit == 64) opBit = 32;
 		Reg r = new Reg(ext, Kind.REG, opBit);
-		if ((type & T_APX) && op.hasRex2NFZU() && opROO(!(d is null) ? d : new Reg(0, Kind.REG, opBit), op, r, type, code)) return;
+		if ((type & T_APX) && op.hasRex2NFZU() && opROO(!(d is null) ? d : Reg(0, Kind.REG, opBit), op, r, type, code)) return;
 		if (op.isMEM()) {
 			opMR(op.getAddress(immSize), r, type, code);
 		} else if (op.isREG(bit)) {
@@ -2899,7 +2945,7 @@ version (XBYAK64)
 
 	void opSetCC(Operand op, int ext)
 	{
-		if (opROO(new Reg(), op, new Reg(), T_APX|T_ZU|T_F2, 0x40 | ext)) return;
+		if (opROO(Reg(), op, Reg(), T_APX|T_ZU|T_F2, 0x40 | ext)) return;
 		opRext(op, 8, 0, T_0F, 0x90 | ext);
 	}
 
@@ -2996,7 +3042,7 @@ version(XBYAK64) {
 			int code = d.isBit(8) ? 0xFE : 0xFF;
 			uint64_t type = T_APX|T_NF|T_ND1;
 			if (d.isBit(16)) type |= T_66;
-			opROO(d, op, new Reg(ext, Kind.REG, d.getBit()), type, code);
+			opROO(d, op, Reg(ext, Kind.REG, d.getBit()), type, code);
 			return;
 		}
 } else {
@@ -3018,7 +3064,7 @@ version(XBYAK64) {
 	{
 		if (op.isREG() && op.hasRex2()) {
 			Reg r = cast(Reg)op;
-			rex2(0, rexRXB(3, 0, new Reg(), r), new Reg(), r);
+			rex2(0, rexRXB(3, 0, Reg(), r), Reg(), r);
 			db(alt);
 			return;
 		}
@@ -3031,7 +3077,7 @@ version(XBYAK64) {
 				return;
 			}
 			if (op.isMEM()) {
-				opMR(op.getAddress(), new Reg(ext, Kind.REG, 32), 0, code);
+				opMR(op.getAddress(), Reg(ext, Kind.REG, 32), 0, code);
 				return;
 			}
 		}
@@ -3186,7 +3232,7 @@ version(XBYAK64) {
 	{
 		Xmm x2 = cast(Xmm)op1;
 		Operand op = op2;
-		if (op2.isNone) { // (x1, op1) -> (x1, x1, op1)
+		if (op2.isNone()) { // (x1, op1) -> (x1, x1, op1)
 			x2 = x1;
 			op = op1;
 		}
@@ -3283,7 +3329,6 @@ version(XBYAK64) {
 		int y_vy_y = 1;
 //		int x_vy_x = 2;
 		bool isAddrYMM = regExp.getIndex().getBit() == 256;
-
 		if (!x1.isXMM() || isAddrYMM || !x2.isXMM()) {
 			bool isOK = false;
 			if (mode == y_vx_y) {
@@ -3299,7 +3344,7 @@ version(XBYAK64) {
 		int i2 = regExp.getIndex().getIdx();
 		int i3 = x2.getIdx();
 		if (i1 == i2 || i1 == i3 || i2 == i3) mixin(XBYAK_THROW(ERR.SAME_REGS_ARE_INVALID));
-		opAVX_X_X_XM(isAddrYMM ? new Ymm(i1) : x1, isAddrYMM ? new Ymm(i3) : x2, addr, type, code);
+		opAVX_X_X_XM(isAddrYMM ? Ymm(i1) : x1, isAddrYMM ? Ymm(i3) : x2, addr, type, code);
 	}
 	
 	enum {
@@ -3365,18 +3410,18 @@ version(XBYAK64) {
 	
 	PreferredEncoding getEncoding(PreferredEncoding enc, int sel)
 	{
-		if (enc == PreferredEncoding.DefaultEncoding) {
+		if (enc == DefaultEncoding) {
 			enc = defaultEncoding_[sel];
 		}
 
-		if ((sel == 0 && enc != PreferredEncoding.VexEncoding && enc != PreferredEncoding.EvexEncoding) ||
-			(sel == 1 && enc != PreferredEncoding.PreAVX10v2Encoding && enc != PreferredEncoding.AVX10v2Encoding))
+		if ((sel == 0 && enc != VexEncoding && enc != EvexEncoding) ||
+			(sel == 1 && enc != PreAVX10v2Encoding && enc != AVX10v2Encoding))
 		{
 			mixin(XBYAK_THROW_RET(ERR.BAD_ENCODING_MODE, "PreferredEncoding.VexEncoding"));
 		}
 version(XBYAK_DISABLE_AVX512)
 {
-		if (enc == PreferredEncoding.EvexEncoding || enc == PreferredEncoding.AVX10v2Encoding) mixin(XBYAK_THROW(ERR.EVEX_IS_INVALID));
+		if (enc == EvexEncoding || enc == AVX10v2Encoding) mixin(XBYAK_THROW(ERR.EVEX_IS_INVALID));
 }
 		return enc;
 	}
@@ -3384,7 +3429,7 @@ version(XBYAK_DISABLE_AVX512)
 	uint64_t orEvexIf(PreferredEncoding enc, uint64_t typeVex, uint64_t typeEvex, int sel)
 	{
 		enc = getEncoding(enc, sel);
-		return ((sel == 0 && enc == PreferredEncoding.VexEncoding) || (sel == 1 && enc != PreferredEncoding.AVX10v2Encoding)) ? typeVex : (T_MUST_EVEX | typeEvex);
+		return ((sel == 0 && enc == VexEncoding) || (sel == 1 && enc != AVX10v2Encoding)) ? typeVex : (T_MUST_EVEX | typeEvex);
 	}
 	
 	void opInOut(Reg a, Reg d, uint8_t code)
@@ -3417,7 +3462,7 @@ version(XBYAK_DISABLE_AVX512)
 	void opCcmp(Operand op1, Operand op2, int dfv, int code, int sc) // cmp = 0x38, test = 0x84
 	{
 		if (dfv < 0 || 15 < dfv) mixin(XBYAK_THROW(ERR.INVALID_DFV));
-		opROO(new Reg(15 - dfv, Kind.REG, (op1.getBit() | op2.getBit())), op1, op2, T_APX|T_CODE1_IF1, code, 0, sc);
+		opROO(Reg(15 - dfv, Kind.REG, (op1.getBit() | op2.getBit())), op1, op2, T_APX|T_CODE1_IF1, code, 0, sc);
 	}
 
 	void opCcmpi(Operand op, int imm, int dfv, int sc)
@@ -3426,7 +3471,7 @@ version(XBYAK_DISABLE_AVX512)
 		uint32_t immBit = getImmBit(op, imm);
 		uint32_t opBit = op.getBit();
 		int tmp = immBit < min(opBit, 32U) ? 2 : 0;
-		opROO(new Reg(15 - dfv, Kind.REG, opBit), op, new Reg(15, Kind.REG, opBit), T_APX|T_CODE1_IF1, 0x80 | tmp, immBit / 8, sc);
+		opROO(Reg(15 - dfv, Kind.REG, opBit), op, Reg(15, Kind.REG, opBit), T_APX|T_CODE1_IF1, 0x80 | tmp, immBit / 8, sc);
 		db(imm, immBit / 8);
 	}
 	
@@ -3436,7 +3481,7 @@ version(XBYAK_DISABLE_AVX512)
 		uint32_t opBit = op.getBit();
 		if (opBit == 0) mixin(XBYAK_THROW(ERR.MEM_SIZE_IS_NOT_SPECIFIED));
 		int immBit = min(opBit, 32U);
-		opROO(new Reg(15 - dfv, Kind.REG, opBit), op, new Reg(0, Kind.REG, opBit), T_APX|T_CODE1_IF1, 0xF6, immBit / 8, sc);
+		opROO(Reg(15 - dfv, Kind.REG, opBit), op, Reg(0, Kind.REG, opBit), T_APX|T_CODE1_IF1, 0xF6, immBit / 8, sc);
 		db(imm, immBit / 8);
 	}
 
@@ -3462,7 +3507,7 @@ version(XBYAK64) {
 		Address addr2 = addr.cloneNoOptimize();
 		RegExp exp = addr2.getRegExp();
 		if (exp.getBase().getBit() == 0 || exp.getIndex().getBit() == 0) mixin(XBYAK_THROW(ERR.NOT_SUPPORTED));
-		if (opROO(new Reg(), addr2, t1, T_APX|type, code)) return;
+		if (opROO(Reg(), addr2, t1, T_APX|type, code)) return;
 		opVex(t1, tmm0, addr2, type, code);
 	}
 }
@@ -3490,7 +3535,7 @@ version(XBYAK64) {
 		Operand p1 = k;
 		Operand p2 = op;
 		if (code == 0x93) { swap(p1, p2); }
-		if (opROO(new Reg(), p2, p1, T_APX|type, code)) return;
+		if (opROO(Reg(), p2, p1, T_APX|type, code)) return;
 		opVex(cast(Reg)p1, null, p2, T_L0|type, code);
 	}
 
@@ -3500,12 +3545,12 @@ version(XBYAK64) {
 			db(0xF3); db(0x0F); db(0x38); db(code1); setModRM(3, r1.getIdx(), r2.getIdx());
 			return;
 		}
-		opROO(new Reg(), r2, r1, T_MUST_EVEX|T_F3, code2);
+		opROO(Reg(), r2, r1, T_MUST_EVEX|T_F3, code2);
 	}
 
 	void opSSE_APX(Xmm x, Operand op, uint64_t type1, uint8_t code1, uint64_t type2, uint8_t code2, int imm = NONE)
 	{
-		if (x.getIdx() <= 15 && op.hasRex2() && opROO(new Reg(), op, x, type2, code2, imm != NONE ? 1 : 0)) {
+		if (x.getIdx() <= 15 && op.hasRex2() && opROO(Reg(), op, x, type2, code2, imm != NONE ? 1 : 0)) {
 			if (imm != NONE) db(imm);
 			return;
 		}
@@ -3529,7 +3574,7 @@ version(XBYAK64) {
 		}
 		enc = getEncoding(enc, 1);
 		int sel = -1;
-		if (p1.isXMM() || (p1.isMEM() && enc == PreferredEncoding.AVX10v2Encoding)) {
+		if (p1.isXMM() || (p1.isMEM() && enc == AVX10v2Encoding)) {
 			sel = 2 + cast(int)rev;
 		} else if (p1.isREG(bit) || p1.isMEM()) {
 			sel = cast(int)rev;
@@ -3923,7 +3968,7 @@ version(XBYAK_VARIADIC_TEMPLATE)
 		int s = inner.IsInDisp8(imm) ? 1 : 0;
 		int immSize = s ? 1 : reg.isREG(16) ? 2 : 4;
 		uint8_t code = cast(uint8_t)(0x69 | (s << 1));
-		if (!opROO(new Reg(), op, reg, T_APX|T_NF|T_ZU, code, immSize)) {
+		if (!opROO(Reg(), op, reg, T_APX|T_NF|T_ZU, code, immSize)) {
 			opRO(reg, op, 0, code, reg.getKind() == op.getKind(), immSize);
 		}
 		db(imm, immSize);
@@ -4019,7 +4064,7 @@ else
 				if (!inner.IsInInt32(imm)) mixin(XBYAK_THROW(ERR.IMM_IS_TOO_BIG));
 				immSize = 4;
 			}
-			opMR(op.getAddress(immSize), new Reg(0, Kind.REG, op.getBit()), 0, 0xC6);
+			opMR(op.getAddress(immSize), Reg(0, Kind.REG, op.getBit()), 0, 0xC6);
 			db(cast(uint32_t)imm, immSize);
 		} else {
 			mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
@@ -4050,7 +4095,7 @@ else
 	{
 		Operand p1 = op1;
 		Operand p2 = op2;
-		if (p1.isMEM || (p2.isREG(16 | i32e) && p2.getIdx == 0))
+		if (p1.isMEM() || (p2.isREG(16 | i32e) && p2.getIdx() == 0))
 		{
 			p1 = op2; p2 = op1;
 		}
@@ -4063,7 +4108,7 @@ version (XBYAK64) {
 		if (p2.isREG && (p1.isREG(16 | i32e) && p1.getIdx == 0) && BL)
 		{
 			rex(p2, p1);
-			db(0x90 | (p2.getIdx & 7));
+			db(0x90 | (p2.getIdx() & 7));
 			return;
 		}
 		if (p1.isREG() && p2.isREG()) swap(p1, p2); // adapt to NASM 2.16.03 behavior to pass tests
@@ -4166,25 +4211,24 @@ public:
 	void readyRE() { return ready(ProtectMode.PROTECT_RE); }
 
 version(XBYAK_TEST) {
-	alias dump = CodeArray.dump;
-	void dump(bool doClear = true)
+	override void dump(bool doClear = true)
 	{
-		dump();
+		xbyak.CodeArray.dump();
 		if (doClear) size_ = 0; 
 	}
 }
 	
 	// set default encoding of VNNI
 	// EvexEncoding : AVX512_VNNI, VexEncoding : AVX-VNNI
-	void setDefaultEncoding(PreferredEncoding enc = PreferredEncoding.EvexEncoding)
+	void setDefaultEncoding(PreferredEncoding enc = EvexEncoding)
 	{
-		if (enc != PreferredEncoding.VexEncoding && enc != PreferredEncoding.EvexEncoding) mixin(XBYAK_THROW(ERR.BAD_ENCODING_MODE));
+		if (enc != VexEncoding && enc != EvexEncoding) mixin(XBYAK_THROW(ERR.BAD_ENCODING_MODE));
 		defaultEncoding_[0] = enc;
 	}
 	// default : PreferredEncoding : AVX-VNNI-INT8/AVX512-FP16
-	void setDefaultEncodingAVX10(PreferredEncoding enc = PreferredEncoding.PreAVX10v2Encoding)
+	void setDefaultEncodingAVX10(PreferredEncoding enc = PreAVX10v2Encoding)
 	{
-		if (enc != PreferredEncoding.PreAVX10v2Encoding && enc != PreferredEncoding.AVX10v2Encoding) mixin(XBYAK_THROW(ERR.BAD_ENCODING_MODE));
+		if (enc != PreAVX10v2Encoding && enc != AVX10v2Encoding) mixin(XBYAK_THROW(ERR.BAD_ENCODING_MODE));
 		defaultEncoding_[1] = enc;
 	}
 	
@@ -4201,7 +4245,7 @@ version(XBYAK_TEST) {
 		db(0xC8 + (idx & 7));
 	}
 
-	void vmovd(Operand op1, Operand op2, PreferredEncoding enc = PreferredEncoding.DefaultEncoding)
+	void vmovd(Operand op1, Operand op2, PreferredEncoding enc = DefaultEncoding)
 	{
 		uint64_t[4] typeTbl = [
 			T_EVEX|T_66|T_0F|T_W0|T_N4, T_EVEX|T_66|T_0F|T_W0|T_N4, // legacy, avx, avx512
@@ -4210,7 +4254,7 @@ version(XBYAK_TEST) {
 		int[4] codeTbl = [ 0x7E, 0x6E, 0xD6, 0x7E ];
 		opAVX10ZeroExt(op1, op2, typeTbl, codeTbl, enc, 32);
 	}
-	void vmovw(Operand op1, Operand op2, PreferredEncoding enc = PreferredEncoding.DefaultEncoding)
+	void vmovw(Operand op1, Operand op2, PreferredEncoding enc = DefaultEncoding)
 	{
 		uint64_t[4] typeTbl = [
 			T_MUST_EVEX|T_66|T_MAP5|T_N2, T_MUST_EVEX|T_66|T_MAP5|T_N2, // avx512-fp16
@@ -4288,7 +4332,7 @@ void adc(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x10); }
 void adc(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NONE, 2); }
 void adc(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NONE, 0x10); }
 void adcx(Reg32e d, Reg32e reg, Operand op) { opROO(d, op, reg, T_66, 0x66); }
-void adcx(Reg32e reg, Operand op) { if (!reg.isREG(16|i32e) && reg.getBit() == op.getBit()) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); if (opROO(new Reg(), op, reg, T_66, 0x66)) return; opRO(reg, op, T_66 | T_0F38, 0xF6); }
+void adcx(Reg32e reg, Operand op) { if (!reg.isREG(16|i32e) && reg.getBit() == op.getBit()) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); if (opROO(Reg(), op, reg, T_66, 0x66)) return; opRO(reg, op, T_66 | T_0F38, 0xF6); }
 void add(Operand op, uint32_t imm) { opOI(op, imm, 0x00, 0); }
 void add(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x00); }
 void add(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_CODE1_IF1, 0); }
@@ -4300,7 +4344,7 @@ void addss(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_F3, 0x58, &isXMM_XMMor
 void addsubpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F|T_YMM, 0xD0, &isXMM_XMMorMEM); }
 void addsubps(Xmm xmm, Operand op) { opSSE(xmm, op, T_F2|T_0F|T_YMM, 0xD0, &isXMM_XMMorMEM); }
 void adox(Reg32e d, Reg32e reg, Operand op) { opROO(d, op, reg, T_F3, 0x66); }
-void adox(Reg32e reg, Operand op) { if (!reg.isREG(16|i32e) && reg.getBit() == op.getBit()) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); if (opROO(new Reg(), op, reg, T_F3, 0x66)) return; opRO(reg, op, T_F3 | T_0F38, 0xF6); }
+void adox(Reg32e reg, Operand op) { if (!reg.isREG(16|i32e) && reg.getBit() == op.getBit()) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); if (opROO(Reg(), op, reg, T_F3, 0x66)) return; opRO(reg, op, T_F3 | T_0F38, 0xF6); }
 void aesdec(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38|T_YMM|T_EVEX, 0xDE, &isXMM_XMMorMEM); }
 void aesdeclast(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38|T_YMM|T_EVEX, 0xDF, &isXMM_XMMorMEM); }
 void aesenc(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38|T_YMM|T_EVEX, 0xDC, &isXMM_XMMorMEM); }
@@ -4324,9 +4368,9 @@ void blendpd(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0D,
 void blendps(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0C, &isXMM_XMMorMEM, cast(uint8_t)imm); }
 void blendvpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38, 0x15, &isXMM_XMMorMEM, NONE); }
 void blendvps(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38, 0x14, &isXMM_XMMorMEM, NONE); }
-void blsi(Reg32e r, Operand op) { opRRO(new Reg32e(3, r.getBit()), r, op, T_APX|T_0F38|T_NF, 0xf3); }
-void blsmsk(Reg32e r, Operand op) { opRRO(new Reg32e(2, r.getBit()), r, op, T_APX|T_0F38|T_NF, 0xf3); }
-void blsr(Reg32e r, Operand op) { opRRO(new Reg32e(1, r.getBit()), r, op, T_APX|T_0F38|T_NF, 0xf3); }
+void blsi(Reg32e r, Operand op) { opRRO(Reg32e(3, r.getBit()), r, op, T_APX|T_0F38|T_NF, 0xf3); }
+void blsmsk(Reg32e r, Operand op) { opRRO(Reg32e(2, r.getBit()), r, op, T_APX|T_0F38|T_NF, 0xf3); }
+void blsr(Reg32e r, Operand op) { opRRO(Reg32e(1, r.getBit()), r, op, T_APX|T_0F38|T_NF, 0xf3); }
 void bnd() { db(0xF2); }
 void bndcl(BoundsReg bnd, Operand op) { opRext(op, i32e, bnd.getIdx(), T_F3 | T_0F, 0x1A, !op.isMEM()); }
 void bndcn(BoundsReg bnd, Operand op) { opRext(op, i32e, bnd.getIdx(), T_F2 | T_0F, 0x1B, !op.isMEM()); }
@@ -4406,43 +4450,43 @@ void ccmpt(Operand op1, Operand op2, int dfv = 0) { opCcmp(op1, op2, dfv, 0x38, 
 void ccmpz(Operand op, int imm, int dfv = 0) { opCcmpi(op, imm, dfv, 4); }
 void ccmpz(Operand op1, Operand op2, int dfv = 0) { opCcmp(op1, op2, dfv, 0x38, 4); }
 void cdq() { db(0x99); }
-void cfcmovb(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x42); }
+void cfcmovb(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x42); }
 void cfcmovb(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x42); }
-void cfcmovbe(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x46); }
+void cfcmovbe(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x46); }
 void cfcmovbe(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x46); }
-void cfcmovl(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x4C); }
+void cfcmovl(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x4C); }
 void cfcmovl(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x4C); }
-void cfcmovle(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x4E); }
+void cfcmovle(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x4E); }
 void cfcmovle(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x4E); }
-void cfcmovnb(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x43); }
+void cfcmovnb(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x43); }
 void cfcmovnb(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x43); }
-void cfcmovnbe(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x47); }
+void cfcmovnbe(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x47); }
 void cfcmovnbe(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x47); }
-void cfcmovnl(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x4D); }
+void cfcmovnl(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x4D); }
 void cfcmovnl(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x4D); }
-void cfcmovnle(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x4F); }
+void cfcmovnle(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x4F); }
 void cfcmovnle(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x4F); }
-void cfcmovno(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x41); }
+void cfcmovno(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x41); }
 void cfcmovno(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x41); }
-void cfcmovnp(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x4B); }
+void cfcmovnp(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x4B); }
 void cfcmovnp(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x4B); }
-void cfcmovns(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x49); }
+void cfcmovns(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x49); }
 void cfcmovns(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x49); }
-void cfcmovnz(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x45); }
+void cfcmovnz(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x45); }
 void cfcmovnz(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x45); }
-void cfcmovo(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x40); }
+void cfcmovo(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x40); }
 void cfcmovo(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x40); }
-void cfcmovp(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x4A); }
+void cfcmovp(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x4A); }
 void cfcmovp(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x4A); }
-void cfcmovs(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x48); }
+void cfcmovs(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x48); }
 void cfcmovs(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x48); }
-void cfcmovz(Operand op1, Operand op2) { opCfcmov(new Reg(), op1, op2, 0x44); }
+void cfcmovz(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x44); }
 void cfcmovz(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x44); }
 void clc() { db(0xF8); }
 void cld() { db(0xFC); }
 void cldemote(Address addr) { opMR(addr, eax, T_0F, 0x1C); }
-void clflush(Address addr) { opMR(addr, new Reg32(7), T_0F, 0xAE); }
-void clflushopt(Address addr) { opMR(addr, new Reg32(7), T_66 | T_0F, 0xAE); }
+void clflush(Address addr) { opMR(addr, Reg32(7), T_0F, 0xAE); }
+void clflushopt(Address addr) { opMR(addr, Reg32(7), T_66 | T_0F, 0xAE); }
 void cli() { db(0xFA); }
 void clwb(Address addr) { opMR(addr, esi, T_66 | T_0F, 0xAE); }
 void clzero() { db(0x0F); db(0x01); db(0xFC); }
@@ -4549,11 +4593,11 @@ void cmpunordps(Xmm x, Operand op) { cmpps(x, op, 3); }
 void cmpunordsd(Xmm x, Operand op) { cmpsd(x, op, 3); }
 void cmpunordss(Xmm x, Operand op) { cmpss(x, op, 3); }
 void cmpxchg(Operand op, Reg reg) { opRO(reg, op, T_0F, 0xB0 | (reg.isBit(8) ? 0 : 1), op.getBit() == reg.getBit()); }
-void cmpxchg8b(Address addr) { opMR(addr, new Reg32(1), T_0F, 0xC7); }
+void cmpxchg8b(Address addr) { opMR(addr, Reg32(1), T_0F, 0xC7); }
 void comisd(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F, 0x2F, &isXMM_XMMorMEM); }
 void comiss(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x2F, &isXMM_XMMorMEM); }
 void cpuid() { db(0x0F); db(0xA2); }
-void crc32(Reg32e r, Operand op) { if (!((r.isBit(32) && op.isBit(8|16|32)) || (r.isBit(64) && op.isBit(8|64)))) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); int code = 0xF0 | (op.isBit(8) ? 0 : 1); uint64_t type = op.isBit(16) ? T_66:0; if (opROO(new Reg(), op, cast(Reg)r, T_APX|type, code)) return; opRO(r, op, T_F2|T_0F38|type, code); }
+void crc32(Reg32e r, Operand op) { if (!((r.isBit(32) && op.isBit(8|16|32)) || (r.isBit(64) && op.isBit(8|64)))) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); int code = 0xF0 | (op.isBit(8) ? 0 : 1); uint64_t type = op.isBit(16) ? T_66:0; if (opROO(Reg(), op, cast(Reg)r, T_APX|type, code)) return; opRO(r, op, T_F2|T_0F38|type, code); }
 void ctesta(Operand op, Reg r, int dfv = 0) { opCcmp(op, r, dfv, 0x84, 7); }
 void ctesta(Operand op, int imm, int dfv = 0) { opTesti(op, imm, dfv, 7); }
 void ctestae(Operand op, Reg r, int dfv = 0) { opCcmp(op, r, dfv, 0x84, 3); }
@@ -4635,7 +4679,7 @@ void cvttss2si(Reg reg, Operand op) { opSSE(reg, op, T_F3|T_0F, 0x2C, &isREG32_X
 void cwd() { db(0x66); db(0x99); }
 void cwde() { db(0x98); }
 
-void dec(Operand op) { opIncDec(new Reg(), op, 1); }
+void dec(Operand op) { opIncDec(Reg(), op, 1); }
 void dec(Reg d, Operand op) { opIncDec(d, op, 1); }
 void div(Operand op) { opRext(op, 0, 6, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
 void divpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x5E, &isXMM_XMMorMEM); }
@@ -4659,8 +4703,8 @@ void fadd(Fpu reg1, Fpu reg2) { opFpuFpu(reg1, reg2, 0xD8C0, 0xDCC0); }
 void faddp() { db(0xDE); db(0xC1); }
 void faddp(Fpu reg1) { opFpuFpu(reg1, st0, 0x0000, 0xDEC0); }
 void faddp(Fpu reg1, Fpu reg2) { opFpuFpu(reg1, reg2, 0x0000, 0xDEC0); }
-void fbld(Address addr) { opMR(addr, new Reg32(4), 0, 0xDF); }
-void fbstp(Address addr) { opMR(addr, new Reg32(6), 0, 0xDF); }
+void fbld(Address addr) { opMR(addr, Reg32(4), 0, 0xDF); }
+void fbstp(Address addr) { opMR(addr, Reg32(6), 0, 0xDF); }
 void fchs() { db(0xD9); db(0xE0); }
 void fclex() { db(0x9B); db(0xDB); db(0xE2); }
 void fcmovb(Fpu reg1) { opFpuFpu(st0, reg1, 0xDAC0, 0x00C0); }
@@ -4722,8 +4766,8 @@ void fisubr(Address addr) { opFpuMem(addr, 0xDE, 0xDA, 0x00, 5, 0); }
 void fld(Address addr) { opFpuMem(addr, 0x00, 0xD9, 0xDD, 0, 0); }
 void fld(Fpu reg) { opFpu(reg, 0xD9, 0xC0); }
 void fld1() { db(0xD9); db(0xE8); }
-void fldcw(Address addr) { opMR(addr, new Reg32(5), 0, 0xD9); }
-void fldenv(Address addr) { opMR(addr, new Reg32(4), 0, 0xD9); }
+void fldcw(Address addr) { opMR(addr, Reg32(5), 0, 0xD9); }
+void fldenv(Address addr) { opMR(addr, Reg32(4), 0, 0xD9); }
 void fldl2e() { db(0xD9); db(0xEA); }
 void fldl2t() { db(0xD9); db(0xE9); }
 void fldlg2() { db(0xD9); db(0xEC); }
@@ -4739,29 +4783,29 @@ void fmulp(Fpu reg1, Fpu reg2) { opFpuFpu(reg1, reg2, 0x0000, 0xDEC8); }
 void fnclex() { db(0xDB); db(0xE2); }
 void fninit() { db(0xDB); db(0xE3); }
 void fnop() { db(0xD9); db(0xD0); }
-void fnsave(Address addr) { opMR(addr, new Reg32(6), 0, 0xDD); }
-void fnstcw(Address addr) { opMR(addr, new Reg32(7), 0, 0xD9); }
-void fnstenv(Address addr) { opMR(addr, new Reg32(6), 0, 0xD9); }
-void fnstsw(Address addr) { opMR(addr, new Reg32(7), 0, 0xDD); }
+void fnsave(Address addr) { opMR(addr, Reg32(6), 0, 0xDD); }
+void fnstcw(Address addr) { opMR(addr, Reg32(7), 0, 0xD9); }
+void fnstenv(Address addr) { opMR(addr, Reg32(6), 0, 0xD9); }
+void fnstsw(Address addr) { opMR(addr, Reg32(7), 0, 0xDD); }
 void fnstsw(Reg16 r) { if (r.getIdx() != Operand.AX) mixin(XBYAK_THROW(ERR.BAD_PARAMETER)); db(0xDF); db(0xE0); }
 void fpatan() { db(0xD9); db(0xF3); }
 void fprem() { db(0xD9); db(0xF8); }
 void fprem1() { db(0xD9); db(0xF5); }
 void fptan() { db(0xD9); db(0xF2); }
 void frndint() { db(0xD9); db(0xFC); }
-void frstor(Address addr) { opMR(addr, new Reg32(4), 0, 0xDD); }
-void fsave(Address addr) { db(0x9B); opMR(addr, new Reg32(6), 0, 0xDD); }
+void frstor(Address addr) { opMR(addr, Reg32(4), 0, 0xDD); }
+void fsave(Address addr) { db(0x9B); opMR(addr, Reg32(6), 0, 0xDD); }
 void fscale() { db(0xD9); db(0xFD); }
 void fsin() { db(0xD9); db(0xFE); }
 void fsincos() { db(0xD9); db(0xFB); }
 void fsqrt() { db(0xD9); db(0xFA); }
 void fst(Address addr) { opFpuMem(addr, 0x00, 0xD9, 0xDD, 2, 0); }
 void fst(Fpu reg) { opFpu(reg, 0xDD, 0xD0); }
-void fstcw(Address addr) { db(0x9B); opMR(addr, new Reg32(7), 0, 0xD9); }
-void fstenv(Address addr) { db(0x9B); opMR(addr, new Reg32(6), 0, 0xD9); }
+void fstcw(Address addr) { db(0x9B); opMR(addr, Reg32(7), 0, 0xD9); }
+void fstenv(Address addr) { db(0x9B); opMR(addr, Reg32(6), 0, 0xD9); }
 void fstp(Address addr) { opFpuMem(addr, 0x00, 0xD9, 0xDD, 3, 0); }
 void fstp(Fpu reg) { opFpu(reg, 0xDD, 0xD8); }
-void fstsw(Address addr) { db(0x9B); opMR(addr, new Reg32(7), 0, 0xDD); }
+void fstsw(Address addr) { db(0x9B); opMR(addr, Reg32(7), 0, 0xDD); }
 void fstsw(Reg16 r) { if (r.getIdx() != Operand.AX) mixin(XBYAK_THROW(ERR.BAD_PARAMETER)); db(0x9B); db(0xDF); db(0xE0); }
 void fsub(Address addr) { opFpuMem(addr, 0x00, 0xD8, 0xDC, 4, 0); }
 void fsub(Fpu reg1) { opFpuFpu(st0, reg1, 0xD8E0, 0xDCE8); }
@@ -4789,7 +4833,7 @@ void fwait() { db(0x9B); }
 void fxam() { db(0xD9); db(0xE5); }
 void fxch() { db(0xD9); db(0xC9); }
 void fxch(Fpu reg) { opFpu(reg, 0xD9, 0xC8); }
-void fxrstor(Address addr) { opMR(addr, new Reg32(1), T_0F, 0xAE); }
+void fxrstor(Address addr) { opMR(addr, Reg32(1), T_0F, 0xAE); }
 void fxtract() { db(0xD9); db(0xF4); }
 void fyl2x() { db(0xD9); db(0xF1); }
 void fyl2xp1() { db(0xD9); db(0xF9); }
@@ -4806,10 +4850,10 @@ void hsubps(Xmm xmm, Operand op) { opSSE(xmm, op, T_F2|T_0F|T_YMM, 0x7D, &isXMM_
 
 void idiv(Operand op) { opRext(op, 0, 7, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
 void imul(Operand op) { opRext(op, 0, 5, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
-void imul(Reg reg, Operand op) { if (opROO(new Reg(), op, reg, T_APX|T_NF, 0xAF)) return; opRO(reg, op, T_0F, 0xAF, reg.getKind() == op.getKind()); }
+void imul(Reg reg, Operand op) { if (opROO(Reg(), op, reg, T_APX|T_NF, 0xAF)) return; opRO(reg, op, T_0F, 0xAF, reg.getKind() == op.getKind()); }
 void in_(Reg a, Reg d) { opInOut(a, d, 0xEC); }
 void in_(Reg a, uint8_t v) { opInOut(a, 0xE4, v); }
-void inc(Operand op) { opIncDec(new Reg(), op, 0); }
+void inc(Operand op) { opIncDec(Reg(), op, 0); }
 void inc(Reg d, Operand op) { opIncDec(d, op, 0); }
 void insertps(Xmm xmm, Operand op, uint8_t imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x21, &isXMM_XMMorMEM, imm); }
 void int3() { db(0xCC); }
@@ -4941,7 +4985,7 @@ void jz(string label, LabelType type = T_AUTO) { opJmp(label, type, 0x74, 0x84, 
 
 void lahf() { db(0x9F); }
 void lddqu(Xmm xmm, Address addr) { opSSE(xmm, addr, T_F2 | T_0F, 0xF0); }
-void ldmxcsr(Address addr) { opMR(addr, new Reg32(2), T_0F, 0xAE); }
+void ldmxcsr(Address addr) { opMR(addr, Reg32(2), T_0F, 0xAE); }
 void lea(Reg reg, Address addr) { if (!reg.isBit(16 | i32e)) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); opMR(addr, reg, 0, 0x8D); }
 void leave() { db(0xC9); }
 void lfence() { db(0x0F); db(0xAE); db(0xE8); }
@@ -4964,7 +5008,7 @@ void loopne(ref Label label)
 void loopne(const char* label) { loopne(to!string(label)); }
 void loopne(string label) { opJmp(label, T_SHORT, 0xE0, 0, 0); }
 void lss(Reg reg, Address addr) { opLoadSeg(addr, reg, T_0F, 0xB2); }
-void lzcnt(Reg reg, Operand op) { if (opROO(new Reg(), op, reg, T_APX|T_NF, 0xF5)) return; opCnt(reg, op, 0xBD); }
+void lzcnt(Reg reg, Operand op) { if (opROO(Reg(), op, reg, T_APX|T_NF, 0xF5)) return; opCnt(reg, op, 0xBD); }
 
 void maskmovdqu(Xmm reg1, Xmm reg2) { opSSE(reg1, reg2, T_66|T_0F, 0xF7); }
 void maskmovq(Mmx reg1, Mmx reg2) { opSSE(reg1, reg2, T_0F, 0xF7); }
@@ -5003,11 +5047,11 @@ void movlpd(Operand op1, Operand op2) { opMovXMM(op1, op2, T_66|T_0F, 0x12); }
 void movlps(Operand op1, Operand op2) { opMovXMM(op1, op2, T_0F, 0x12); }
 void movmskpd(Reg32e reg, Xmm xmm) { db(0x66); movmskps(reg, xmm); }
 void movmskps(Reg32e reg, Xmm xmm) { opSSE(reg, xmm, T_0F, 0x50); }
-void movntdq(Address addr, Xmm reg) { if (reg.getIdx() >= 16) mixin(XBYAK_THROW(ERR.BAD_PARAMETER)); opSSE(new Reg16(reg.getIdx()), addr, T_0F, 0xE7); }
+void movntdq(Address addr, Xmm reg) { if (reg.getIdx() >= 16) mixin(XBYAK_THROW(ERR.BAD_PARAMETER)); opSSE(Reg16(reg.getIdx()), addr, T_0F, 0xE7); }
 void movntdqa(Xmm xmm, Address addr) { opSSE(xmm, addr, T_66 | T_0F38, 0x2A); }
 void movnti(Address addr, Reg32e reg) { opMR(addr, reg, T_0F, 0xC3); }
-void movntpd(Address addr, Xmm reg) { if (reg.getIdx() >= 16) mixin(XBYAK_THROW(ERR.BAD_PARAMETER)); opSSE(new Reg16(reg.getIdx()), addr, T_0F, 0x2B); }
-void movntps(Address addr, Xmm xmm) { opSSE(new Xmm(xmm.getIdx()), addr, T_0F, 0x2B); }
+void movntpd(Address addr, Xmm reg) { if (reg.getIdx() >= 16) mixin(XBYAK_THROW(ERR.BAD_PARAMETER)); opSSE(Reg16(reg.getIdx()), addr, T_0F, 0x2B); }
+void movntps(Address addr, Xmm xmm) { opSSE(Xmm(xmm.getIdx()), addr, T_0F, 0x2B); }
 void movntq(Address addr, Mmx mmx) { if (!mmx.isMMX()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opSSE(mmx, addr, T_0F, 0xE7); }
 void movq(Address addr, Mmx mmx) { if (mmx.isXMM()) db(0x66); opSSE(mmx, addr, T_0F, mmx.isXMM() ? 0xD6 : 0x7F); }
 void movq(Mmx mmx, Operand op) { if (!op.isMEM() && mmx.getKind() != op.getKind()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); if (mmx.isXMM()) db(0xF3); opSSE(mmx, op, T_0F, mmx.isXMM() ? 0x7E : 0x6F); }
@@ -5038,9 +5082,9 @@ void mwait() { db(0x0F); db(0x01); db(0xC9); }
 void mwaitx() { db(0x0F); db(0x01); db(0xFB); }
 
 void neg(Operand op) { opRext(op, 0, 3, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
-void neg(Reg d, Operand op) { opROO(d, op, new Reg(3, Kind.REG, d.getBit()), T_APX|T_NF|T_CODE1_IF1|T_ND1, 0xF6); }
+void neg(Reg d, Operand op) { opROO(d, op, Reg(3, Kind.REG, d.getBit()), T_APX|T_NF|T_CODE1_IF1|T_ND1, 0xF6); }
 void not(Operand op) { opRext(op, 0, 2, T_APX|T_CODE1_IF1, 0xF6); }
-void not(Reg d, Operand op) { opROO(d, op, new Reg(2, Kind.REG, d.getBit()), T_APX|T_CODE1_IF1|T_ND1, 0xF6); }
+void not(Reg d, Operand op) { opROO(d, op, Reg(2, Kind.REG, d.getBit()), T_APX|T_CODE1_IF1|T_ND1, 0xF6); }
 
 void or(Operand op, uint32_t imm) { opOI(op, imm, 0x08, 1); }
 void or(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x08); }
@@ -5146,14 +5190,14 @@ void pmuludq(Mmx mmx, Operand op) { opMMX(mmx, op, 0xF4); }
 void popcnt(Reg reg, Operand op) { opCnt(reg, op, 0xB8); }
 void popf() { db(0x9D); }
 void por(Mmx mmx, Operand op) { opMMX(mmx, op, 0xEB); }
-void prefetchit0(Address addr) { opMR(addr, new Reg32(7), T_0F, 0x18); }
-void prefetchit1(Address addr) { opMR(addr, new Reg32(6), T_0F, 0x18); }
-void prefetchnta(Address addr) { opMR(addr, new Reg32(0), T_0F, 0x18); }
-void prefetcht0(Address addr) { opMR(addr, new Reg32(1), T_0F, 0x18); }
-void prefetcht1(Address addr) { opMR(addr, new Reg32(2), T_0F, 0x18); }
-void prefetcht2(Address addr) { opMR(addr, new Reg32(3), T_0F, 0x18); }
-void prefetchw(Address addr) { opMR(addr, new Reg32(1), T_0F, 0x0D); }
-void prefetchwt1(Address addr) { opMR(addr, new Reg32(2), T_0F, 0x0D); }
+void prefetchit0(Address addr) { opMR(addr, Reg32(7), T_0F, 0x18); }
+void prefetchit1(Address addr) { opMR(addr, Reg32(6), T_0F, 0x18); }
+void prefetchnta(Address addr) { opMR(addr, Reg32(0), T_0F, 0x18); }
+void prefetcht0(Address addr) { opMR(addr, Reg32(1), T_0F, 0x18); }
+void prefetcht1(Address addr) { opMR(addr, Reg32(2), T_0F, 0x18); }
+void prefetcht2(Address addr) { opMR(addr, Reg32(3), T_0F, 0x18); }
+void prefetchw(Address addr) { opMR(addr, Reg32(1), T_0F, 0x0D); }
+void prefetchwt1(Address addr) { opMR(addr, Reg32(2), T_0F, 0x0D); }
 void psadbw(Mmx mmx, Operand op) { opMMX(mmx, op, 0xF6); }
 void pshufb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x00, T_0F38, T_66); }
 void pshufd(Mmx mmx, Operand op, uint8_t imm8) { opMMX(mmx, op, 0x70, T_0F, T_66, imm8); }
@@ -5213,8 +5257,8 @@ void rcr(Reg d, Operand op, Reg8 _cl) { opShift(op, _cl, 3, d); }
 void rcr(Reg d, Operand op, int imm) { opShift(op, imm, 3, d); }
 void rdmsr() { db(0x0F); db(0x32); }
 void rdpmc() { db(0x0F); db(0x33); }
-void rdrand(Reg r) { if (r.isBit(8)) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); opRR(new Reg(6, Kind.REG, r.getBit()), r, T_0F, 0xC7); }
-void rdseed(Reg r) { if (r.isBit(8)) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); opRR(new Reg(7, Kind.REG, r.getBit()), r, T_0F, 0xC7); }
+void rdrand(Reg r) { if (r.isBit(8)) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); opRR(Reg(6, Kind.REG, r.getBit()), r, T_0F, 0xC7); }
+void rdseed(Reg r) { if (r.isBit(8)) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER)); opRR(Reg(7, Kind.REG, r.getBit()), r, T_0F, 0xC7); }
 void rdtsc() { db(0x0F); db(0x31); }
 void rdtscp() { db(0x0F); db(0x01); db(0xF9); }
 void rep() { db(0xF3); }
@@ -5232,7 +5276,7 @@ void ror(Operand op, Reg8 _cl) { opShift(op, _cl, 9); }
 void ror(Operand op, int imm) { opShift(op, imm, 9); }
 void ror(Reg d, Operand op, Reg8 _cl) { opShift(op, _cl, 9, d); }
 void ror(Reg d, Operand op, int imm) { opShift(op, imm, 9, d); }
-void rorx(Reg32e r, Operand op, uint8_t imm) { opRRO(r, new Reg32e(0, r.getBit()), op, T_0F3A|T_F2|T_APX, 0xF0, imm); }
+void rorx(Reg32e r, Operand op, uint8_t imm) { opRRO(r, Reg32e(0, r.getBit()), op, T_0F3A|T_F2|T_APX, 0xF0, imm); }
 void roundpd(Xmm xmm, Operand op, uint8_t imm) { opSSE(xmm, op, T_66|T_0F3A|T_YMM, 0x09, &isXMM_XMMorMEM, imm); }
 void roundps(Xmm xmm, Operand op, uint8_t imm) { opSSE(xmm, op, T_66|T_0F3A|T_YMM, 0x08, &isXMM_XMMorMEM, imm); }
 void roundsd(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0B, &isXMM_XMMorMEM, cast(uint8_t)imm); }
@@ -5300,8 +5344,8 @@ void shl(Operand op, Reg8 _cl) { opShift(op, _cl, 12); }
 void shl(Operand op, int imm) { opShift(op, imm, 12); }
 void shl(Reg d, Operand op, Reg8 _cl) { opShift(op, _cl, 12, d); }
 void shl(Reg d, Operand op, int imm) { opShift(op, imm, 12, d); }
-void shld(Operand op, Reg reg, Reg8 _cl) { opShxd(new Reg(), op, reg, 0, 0xA4, 0x24, _cl); }
-void shld(Operand op, Reg reg, uint8_t imm) { opShxd(new Reg(), op, reg, imm, 0xA4, 0x24); }
+void shld(Operand op, Reg reg, Reg8 _cl) { opShxd(Reg(), op, reg, 0, 0xA4, 0x24, _cl); }
+void shld(Operand op, Reg reg, uint8_t imm) { opShxd(Reg(), op, reg, imm, 0xA4, 0x24); }
 void shld(Reg d, Operand op, Reg reg, Reg8 _cl) { opShxd(d, op, reg, 0, 0xA4, 0x24, _cl); }
 void shld(Reg d, Operand op, Reg reg, uint8_t imm) { opShxd(d, op, reg, imm, 0xA4, 0x24); }
 void shlx(Reg32e r1, Operand op, Reg32e r2) { opRRO(r1, r2, op, T_APX|T_66|T_0F38, 0xf7); }
@@ -5309,8 +5353,8 @@ void shr(Operand op, Reg8 _cl) { opShift(op, _cl, 13); }
 void shr(Operand op, int imm) { opShift(op, imm, 13); }
 void shr(Reg d, Operand op, Reg8 _cl) { opShift(op, _cl, 13, d); }
 void shr(Reg d, Operand op, int imm) { opShift(op, imm, 13, d); }
-void shrd(Operand op, Reg reg, Reg8 _cl) { opShxd(new Reg(), op, reg, 0, 0xAC, 0x2C, _cl); }
-void shrd(Operand op, Reg reg, uint8_t imm) { opShxd(new Reg(), op, reg, imm, 0xAC, 0x2C); }
+void shrd(Operand op, Reg reg, Reg8 _cl) { opShxd(Reg(), op, reg, 0, 0xAC, 0x2C, _cl); }
+void shrd(Operand op, Reg reg, uint8_t imm) { opShxd(Reg(), op, reg, imm, 0xAC, 0x2C); }
 void shrd(Reg d, Operand op, Reg reg, Reg8 _cl) { opShxd(d, op, reg, 0, 0xAC, 0x2C, _cl); }
 void shrd(Reg d, Operand op, Reg reg, uint8_t imm) { opShxd(d, op, reg, imm, 0xAC, 0x2C); }
 void shrx(Reg32e r1, Operand op, Reg32e r2) { opRRO(r1, r2, op, T_APX|T_F2|T_0F38, 0xf7); }
@@ -5324,7 +5368,7 @@ void stac() { db(0x0F); db(0x01); db(0xCB); }
 void stc() { db(0xF9); }
 void std() { db(0xFD); }
 void sti() { db(0xFB); }
-void stmxcsr(Address addr) { opMR(addr, new Reg32(3), T_0F, 0xAE); }
+void stmxcsr(Address addr) { opMR(addr, Reg32(3), T_0F, 0xAE); }
 void stosb() { db(0xAA); }
 void stosd() { db(0xAB); }
 void stosw() { db(0x66); db(0xAB); }
@@ -5340,7 +5384,7 @@ void sysenter() { db(0x0F); db(0x34); }
 void sysexit() { db(0x0F); db(0x35); }
 
 void tpause(Reg32 r) { int idx = r.getIdx(); if (idx > 7) mixin(XBYAK_THROW(ERR.BAD_PARAMETER)); db(0x66); db(0x0F); db(0xAE); setModRM(3, 6, idx); }
-void tzcnt(Reg reg, Operand op) { if (opROO(new Reg(), op, reg, T_APX|T_NF, 0xF4)) return; opCnt(reg, op, 0xBC); }
+void tzcnt(Reg reg, Operand op) { if (opROO(Reg(), op, reg, T_APX|T_NF, 0xF4)) return; opCnt(reg, op, 0xBC); }
 
 void ucomisd(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F, 0x2E, &isXMM_XMMorMEM); }
 void ucomiss(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x2E, &isXMM_XMMorMEM); }
@@ -5352,22 +5396,22 @@ void unpckhps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x15, &isXMM_XMMorMEM)
 void unpcklpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x14, &isXMM_XMMorMEM); }
 void unpcklps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x14, &isXMM_XMMorMEM); }
 
-void vaddpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x58); }
-void vaddps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x58); }
-void vaddsd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x58); }
-void vaddss(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x58); }
-void vaddsubpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F|T_YMM, 0xD0); }
-void vaddsubps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_F2|T_0F|T_YMM, 0xD0); }
-void vaesdec(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F38|T_YMM|T_EVEX, 0xDE); }
-void vaesdeclast(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F38|T_YMM|T_EVEX, 0xDF); }
-void vaesenc(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F38|T_YMM|T_EVEX, 0xDC); }
-void vaesenclast(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F38|T_YMM|T_EVEX, 0xDD); }
+void vaddpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x58); }
+void vaddps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x58); }
+void vaddsd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x58); }
+void vaddss(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x58); }
+void vaddsubpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F|T_YMM, 0xD0); }
+void vaddsubps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_F2|T_0F|T_YMM, 0xD0); }
+void vaesdec(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F38|T_YMM|T_EVEX, 0xDE); }
+void vaesdeclast(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F38|T_YMM|T_EVEX, 0xDF); }
+void vaesenc(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F38|T_YMM|T_EVEX, 0xDC); }
+void vaesenclast(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F38|T_YMM|T_EVEX, 0xDD); }
 void vaesimc(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F38|T_W0, 0xDB); }
 void vaeskeygenassist(Xmm xm, Operand op, uint8_t imm) { opAVX_X_XM_IMM(xm, op, T_66|T_0F3A, 0xDF, imm); }
-void vandnpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x55); }
-void vandnps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x55); }
-void vandpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x54); }
-void vandps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x54); }
+void vandnpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x55); }
+void vandnps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x55); }
+void vandpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x54); }
+void vandps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x54); }
 void vbcstnebf162ps(Xmm x, Address addr) { opVex(x, null, addr, T_F3|T_0F38|T_W0|T_YMM|T_B16, 0xB1); }
 void vbcstnesh2ps(Xmm x, Address addr) { opVex(x, null, addr, T_66|T_0F38|T_W0|T_YMM|T_B16, 0xB1); }
 void vblendpd(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_W0|T_YMM, 0x0D, imm); }
@@ -5524,83 +5568,83 @@ void vcvtph2ps(Xmm x, Operand op) { checkCvt1(x, op); opVex(x, null, op, T_0F38 
 void vcvtps2dq(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0x5B); }
 void vcvtps2pd(Xmm x, Operand op) { checkCvt1(x, op); opVex(x, null, op, T_0F | T_YMM | T_EVEX | T_EW0 | T_B32 | T_N8 | T_N_VL | T_SAE_Y, 0x5A); }
 void vcvtps2ph(Operand op, Xmm x, uint8_t imm) { checkCvt1(x, op); opVex(x, null, op, T_0F3A | T_66 | T_W0 | T_EVEX | T_EW0 | T_N8 | T_N_VL | T_SAE_Y | T_M_K, 0x1D, imm); }
-void vcvtsd2si(Reg32 r, Operand op) { opAVX_X_X_XM(new Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W0 | T_EVEX | T_EW0 | T_N4 | T_ER_X, 0x2D); }
+void vcvtsd2si(Reg32 r, Operand op) { opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W0 | T_EVEX | T_EW0 | T_N4 | T_ER_X, 0x2D); }
 void vcvtsd2ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_F2|T_0F|T_EW1|T_EVEX|T_ER_X, 0x5A); }
 void vcvtsi2sd(Xmm x1, Xmm x2, Operand op) { opCvt3(x1, x2, op, T_0F | T_F2 | T_EVEX, T_W1 | T_EW1 | T_ER_X | T_N8, T_W0 | T_EW0 | T_N4, 0x2A); }
 void vcvtsi2ss(Xmm x1, Xmm x2, Operand op) { opCvt3(x1, x2, op, T_0F | T_F3 | T_EVEX | T_ER_X, T_W1 | T_EW1 | T_N8, T_W0 | T_EW0 | T_N4, 0x2A); }
 void vcvtss2sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_F3|T_0F|T_EW0|T_EVEX|T_SAE_X, 0x5A); }
-void vcvtss2si(Reg32 r, Operand op) { opAVX_X_X_XM(new Xmm(r.getIdx()), xm0, op, T_0F | T_F3 | T_W0 | T_EVEX | T_EW0 | T_ER_X | T_N8, 0x2D); }
-void vcvttpd2dq(Xmm x, Operand op) { opCvt2(x, op, T_66 | T_0F | T_YMM | T_EVEX |T_EW1 | T_B64 | T_ER_Z, 0xE6); }
+void vcvtss2si(Reg32 r, Operand op) { opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F3 | T_W0 | T_EVEX | T_EW0 | T_ER_X | T_N8, 0x2D); }
+void vcvttpd2dq(Xmm x, Operand op) { opCvt2(x, op, T_66 | T_0F | T_YMM | T_EVEX |T_EW1 | T_B64 | T_SAE_Z, 0xE6); }
 void vcvttps2dq(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_F3|T_0F|T_EW0|T_YMM|T_EVEX|T_SAE_Z|T_B32, 0x5B); }
-void vcvttsd2si(Reg32 r, Operand op) { opAVX_X_X_XM(new Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W0 | T_EVEX | T_EW0 | T_N4 | T_SAE_X, 0x2C); }
-void vcvttss2si(Reg32 r, Operand op) { opAVX_X_X_XM(new Xmm(r.getIdx()), xm0, op, T_0F | T_F3 | T_W0 | T_EVEX | T_EW0 | T_SAE_X | T_N8, 0x2C); }
-void vdivpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x5E); }
-void vdivps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x5E); }
-void vdivsd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x5E); }
-void vdivss(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x5E); }
+void vcvttsd2si(Reg32 r, Operand op) { opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W0 | T_EVEX | T_EW0 | T_N4 | T_SAE_X, 0x2C); }
+void vcvttss2si(Reg32 r, Operand op) { opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F3 | T_W0 | T_EVEX | T_EW0 | T_SAE_X | T_N8, 0x2C); }
+void vdivpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x5E); }
+void vdivps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x5E); }
+void vdivsd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x5E); }
+void vdivss(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x5E); }
 void vdppd(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_W0, 0x41, imm); }
 void vdpps(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_W0|T_YMM, 0x40, imm); }
 void vextractf128(Operand op, Ymm y, uint8_t imm) { if (!(op.isXMEM() && y.isYMM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(y, null, op, T_0F3A | T_66 | T_W0 | T_YMM, 0x19, imm); }
 void vextracti128(Operand op, Ymm y, uint8_t imm) { if (!(op.isXMEM() && y.isYMM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(y, null, op, T_0F3A | T_66 | T_W0 | T_YMM, 0x39, imm); }
 void vextractps(Operand op, Xmm x, uint8_t imm) { if (!((op.isREG(32) || op.isMEM()) && x.isXMM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(x, null, op, T_0F3A | T_66 | T_W0 | T_EVEX | T_N4, 0x17, imm); }
-void vfmadd132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x98); }
-void vfmadd132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x98); }
+void vfmadd132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0x98); }
+void vfmadd132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0x98); }
 void vfmadd132sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0x99); }
 void vfmadd132ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0x99); }
-void vfmadd213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xA8); }
-void vfmadd213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xA8); }
+void vfmadd213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xA8); }
+void vfmadd213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xA8); }
 void vfmadd213sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0xA9); }
 void vfmadd213ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0xA9); }
-void vfmadd231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xB8); }
-void vfmadd231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xB8); }
+void vfmadd231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xB8); }
+void vfmadd231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xB8); }
 void vfmadd231sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0xB9); }
 void vfmadd231ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0xB9); }
-void vfmaddsub132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x96); }
-void vfmaddsub132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x96); }
-void vfmaddsub213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xA6); }
-void vfmaddsub213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xA6); }
-void vfmaddsub231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xB6); }
-void vfmaddsub231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xB6); }
-void vfmsub132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x9A); }
-void vfmsub132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x9A); }
+void vfmaddsub132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0x96); }
+void vfmaddsub132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0x96); }
+void vfmaddsub213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xA6); }
+void vfmaddsub213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xA6); }
+void vfmaddsub231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xB6); }
+void vfmaddsub231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xB6); }
+void vfmsub132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0x9A); }
+void vfmsub132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0x9A); }
 void vfmsub132sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0x9B); }
 void vfmsub132ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0x9B); }
-void vfmsub213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xAA); }
-void vfmsub213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xAA); }
+void vfmsub213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xAA); }
+void vfmsub213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xAA); }
 void vfmsub213sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0xAB); }
 void vfmsub213ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0xAB); }
-void vfmsub231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xBA); }
-void vfmsub231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xBA); }
+void vfmsub231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xBA); }
+void vfmsub231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xBA); }
 void vfmsub231sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0xBB); }
 void vfmsub231ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0xBB); }
-void vfmsubadd132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x97); }
-void vfmsubadd132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x97); }
-void vfmsubadd213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xA7); }
-void vfmsubadd213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xA7); }
-void vfmsubadd231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xB7); }
-void vfmsubadd231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xB7); }
-void vfnmadd132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x9C); }
-void vfnmadd132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x9C); }
+void vfmsubadd132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0x97); }
+void vfmsubadd132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0x97); }
+void vfmsubadd213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xA7); }
+void vfmsubadd213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xA7); }
+void vfmsubadd231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xB7); }
+void vfmsubadd231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xB7); }
+void vfnmadd132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0x9C); }
+void vfnmadd132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0x9C); }
 void vfnmadd132sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0x9D); }
 void vfnmadd132ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0x9D); }
-void vfnmadd213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xAC); }
-void vfnmadd213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xAC); }
+void vfnmadd213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xAC); }
+void vfnmadd213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xAC); }
 void vfnmadd213sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0xAD); }
 void vfnmadd213ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0xAD); }
-void vfnmadd231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xBC); }
-void vfnmadd231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xBC); }
+void vfnmadd231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xBC); }
+void vfnmadd231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xBC); }
 void vfnmadd231sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0xBD); }
 void vfnmadd231ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0xBD); }
-void vfnmsub132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x9E); }
-void vfnmsub132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x9E); }
+void vfnmsub132pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0x9E); }
+void vfnmsub132ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0x9E); }
 void vfnmsub132sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0x9F); }
 void vfnmsub132ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0x9F); }
-void vfnmsub213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xAE); }
-void vfnmsub213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xAE); }
+void vfnmsub213pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xAE); }
+void vfnmsub213ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xAE); }
 void vfnmsub213sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0xAF); }
 void vfnmsub213ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0xAF); }
-void vfnmsub231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0xBE); }
-void vfnmsub231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0xBE); }
+void vfnmsub231pd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_ER_Z|T_B64, 0xBE); }
+void vfnmsub231ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0xBE); }
 void vfnmsub231sd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F38|T_W1|T_EW1|T_EVEX|T_ER_X, 0xBF); }
 void vfnmsub231ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F38|T_W0|T_EW0|T_EVEX|T_ER_X, 0xBF); }
 void vgatherdpd(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, T_0F38 | T_66 | T_YMM | T_VSIB | T_W1, 0x92, 0); }
@@ -5610,10 +5654,10 @@ void vgatherqps(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, T_0F38 | 
 void vgf2p8affineinvqb(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_W1|T_EW1|T_YMM|T_EVEX|T_SAE_Z|T_B64, 0xCF, imm); }
 void vgf2p8affineqb(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_W1|T_EW1|T_YMM|T_EVEX|T_SAE_Z|T_B64, 0xCE, imm); }
 void vgf2p8mulb(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_SAE_Z, 0xCF); }
-void vhaddpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F|T_YMM, 0x7C); }
-void vhaddps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_F2|T_0F|T_YMM, 0x7C); }
-void vhsubpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F|T_YMM, 0x7D); }
-void vhsubps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_F2|T_0F|T_YMM, 0x7D); }
+void vhaddpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F|T_YMM, 0x7C); }
+void vhaddps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_F2|T_0F|T_YMM, 0x7C); }
+void vhsubpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_66|T_0F|T_YMM, 0x7D); }
+void vhsubps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_F2|T_0F|T_YMM, 0x7D); }
 void vinsertf128(Ymm y1, Ymm y2, Operand op, uint8_t imm) { if (!(y1.isYMM() && y2.isYMM() && op.isXMEM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(y1, y2, op, T_0F3A | T_66 | T_W0 | T_YMM, 0x18, imm); }
 void vinserti128(Ymm y1, Ymm y2, Operand op, uint8_t imm) { if (!(y1.isYMM() && y2.isYMM() && op.isXMEM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(y1, y2, op, T_0F3A | T_66 | T_W0 | T_YMM, 0x38, imm); }
 void vinsertps(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F3A|T_W0|T_EW0|T_EVEX, 0x21, imm); }
@@ -5624,14 +5668,14 @@ void vmaskmovpd(Address addr, Xmm x1, Xmm x2) { opAVX_X_X_XM(x2, x1, addr, T_0F3
 void vmaskmovpd(Xmm x1, Xmm x2, Address addr) { opAVX_X_X_XM(x1, x2, addr, T_0F38 | T_66 | T_W0 | T_YMM, 0x2D); }
 void vmaskmovps(Address addr, Xmm x1, Xmm x2) { opAVX_X_X_XM(x2, x1, addr, T_0F38 | T_66 | T_W0 | T_YMM, 0x2E); }
 void vmaskmovps(Xmm x1, Xmm x2, Address addr) { opAVX_X_X_XM(x1, x2, addr, T_0F38 | T_66 | T_W0 | T_YMM, 0x2C); }
-void vmaxpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x5F); }
-void vmaxps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x5F); }
-void vmaxsd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x5F); }
-void vmaxss(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x5F); }
-void vminpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x5D); }
-void vminps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x5D); }
-void vminsd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x5D); }
-void vminss(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x5D); }
+void vmaxpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_SAE_Z | T_B64, 0x5F); }
+void vmaxps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_SAE_Z | T_B32, 0x5F); }
+void vmaxsd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_SAE_X | T_N8, 0x5F); }
+void vmaxss(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_SAE_X | T_N4, 0x5F); }
+void vminpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_SAE_Z | T_B64, 0x5D); }
+void vminps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_SAE_Z | T_B32, 0x5D); }
+void vminsd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_SAE_X | T_N8, 0x5D); }
+void vminss(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_SAE_X | T_N4, 0x5D); }
 void vmovapd(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, T_66|T_0F|T_EW1|T_YMM|T_EVEX|T_M_K, 0x29); }
 void vmovapd(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F|T_EW1|T_YMM|T_EVEX, 0x28); }
 void vmovaps(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, T_0F|T_EW0|T_YMM|T_EVEX|T_M_K, 0x29); }
@@ -5641,18 +5685,18 @@ void vmovdqa(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, T_66|T_0F|T_YMM,
 void vmovdqa(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F|T_YMM, 0x6F); }
 void vmovdqu(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, T_F3|T_0F|T_YMM, 0x7F); }
 void vmovdqu(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_F3|T_0F|T_YMM, 0x6F); }
-void vmovhlps(Xmm x1, Xmm x2, Operand op = new Operand()) { if (!op.isNone() && !op.isXMM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x1, x2, op, T_0F | T_EVEX | T_EW0, 0x12); }
+void vmovhlps(Xmm x1, Xmm x2, Operand op = Operand()) { if (!op.isNone() && !op.isXMM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x1, x2, op, T_0F | T_EVEX | T_EW0, 0x12); }
 void vmovhpd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, T_N8|T_66|T_0F|T_EW1|T_EVEX, 0x17); }
-void vmovhpd(Xmm x, Operand op1, Operand op2 = new Operand()) { if (!op2.isNone() && !op2.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x, op1, op2, T_N8|T_66|T_0F|T_EW1|T_EVEX, 0x16); }
+void vmovhpd(Xmm x, Operand op1, Operand op2 = Operand()) { if (!op2.isNone() && !op2.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x, op1, op2, T_N8|T_66|T_0F|T_EW1|T_EVEX, 0x16); }
 void vmovhps(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, T_N8|T_0F|T_EW0|T_EVEX, 0x17); }
-void vmovhps(Xmm x, Operand op1, Operand op2 = new Operand()) { if (!op2.isNone() && !op2.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x, op1, op2, T_N8|T_0F|T_EW0|T_EVEX, 0x16); }
-void vmovlhps(Xmm x1, Xmm x2, Operand op = new Operand()) { if (!op.isNone() && !op.isXMM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x1, x2, op, T_0F | T_EVEX | T_EW0, 0x16); }
+void vmovhps(Xmm x, Operand op1, Operand op2 = Operand()) { if (!op2.isNone() && !op2.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x, op1, op2, T_N8|T_0F|T_EW0|T_EVEX, 0x16); }
+void vmovlhps(Xmm x1, Xmm x2, Operand op = Operand()) { if (!op.isNone() && !op.isXMM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x1, x2, op, T_0F | T_EVEX | T_EW0, 0x16); }
 void vmovlpd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, T_N8|T_66|T_0F|T_EW1|T_EVEX, 0x13); }
-void vmovlpd(Xmm x, Operand op1, Operand op2 = new Operand()) { if (!op2.isNone() && !op2.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x, op1, op2, T_N8|T_66|T_0F|T_EW1|T_EVEX, 0x12); }
+void vmovlpd(Xmm x, Operand op1, Operand op2 = Operand()) { if (!op2.isNone() && !op2.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x, op1, op2, T_N8|T_66|T_0F|T_EW1|T_EVEX, 0x12); }
 void vmovlps(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, T_N8|T_0F|T_EW0|T_EVEX, 0x13); }
-void vmovlps(Xmm x, Operand op1, Operand op2 = new Operand()) { if (!op2.isNone() && !op2.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x, op1, op2, T_N8|T_0F|T_EW0|T_EVEX, 0x12); }
-void vmovmskpd(Reg r, Xmm x) { if (!r.isBit(i32e)) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x.isXMM() ? new Xmm(r.getIdx()) : new Ymm(r.getIdx()), cvtIdx0(x), x, T_0F | T_66 | T_W0 | T_YMM, 0x50); }
-void vmovmskps(Reg r, Xmm x) { if (!r.isBit(i32e)) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x.isXMM() ? new Xmm(r.getIdx()) : new Ymm(r.getIdx()), cvtIdx0(x), x, T_0F | T_W0 | T_YMM, 0x50); }
+void vmovlps(Xmm x, Operand op1, Operand op2 = Operand()) { if (!op2.isNone() && !op2.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x, op1, op2, T_N8|T_0F|T_EW0|T_EVEX, 0x12); }
+void vmovmskpd(Reg r, Xmm x) { if (!r.isBit(i32e)) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x.isXMM() ? Xmm(r.getIdx()) : Ymm(r.getIdx()), cvtIdx0(x), x, T_0F | T_66 | T_W0 | T_YMM, 0x50); }
+void vmovmskps(Reg r, Xmm x) { if (!r.isBit(i32e)) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x.isXMM() ? Xmm(r.getIdx()) : Ymm(r.getIdx()), cvtIdx0(x), x, T_0F | T_W0 | T_YMM, 0x50); }
 void vmovntdq(Address addr, Xmm x) { opVex(x, null, addr, T_0F | T_66 | T_YMM | T_EVEX | T_EW0, 0xE7); }
 void vmovntdqa(Xmm x, Address addr) { opVex(x, null, addr, T_0F38 | T_66 | T_YMM | T_EVEX | T_EW0, 0x2A); }
 void vmovntpd(Address addr, Xmm x) { opVex(x, null, addr, T_0F | T_66 | T_YMM | T_EVEX | T_EW1, 0x2B); }
@@ -5662,22 +5706,22 @@ void vmovq(Xmm x, Address addr) { uint64_t type; uint8_t code; if (x.getIdx() < 
 void vmovq(Xmm x1, Xmm x2) { opAVX_X_X_XM(x1, xm0, x2, T_0F | T_F3 | T_EVEX | T_EW1 | T_N8, 0x7E); }
 void vmovsd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, T_N8|T_F2|T_0F|T_EW1|T_EVEX | T_M_K, 0x11); }
 void vmovsd(Xmm x, Address addr) { opAVX_X_X_XM(x, xm0, addr, T_N8|T_F2|T_0F|T_EW1|T_EVEX, 0x10); }
-void vmovsd(Xmm x1, Xmm x2, Operand op = new Operand()) { if (!op.isNone() && !op.isXMM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x1, x2, op, T_N8|T_F2|T_0F|T_EW1|T_EVEX, 0x10); }
+void vmovsd(Xmm x1, Xmm x2, Operand op = Operand()) { if (!op.isNone() && !op.isXMM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x1, x2, op, T_N8|T_F2|T_0F|T_EW1|T_EVEX, 0x10); }
 void vmovshdup(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_F3|T_0F|T_EW0|T_YMM|T_EVEX, 0x16); }
 void vmovsldup(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_F3|T_0F|T_EW0|T_YMM|T_EVEX, 0x12); }
 void vmovss(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, T_N4|T_F3|T_0F|T_EW0|T_EVEX | T_M_K, 0x11); }
 void vmovss(Xmm x, Address addr) { opAVX_X_X_XM(x, xm0, addr, T_N4|T_F3|T_0F|T_EW0|T_EVEX, 0x10); }
-void vmovss(Xmm x1, Xmm x2, Operand op = new Operand()) { if (!op.isNone() && !op.isXMM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x1, x2, op, T_N4|T_F3|T_0F|T_EW0|T_EVEX, 0x10); }
+void vmovss(Xmm x1, Xmm x2, Operand op = Operand()) { if (!op.isNone() && !op.isXMM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opAVX_X_X_XM(x1, x2, op, T_N4|T_F3|T_0F|T_EW0|T_EVEX, 0x10); }
 void vmovupd(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, T_66|T_0F|T_EW1|T_YMM|T_EVEX|T_M_K, 0x11); }
 void vmovupd(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F|T_EW1|T_YMM|T_EVEX, 0x10); }
 void vmovups(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, T_0F|T_EW0|T_YMM|T_EVEX|T_M_K, 0x11); }
 void vmovups(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_0F|T_EW0|T_YMM|T_EVEX, 0x10); }
-void vmulpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x59); }
-void vmulps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x59); }
-void vmulsd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x59); }
-void vmulss(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x59); }
-void vorpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x56); }
-void vorps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x56); }
+void vmulpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x59); }
+void vmulps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x59); }
+void vmulsd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x59); }
+void vmulss(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x59); }
+void vorpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x56); }
+void vorps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x56); }
 void vpabsb(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F38|T_YMM|T_EVEX, 0x1C); }
 void vpabsd(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F38|T_EW0|T_YMM|T_EVEX|T_B32, 0x1E); }
 void vpabsw(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F38|T_YMM|T_EVEX, 0x1D); }
@@ -5722,10 +5766,10 @@ void vpcmpgtq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38
 void vpcmpgtw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_YMM, 0x65); }
 void vpcmpistri(Xmm xm, Operand op, uint8_t imm) { opAVX_X_XM_IMM(xm, op, T_66|T_0F3A, 0x63, imm); }
 void vpcmpistrm(Xmm xm, Operand op, uint8_t imm) { opAVX_X_XM_IMM(xm, op, T_66|T_0F3A, 0x62, imm); }
-void vpdpbusd(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_SAE_Z|T_B32, 0x50, encoding); }
-void vpdpbusds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_SAE_Z|T_B32, 0x51, encoding); }
-void vpdpwssd(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_SAE_Z|T_B32, 0x52, encoding); }
-void vpdpwssds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_SAE_Z|T_B32, 0x53, encoding); }
+void vpdpbusd(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_SAE_Z|T_B32, 0x50, encoding); }
+void vpdpbusds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_SAE_Z|T_B32, 0x51, encoding); }
+void vpdpwssd(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_SAE_Z|T_B32, 0x52, encoding); }
+void vpdpwssds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_SAE_Z|T_B32, 0x53, encoding); }
 void vperm2f128(Ymm y1, Ymm y2, Operand op, uint8_t imm) { if (!(y1.isYMM() && y2.isYMM() && op.isYMEM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(y1, y2, op, T_0F3A | T_66 | T_W0 | T_YMM, 0x06, imm); }
 void vperm2i128(Ymm y1, Ymm y2, Operand op, uint8_t imm) { if (!(y1.isYMM() && y2.isYMM() && op.isYMEM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(y1, y2, op, T_0F3A | T_66 | T_W0 | T_YMM, 0x46, imm); }
 void vpermd(Ymm y1, Ymm y2, Operand op) { opAVX_X_X_XM(y1, y2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x36); }
@@ -5741,7 +5785,7 @@ void vpermq(Ymm y1, Ymm y2, Operand op) { opAVX_X_X_XM(y1, y2, op, T_66|T_0F38|T
 void vpextrb(Operand op, Xmm x, uint8_t imm) { if (!((op.isREG(8|16|i32e) || op.isMEM()) && x.isXMM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(x, null, op, T_0F3A | T_66 | T_EVEX | T_N1, 0x14, imm); }
 void vpextrd(Operand op, Xmm x, uint8_t imm) { if (!((op.isREG(32) || op.isMEM()) && x.isXMM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(x, null, op, T_0F3A | T_66 | T_W0 | T_EVEX | T_EW0 | T_N4, 0x16, imm); }
 void vpextrq(Operand op, Xmm x, uint8_t imm) { if (!((op.isREG(64) || op.isMEM()) && x.isXMM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(x, null, op, T_0F3A | T_66 | T_W1 | T_EVEX | T_EW1 | T_N8, 0x16, imm); }
-void vpextrw(Operand op, Xmm x, uint8_t imm) { if (!((op.isREG(16|i32e) || op.isMEM()) && x.isXMM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); if (op.isREG() && x.getIdx() < 16) { opAVX_X_X_XM(new Xmm(op.getIdx()), xm0, x, T_0F | T_66, 0xC5, imm); } else { opVex(x, null, op, T_0F3A | T_66 | T_EVEX | T_N2, 0x15, imm); } }
+void vpextrw(Operand op, Xmm x, uint8_t imm) { if (!((op.isREG(16|i32e) || op.isMEM()) && x.isXMM())) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); if (op.isREG() && x.getIdx() < 16) { opAVX_X_X_XM(Xmm(op.getIdx()), xm0, x, T_0F | T_66, 0xC5, imm); } else { opVex(x, null, op, T_0F3A | T_66 | T_EVEX | T_N2, 0x15, imm); } }
 void vpgatherdd(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, T_0F38 | T_66 | T_YMM | T_VSIB | T_W0, 0x90, 1); }
 void vpgatherdq(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, T_0F38 | T_66 | T_YMM | T_VSIB | T_W1, 0x90, 0); }
 void vpgatherqd(Xmm x1, Address addr, Xmm x2) { opGather(x1, addr, x2, T_0F38 | T_66 | T_YMM | T_VSIB | T_W0, 0x91, 2); }
@@ -5775,7 +5819,7 @@ void vpminsw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_
 void vpminub(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_YMM|T_EVEX, 0xDA); }
 void vpminud(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_EVEX|T_B32, 0x3B); }
 void vpminuw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_YMM|T_EVEX, 0x3A); }
-void vpmovmskb(Reg32e r, Xmm x) { if (!x.isKind(Kind.XMM | Kind.YMM)) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(x.isYMM() ? new Ymm(r.getIdx()) : new Xmm(r.getIdx()), null, x, T_0F | T_66 | T_YMM, 0xD7); }
+void vpmovmskb(Reg32e r, Xmm x) { if (!x.isKind(Kind.XMM | Kind.YMM)) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opVex(x.isYMM() ? Ymm(r.getIdx()) : Xmm(r.getIdx()), null, x, T_0F | T_66 | T_YMM, 0xD7); }
 void vpmovsxbd(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_N4|T_N_VL|T_66|T_0F38|T_YMM|T_EVEX, 0x21); }
 void vpmovsxbq(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_N2|T_N_VL|T_66|T_0F38|T_YMM|T_EVEX, 0x22); }
 void vpmovsxbw(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_N8|T_N_VL|T_66|T_0F38|T_YMM|T_EVEX, 0x20); }
@@ -5804,28 +5848,32 @@ void vpshuflw(Xmm xm, Operand op, uint8_t imm) { opAVX_X_XM_IMM(xm, op, T_F2|T_0
 void vpsignb(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_YMM, 0x08); }
 void vpsignd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_YMM, 0x0A); }
 void vpsignw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_YMM, 0x09); }
-void vpslld(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 6), x, op, T_66|T_0F|T_EW0|T_YMM|T_EVEX|T_B32|T_MEM_EVEX, 0x72, imm); }
+void vpslld(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66|T_0F|T_EW0|T_YMM|T_EVEX|T_B32|T_MEM_EVEX, 0x72, imm); }
 void vpslld(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_EW0|T_YMM|T_EVEX, 0xF2); }
-void vpslldq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 7), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x73, imm); }
-void vpsllq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 6), x, op, T_66|T_0F|T_EW1|T_YMM|T_EVEX|T_B64|T_MEM_EVEX, 0x73, imm); }
+
+void vpslldq(Xmm x, Operand op, uint8_t imm) { 
+	opAVX_X_X_XM(Xmm(x.getKind(), 7), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x73, imm); 
+}
+
+void vpsllq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66|T_0F|T_EW1|T_YMM|T_EVEX|T_B64|T_MEM_EVEX, 0x73, imm); }
 void vpsllq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_EW1|T_YMM|T_EVEX, 0xF3); }
 void vpsllvd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x47); }
 void vpsllvq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x47); }
-void vpsllw(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 6), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x71, imm); }
+void vpsllw(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x71, imm); }
 void vpsllw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_YMM|T_EVEX, 0xF1); }
-void vpsrad(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 4), x, op, T_66|T_0F|T_EW0|T_YMM|T_EVEX|T_B32|T_MEM_EVEX, 0x72, imm); }
+void vpsrad(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 4), x, op, T_66|T_0F|T_EW0|T_YMM|T_EVEX|T_B32|T_MEM_EVEX, 0x72, imm); }
 void vpsrad(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_EW0|T_YMM|T_EVEX, 0xE2); }
 void vpsravd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x46); }
-void vpsraw(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 4), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x71, imm); }
+void vpsraw(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 4), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x71, imm); }
 void vpsraw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_YMM|T_EVEX, 0xE1); }
-void vpsrld(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 2), x, op, T_66|T_0F|T_EW0|T_YMM|T_EVEX|T_B32|T_MEM_EVEX, 0x72, imm); }
+void vpsrld(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66|T_0F|T_EW0|T_YMM|T_EVEX|T_B32|T_MEM_EVEX, 0x72, imm); }
 void vpsrld(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_EW0|T_YMM|T_EVEX, 0xD2); }
-void vpsrldq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 3), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x73, imm); }
-void vpsrlq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 2), x, op, T_66|T_0F|T_EW1|T_YMM|T_EVEX|T_B64|T_MEM_EVEX, 0x73, imm); }
+void vpsrldq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 3), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x73, imm); }
+void vpsrlq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66|T_0F|T_EW1|T_YMM|T_EVEX|T_B64|T_MEM_EVEX, 0x73, imm); }
 void vpsrlq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_EW1|T_YMM|T_EVEX, 0xD3); }
 void vpsrlvd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_EW0|T_YMM|T_EVEX|T_B32, 0x45); }
 void vpsrlvq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x45); }
-void vpsrlw(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 2), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x71, imm); }
+void vpsrlw(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66|T_0F|T_YMM|T_EVEX|T_MEM_EVEX, 0x71, imm); }
 void vpsrlw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_YMM|T_EVEX, 0xD1); }
 void vpsubb(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_YMM|T_EVEX, 0xF8); }
 void vpsubd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_EW0|T_YMM|T_EVEX|T_B32, 0xFA); }
@@ -5868,10 +5916,10 @@ void vsqrtps(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_0F|T_EW0|T_YMM|T_EVE
 void vsqrtsd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_F2|T_0F|T_EW1|T_EVEX|T_ER_X, 0x51); }
 void vsqrtss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_F3|T_0F|T_EW0|T_EVEX|T_ER_X, 0x51); }
 void vstmxcsr(Address addr) { opAVX_X_X_XM(xm3, xm0, addr, T_0F, 0xAE); }
-void vsubpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x5C); }
-void vsubps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x5C); }
-void vsubsd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x5C); }
-void vsubss(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x5C); }
+void vsubpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x5C); }
+void vsubps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x5C); }
+void vsubsd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F2 | T_EW1 | T_EVEX | T_ER_X | T_N8, 0x5C); }
+void vsubss(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_F3 | T_EW0 | T_EVEX | T_ER_X | T_N4, 0x5C); }
 void vtestpd(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F38|T_YMM, 0x0F); }
 void vtestps(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F38|T_YMM, 0x0E); }
 void vucomisd(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_N8|T_66|T_0F|T_EW1|T_EVEX|T_SAE_X, 0x2E); }
@@ -5880,8 +5928,8 @@ void vunpckhpd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|
 void vunpckhps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_0F|T_EW0|T_YMM|T_EVEX|T_B32, 0x15); }
 void vunpcklpd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_EW1|T_YMM|T_EVEX|T_B64, 0x14); }
 void vunpcklps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_0F|T_EW0|T_YMM|T_EVEX|T_B32, 0x14); }
-void vxorpd(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x57); }
-void vxorps(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x57); }
+void vxorpd(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_66 | T_EW1 | T_YMM | T_EVEX | T_ER_Z | T_B64, 0x57); }
+void vxorps(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_0F | T_EW0 | T_YMM | T_EVEX | T_ER_Z | T_B32, 0x57); }
 void vzeroall() { db(0xC5); db(0xFC); db(0x77); }
 void vzeroupper() { db(0xC5); db(0xF8); db(0x77); }
 
@@ -6184,25 +6232,25 @@ version(XBYAK64) {
 	void stui() { db(0xF3); db(0x0F); db(0x01); db(0xEF); }
 	void testui() { db(0xF3); db(0x0F); db(0x01); db(0xED); }
 	void uiret() { db(0xF3); db(0x0F); db(0x01); db(0xEC); }
-	void cmpxchg16b(Address addr) { opMR(addr, new Reg64(1), T_0F, 0xC7); }
-	void fxrstor64(Address addr) { opMR(addr, new Reg64(1), T_0F, 0xAE); }
+	void cmpxchg16b(Address addr) { opMR(addr, Reg64(1), T_0F, 0xC7); }
+	void fxrstor64(Address addr) { opMR(addr, Reg64(1), T_0F, 0xAE); }
 	void movq(Reg64 reg, Mmx mmx) { if (mmx.isXMM()) db(0x66); opSSE(mmx, reg, T_0F, 0x7E); }
 	void movq(Mmx mmx, Reg64 reg) { if (mmx.isXMM()) db(0x66); opSSE(mmx, reg, T_0F, 0x6E); }
 	void movsxd(Reg64 reg, Operand op) { if (!op.isBit(32)) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opRO(reg, op, 0, 0x63); }
-	void pextrq(Operand op, Xmm xmm, uint8_t imm) { if (!op.isREG(64) && !op.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opSSE(new Reg64(xmm.getIdx()), op, T_66 | T_0F3A, 0x16, null, imm); }
-	void pinsrq(Xmm xmm, Operand op, uint8_t imm) { if (!op.isREG(64) && !op.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opSSE(new Reg64(xmm.getIdx()), op, T_66 | T_0F3A, 0x22, null, imm); }
-	void senduipi(Reg64 r) { opRR(new Reg32(6), r.cvt32(), T_F3 | T_0F, 0xC7); }
-	void vcvtss2si(Reg64 r, Operand op) { opAVX_X_X_XM(new Xmm(r.getIdx()), xm0, op, T_0F | T_F3 | T_W1 | T_EVEX | T_EW1 | T_ER_X | T_N8, 0x2D); }
-	void vcvttss2si(Reg64 r, Operand op) { opAVX_X_X_XM(new Xmm(r.getIdx()), xm0, op, T_0F | T_F3 | T_W1 | T_EVEX | T_EW1 | T_SAE_X | T_N8, 0x2C); }
-	void vcvtsd2si(Reg64 r, Operand op) { opAVX_X_X_XM(new Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W1 | T_EVEX | T_EW1 | T_N4 | T_ER_X, 0x2D); }
-	void vcvttsd2si(Reg64 r, Operand op) { opAVX_X_X_XM(new Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W1 | T_EVEX | T_EW1 | T_N4 | T_SAE_X, 0x2C); }
-	void vmovq(Xmm x, Reg64 r) { opAVX_X_X_XM(x, xm0, new Xmm(r.getIdx()), T_66 | T_0F | T_W1 | T_EVEX | T_EW1, 0x6E); }
-	void vmovq(Reg64 r, Xmm x) { opAVX_X_X_XM(x, xm0, new Xmm(r.getIdx()), T_66 | T_0F | T_W1 | T_EVEX | T_EW1, 0x7E); }
+	void pextrq(Operand op, Xmm xmm, uint8_t imm) { if (!op.isREG(64) && !op.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opSSE(Reg64(xmm.getIdx()), op, T_66 | T_0F3A, 0x16, null, imm); }
+	void pinsrq(Xmm xmm, Operand op, uint8_t imm) { if (!op.isREG(64) && !op.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION)); opSSE(Reg64(xmm.getIdx()), op, T_66 | T_0F3A, 0x22, null, imm); }
+	void senduipi(Reg64 r) { opRR(Reg32(6), r.cvt32(), T_F3 | T_0F, 0xC7); }
+	void vcvtss2si(Reg64 r, Operand op) { opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F3 | T_W1 | T_EVEX | T_EW1 | T_ER_X | T_N8, 0x2D); }
+	void vcvttss2si(Reg64 r, Operand op) { opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F3 | T_W1 | T_EVEX | T_EW1 | T_SAE_X | T_N8, 0x2C); }
+	void vcvtsd2si(Reg64 r, Operand op) { opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W1 | T_EVEX | T_EW1 | T_N4 | T_ER_X, 0x2D); }
+	void vcvttsd2si(Reg64 r, Operand op) { opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W1 | T_EVEX | T_EW1 | T_N4 | T_SAE_X, 0x2C); }
+	void vmovq(Xmm x, Reg64 r) { opAVX_X_X_XM(x, xm0, Xmm(r.getIdx()), T_66 | T_0F | T_W1 | T_EVEX | T_EW1, 0x6E); }
+	void vmovq(Reg64 r, Xmm x) { opAVX_X_X_XM(x, xm0, Xmm(r.getIdx()), T_66 | T_0F | T_W1 | T_EVEX | T_EW1, 0x7E); }
 	void jmpabs(uint64_t addr) { db(0xD5); db(0x00); db(0xA1); dq(addr); }
-	void push2(Reg64 r1, Reg64 r2) { opROO(r1, r2, new Reg64(6), T_APX|T_ND1|T_W0, 0xFF); }
-	void push2p(Reg64 r1, Reg64 r2) { opROO(r1, r2, new Reg64(6), T_APX|T_ND1|T_W1, 0xFF); }
-	void pop2(Reg64 r1, Reg64 r2) { opROO(r1, r2, new Reg64(0), T_APX|T_ND1|T_W0, 0x8F); }
-	void pop2p(Reg64 r1, Reg64 r2) { opROO(r1, r2, new Reg64(0), T_APX|T_ND1|T_W1, 0x8F); }
+	void push2(Reg64 r1, Reg64 r2) { opROO(r1, r2, Reg64(6), T_APX|T_ND1|T_W0, 0xFF); }
+	void push2p(Reg64 r1, Reg64 r2) { opROO(r1, r2, Reg64(6), T_APX|T_ND1|T_W1, 0xFF); }
+	void pop2(Reg64 r1, Reg64 r2) { opROO(r1, r2, Reg64(0), T_APX|T_ND1|T_W0, 0x8F); }
+	void pop2p(Reg64 r1, Reg64 r2) { opROO(r1, r2, Reg64(0), T_APX|T_ND1|T_W1, 0x8F); }
 	void cmpbexadd(Address addr, Reg32e r1, Reg32e r2) { opRRO(r1, r2, addr, T_APX|T_66|T_0F38, 0xE6); }
 	void cmpbxadd(Address addr, Reg32e r1, Reg32e r2) { opRRO(r1, r2, addr, T_APX|T_66|T_0F38, 0xE2); }
 	void cmplexadd(Address addr, Reg32e r1, Reg32e r2) { opRRO(r1, r2, addr, T_APX|T_66|T_0F38, 0xEE); }
@@ -6233,12 +6281,12 @@ version(XBYAK64) {
 	void rdgsbase(Reg32e r) { opRR(ecx, r, T_F3|T_0F, 0xAE); }
 	void wrfsbase(Reg32e r) { opRR(edx, r, T_F3|T_0F, 0xAE); }
 	void wrgsbase(Reg32e r) { opRR(ebx, r, T_F3|T_0F, 0xAE); }
-	void ldtilecfg(Address addr) { if (opROO(new Reg(), addr, tmm0, T_APX|T_0F38|T_W0, 0x49)) return; opVex(tmm0, tmm0, addr, T_0F38|T_W0, 0x49); }
-	void sttilecfg(Address addr) { if (opROO(new Reg(), addr, tmm0, T_APX|T_66|T_0F38|T_W0, 0x49)) return; opVex(tmm0, tmm0, addr, T_66|T_0F38 | T_W0, 0x49); }
+	void ldtilecfg(Address addr) { if (opROO(Reg(), addr, tmm0, T_APX|T_0F38|T_W0, 0x49)) return; opVex(tmm0, tmm0, addr, T_0F38|T_W0, 0x49); }
+	void sttilecfg(Address addr) { if (opROO(Reg(), addr, tmm0, T_APX|T_66|T_0F38|T_W0, 0x49)) return; opVex(tmm0, tmm0, addr, T_66|T_0F38 | T_W0, 0x49); }
 	void tileloadd(Tmm tm, Address addr) { opAMX(tm, addr, T_F2|T_0F38|T_W0, 0x4B); }
 	void tileloaddt1(Tmm tm, Address addr) { opAMX(tm, addr, T_66|T_0F38|T_W0, 0x4B); }
 	void tilerelease() { db(0xc4); db(0xe2); db(0x78); db(0x49); db(0xc0); }
-	void tilestored(Address addr, Tmm tm) { if (opROO(new Reg(), addr, tm, T_APX|T_F3|T_0F38|T_W0, 0x4B)) return; opVex(tm, tmm0, addr, T_F3|T_0F38|T_W0, 0x4B); }
+	void tilestored(Address addr, Tmm tm) { if (opROO(Reg(), addr, tm, T_APX|T_F3|T_0F38|T_W0, 0x4B)) return; opVex(tm, tmm0, addr, T_F3|T_0F38|T_W0, 0x4B); }
 	void tilezero(Tmm Tmm) { opVex(Tmm, tmm0, tmm0, T_F2 | T_0F38 | T_W0, 0x49); }
 	void tdpbssd(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F2 | T_0F38 | T_W0, 0x5e); }
 	void tdpbsud(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3 | T_0F38 | T_W0, 0x5e); }
@@ -6336,8 +6384,8 @@ else
 	void v4fnmaddps(Zmm z1, Zmm z2, Address addr) { opAVX_X_X_XM(z1, z2, addr, T_0F38 | T_F2 | T_EW0 | T_YMM | T_MUST_EVEX | T_N16, 0xAA); }
 	void v4fnmaddss(Xmm x1, Xmm x2, Address addr) { opAVX_X_X_XM(x1, x2, addr, T_0F38 | T_F2 | T_EW0 | T_MUST_EVEX | T_N16, 0xAB); }
 	void vaddnepbf16(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_MAP5|T_EW0|T_YMM|T_MUST_EVEX|T_B16, 0x58); }
-	void vaddph(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_ER_Z | T_B16, 0x58); }
-	void vaddsh(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_ER_X | T_N2, 0x58); }
+	void vaddph(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_ER_Z | T_B16, 0x58); }
+	void vaddsh(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_ER_X | T_N2, 0x58); }
 	void valignd(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_EW0|T_YMM|T_MUST_EVEX, 0x03, imm); }
 	void valignq(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x03, imm); }
 	void vblendmpd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x65); }
@@ -6592,8 +6640,8 @@ else
 	void vcvtw2ph(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_F3|T_MAP5|T_EW0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B16, 0x7D); }
 	void vdbpsadbw(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_EW0|T_YMM|T_MUST_EVEX, 0x42, imm); }
 	void vdivnepbf16(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_MAP5|T_EW0|T_YMM|T_MUST_EVEX|T_B16, 0x5E); }
-	void vdivph(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_ER_Z | T_B16, 0x5E); }
-	void vdivsh(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_ER_X | T_N2, 0x5E); }
+	void vdivph(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_ER_Z | T_B16, 0x5E); }
+	void vdivsh(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_ER_X | T_N2, 0x5E); }
 	void vdpbf16ps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_F3|T_0F38|T_EW0|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B32, 0x52); }
 	void vdpphps(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_0F38|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0x52); }
 	void vexp2pd(Zmm z, Operand op) { opAVX_X_XM_IMM(z, op, T_66 | T_0F38 | T_MUST_EVEX | T_YMM | T_EW1 | T_B64 | T_SAE_Z, 0xC8); }
@@ -6700,8 +6748,8 @@ else
 	void vinserti64x2(Ymm r1, Ymm r2, Operand op, uint8_t imm) {if (!(r1.getKind() == r2.getKind() && op.isKind(Kind.MEM | Kind.XMM))) mixin(XBYAK_THROW(ERR.BAD_COMBINATION));opVex(r1, r2, op, T_N16|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x38, imm); }
 	void vinserti64x4(Zmm r1, Zmm r2, Operand op, uint8_t imm) {if (!op.isKind(Kind.MEM | Kind.YMM)) mixin(XBYAK_THROW(ERR.BAD_COMBINATION));opVex(r1, r2, op, T_N32|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x3A, imm); }
 	void vmaxpbf16(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_MAP5|T_EW0|T_YMM|T_MUST_EVEX|T_B16, 0x5F); }
-	void vmaxph(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_SAE_Z | T_B16, 0x5F); }
-	void vmaxsh(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_SAE_X | T_N2, 0x5F); }
+	void vmaxph(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_SAE_Z | T_B16, 0x5F); }
+	void vmaxsh(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_SAE_X | T_N2, 0x5F); }
 	void vminmaxnepbf16(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_F2|T_0F3A|T_EW0|T_YMM|T_MUST_EVEX|T_B16, 0x52, imm); }
 	void vminmaxpd(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_EW1|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B64, 0x52, imm); }
 	void vminmaxph(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_0F3A|T_EW0|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B16, 0x52, imm); }
@@ -6710,8 +6758,8 @@ else
 	void vminmaxsh(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_N2|T_0F3A|T_EW0|T_SAE_X|T_MUST_EVEX, 0x53, imm); }
 	void vminmaxss(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F3A|T_EW0|T_SAE_X|T_MUST_EVEX, 0x53, imm); }
 	void vminpbf16(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_MAP5|T_EW0|T_YMM|T_MUST_EVEX|T_B16, 0x5D); }
-	void vminph(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_SAE_Z | T_B16, 0x5D); }
-	void vminsh(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_SAE_X | T_N2, 0x5D); }
+	void vminph(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_SAE_Z | T_B16, 0x5D); }
+	void vminsh(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_SAE_X | T_N2, 0x5D); }
 	void vmovdqa32(Address addr, Xmm x) { opAVX_X_XM_IMM(x, addr, T_66|T_0F|T_EW0|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_M_K, 0x7F); }
 	void vmovdqa32(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_0F|T_EW0|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX, 0x6F); }
 	void vmovdqa64(Address addr, Xmm x) { opAVX_X_XM_IMM(x, addr, T_66|T_0F|T_EW1|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_M_K, 0x7F); }
@@ -6727,10 +6775,10 @@ else
 	void vmovsh(Address addr, Xmm x) { opAVX_X_XM_IMM(x, addr, T_N2|T_F3|T_MAP5|T_EW0|T_MUST_EVEX|T_M_K, 0x11); }
 	void vmovsh(Xmm x, Address addr) { opAVX_X_X_XM(x, xm0, addr, T_N2|T_F3|T_MAP5|T_EW0|T_MUST_EVEX, 0x10); }
 	void vmovsh(Xmm x1, Xmm x2, Xmm x3) { opAVX_X_X_XM(x1, x2, x3, T_N2|T_F3|T_MAP5|T_EW0|T_MUST_EVEX, 0x10); }
-	void vmpsadbw(Xmm x1, Xmm x2, Operand op, uint8_t imm, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_0F3A|T_YMM, 0x42, encoding, imm, T_66|T_W0|T_YMM, T_F3|T_0F3A|T_EW0|T_B32, 1); }
+	void vmpsadbw(Xmm x1, Xmm x2, Operand op, uint8_t imm, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_0F3A|T_YMM, 0x42, encoding, imm, T_66|T_W0|T_YMM, T_F3|T_0F3A|T_EW0|T_B32, 1); }
 	void vmulnepbf16(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_MAP5|T_EW0|T_YMM|T_MUST_EVEX|T_B16, 0x59); }
-	void vmulph(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_ER_Z | T_B16, 0x59); }
-	void vmulsh(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_ER_X | T_N2, 0x59); }
+	void vmulph(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_ER_Z | T_B16, 0x59); }
+	void vmulsh(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_ER_X | T_N2, 0x59); }
 	void vp2intersectd(Opmask k, Xmm x, Operand op) { if (k.getOpmaskIdx() != 0) mixin(XBYAK_THROW(ERR.OPMASK_IS_ALREADY_SET)); opAVX_K_X_XM(k, x, op, T_F2 | T_0F38 | T_YMM | T_EVEX | T_EW0 | T_B32, 0x68); }
 	void vp2intersectq(Opmask k, Xmm x, Operand op) { if (k.getOpmaskIdx() != 0) mixin(XBYAK_THROW(ERR.OPMASK_IS_ALREADY_SET)); opAVX_K_X_XM(k, x, op, T_F2 | T_0F38 | T_YMM | T_EVEX | T_EW1 | T_B64, 0x68); }
 	void vp4dpwssd(Zmm z1, Zmm z2, Address addr) { opAVX_X_X_XM(z1, z2, addr, T_0F38 | T_F2 | T_EW0 | T_YMM | T_MUST_EVEX | T_N16, 0x52); }
@@ -6771,18 +6819,18 @@ else
 	void vpcompressw(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N2|T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x63); }
 	void vpconflictd(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_0F38|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0xC4); }
 	void vpconflictq(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0xC4); }
-	void vpdpbssd(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_F2|T_0F38|T_YMM, 0x50, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpbssds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_F2|T_0F38|T_YMM, 0x51, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpbsud(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_F3|T_0F38|T_YMM, 0x50, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpbsuds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_F3|T_0F38|T_YMM, 0x51, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpbuud(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_0F38|T_YMM, 0x50, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpbuuds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_0F38|T_YMM, 0x51, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpwsud(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_F3|T_0F38|T_YMM, 0xD2, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpwsuds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_F3|T_0F38|T_YMM, 0xD3, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpwusd(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_YMM, 0xD2, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpwusds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_YMM, 0xD3, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpwuud(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_0F38|T_YMM, 0xD2, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
-	void vpdpwuuds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = PreferredEncoding.DefaultEncoding) { opEncoding(x1, x2, op, T_0F38|T_YMM, 0xD3, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpbssd(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_F2|T_0F38|T_YMM, 0x50, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpbssds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_F2|T_0F38|T_YMM, 0x51, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpbsud(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_F3|T_0F38|T_YMM, 0x50, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpbsuds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_F3|T_0F38|T_YMM, 0x51, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpbuud(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_0F38|T_YMM, 0x50, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpbuuds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_0F38|T_YMM, 0x51, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpwsud(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_F3|T_0F38|T_YMM, 0xD2, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpwsuds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_F3|T_0F38|T_YMM, 0xD3, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpwusd(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_YMM, 0xD2, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpwusds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_66|T_0F38|T_YMM, 0xD3, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpwuud(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_0F38|T_YMM, 0xD2, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
+	void vpdpwuuds(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_0F38|T_YMM, 0xD3, encoding, NONE, T_W0, T_EW0|T_B32, 1); }
 	void vpermb(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_MUST_EVEX, 0x8D); }
 	void vpermi2b(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_MUST_EVEX, 0x75); }
 	void vpermi2d(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0x76); }
@@ -6847,12 +6895,12 @@ else
 	void vpopcntw(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_0F38|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX, 0x54); }
 	void vpord(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0xEB); }
 	void vporq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0xEB); }
-	void vprold(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 1), x, op, T_66|T_0F|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0x72, imm); }
-	void vprolq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 1), x, op, T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x72, imm); }
+	void vprold(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 1), x, op, T_66|T_0F|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0x72, imm); }
+	void vprolq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 1), x, op, T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x72, imm); }
 	void vprolvd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0x15); }
 	void vprolvq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x15); }
-	void vprord(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 0), x, op, T_66|T_0F|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0x72, imm); }
-	void vprorq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 0), x, op, T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x72, imm); }
+	void vprord(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 0), x, op, T_66|T_0F|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0x72, imm); }
+	void vprorq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 0), x, op, T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x72, imm); }
 	void vprorvd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW0|T_YMM|T_MUST_EVEX|T_B32, 0x14); }
 	void vprorvq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x14); }
 	void vpscatterdd(Address addr, Xmm x) { opGather2(x, addr, T_N4|T_66|T_0F38|T_EW0|T_YMM|T_MUST_EVEX|T_M_K|T_VSIB, 0xA0, 0); }
@@ -6873,7 +6921,7 @@ else
 	void vpshrdw(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX, 0x72, imm); }
 	void vpshufbitqmb(Opmask k, Xmm x, Operand op) { opVex(k, x, op, T_66 | T_0F38 | T_EW0 | T_YMM | T_MUST_EVEX, 0x8F); }
 	void vpsllvw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x12); }
-	void vpsraq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(new Xmm(x.getKind(), 4), x, op, T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x72, imm); }
+	void vpsraq(Xmm x, Operand op, uint8_t imm) { opAVX_X_X_XM(Xmm(x.getKind(), 4), x, op, T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x72, imm); }
 	void vpsraq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX, 0xE2); }
 	void vpsravq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0x46); }
 	void vpsravw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x11); }
@@ -6958,8 +7006,8 @@ else
 	void vsqrtph(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_MAP5|T_EW0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B16, 0x51); }
 	void vsqrtsh(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N2|T_F3|T_MAP5|T_EW0|T_ER_X|T_MUST_EVEX, 0x51); }
 	void vsubnepbf16(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_MAP5|T_EW0|T_YMM|T_MUST_EVEX|T_B16, 0x5C); }
-	void vsubph(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_ER_Z | T_B16, 0x5C); }
-	void vsubsh(Xmm xmm, Operand op1, Operand op2 = new Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_ER_X | T_N2, 0x5C); }
+	void vsubph(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_EW0 | T_YMM | T_MUST_EVEX | T_ER_Z | T_B16, 0x5C); }
+	void vsubsh(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_EW0 | T_MUST_EVEX | T_ER_X | T_N2, 0x5C); }
 	void vucomish(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N2|T_MAP5|T_EW0|T_SAE_X|T_MUST_EVEX, 0x2E); }
 	void vucomxsd(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N8|T_F2|T_0F|T_EW1|T_SAE_X|T_MUST_EVEX, 0x2E); }
 	void vucomxsh(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N2|T_F3|T_MAP5|T_EW0|T_SAE_X|T_MUST_EVEX, 0x2E); }
