@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7210
- * Date: 2024/12/09
+ * Date: 2024/12/10
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -28,9 +28,9 @@ version(X86_64)
 //version = XBYAK_NO_EXCEPTION;
 
 //version = XBYAK_DISABLE_SEGMENT;
-version = XBYAK_ENABLE_OMITTED_OPERAND;
+//version = XBYAK_ENABLE_OMITTED_OPERAND;
 //version = XBYAK_DISABLE_AVX512;
-version = XBYAK_TEST;
+//version = XBYAK_TEST;
 //version = XBYAK_DONT_READ_LIST;
 //version = XBYAK_OLD_DISP_CHECK;
 
@@ -598,13 +598,13 @@ version(XBYAK64)
 	this(Operand op)
 	{
 		setIdx(op.idx_);
-		kind_ = op.kind_;
-		bit_  = op.bit_;
-		zero_ = op.zero_;
-		mask_ = op.mask_;
-		rounding_ = op.rounding_;
-		NF_ = op.NF_;
-		ZU_ = op.ZU_;
+		this.kind_ = op.kind_;
+		this.bit_  = op.bit_;
+		this.zero_ = op.zero_;
+		this.mask_ = op.mask_;
+		this.rounding_ = op.rounding_;
+		this.NF_ = op.NF_;
+		this.ZU_ = op.ZU_;
 		assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
 	}
 	
@@ -735,31 +735,27 @@ version(XBYAK32){
 	override string toString() const
 	{
 		const int idx = getIdx();
-		if (kind_ == Kind.REG)
-		{
+		if (kind_ == Kind.REG) {
 			if (isExt8bit()) {
-				string[4] tbl = [ "spl", "bpl", "sil", "dil" ];
+				string[4] tbl = ["spl", "bpl", "sil", "dil"];
 				return tbl[idx - 4];
 			}
-			
 			string[32][4] tbl = [
-			        [ "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b",
-					"r16b", "r17b", "r18b", "r19b", "r20b", "r21b", "r22b", "r23b", "r24b", "r25b", "r26b", "r27b", "r28b", "r29b", "r30b", "r31b" ],
-			        [ "ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w",
-					"r16w", "r17w", "r18w", "r19w", "r20w", "r21w", "r22w", "r23w", "r24w", "r25w", "r26w", "r27w", "r28w", "r29w", "r30w", "r31w" ],
-			        [ "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d",
-					"r16d", "r17d", "r18d", "r19d", "r20d", "r21d", "r22d", "r23d", "r24d", "r25d", "r26d", "r27d", "r28d", "r29d", "r30d", "r31d" ],
-			        [ "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
-					"r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23", "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31" ],
+				["al", "cl", "dl", "bl", "ah", "ch", "dh", "bh", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b",
+				"r16b", "r17b", "r18b", "r19b", "r20b", "r21b", "r22b", "r23b", "r24b", "r25b", "r26b", "r27b", "r28b", "r29b", "r30b", "r31b"],
+				["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w",
+				"r16w", "r17w", "r18w", "r19w", "r20w", "r21w", "r22w", "r23w", "r24w", "r25w", "r26w", "r27w", "r28w", "r29w", "r30w", "r31w"],
+				["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d",
+				"r16d", "r17d", "r18d", "r19d", "r20d", "r21d", "r22d", "r23d", "r24d", "r25d", "r26d", "r27d", "r28d", "r29d", "r30d", "r31d"],
+				["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
+				"r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23", "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"],
 			];
 			return tbl[bit_ == 8 ? 0 : bit_ == 16 ? 1 : bit_ == 32 ? 2 : 3][idx];
 		} else if (isOPMASK()) {
-			string[8] tbl = [ "k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7" ];
+			string[8] tbl = ["k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7"];
 			return tbl[idx];
 		} else if (isTMM()) {
-			string[8] tbl = [
-				"tmm0", "tmm1", "tmm2", "tmm3", "tmm4", "tmm5", "tmm6", "tmm7"
-			];
+			string[8] tbl = ["tmm0", "tmm1", "tmm2", "tmm3", "tmm4", "tmm5", "tmm6", "tmm7"];
 			return tbl[idx];
 		} else if (isZMM()) {
 			string[32] tbl = [ 
@@ -786,13 +782,13 @@ version(XBYAK32){
 			];
 			return tbl[idx];
 		} else if (isMMX()) {
-			string[8] tbl = [ "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7" ];
+			string[8] tbl = ["mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7"];
 			return tbl[idx];
 		} else if (isFPU()) {
-			string[8] tbl = [ "st0", "st1", "st2", "st3", "st4", "st5", "st6", "st7" ];
+			string[8] tbl = ["st0", "st1", "st2", "st3", "st4", "st5", "st6", "st7"];
 			return tbl[idx];
 		} else if (isBNDREG()) {
-			string[4] tbl = [ "bnd0", "bnd1", "bnd2", "bnd3" ];
+			string[4] tbl = ["bnd0", "bnd1", "bnd2", "bnd3"];
 			return tbl[idx];
 		}
 		mixin(XBYAK_THROW_RET(ERR.INTERNAL, "null"));
@@ -1628,7 +1624,7 @@ public:
 		size_ = size;
 	}
 
-	void dump(bool doClear = true) 
+	void dump(bool doClear = false) 
 	{
 		uint8_t* p     = getCode();
 		size_t bufSize = getSize();
@@ -3591,47 +3587,23 @@ public:
 	}
 	enum
 	{
-		mm0   = new Mmx(0), mm1 = new Mmx(1), mm2 = new Mmx(2), mm3 = new Mmx(3),
-		mm4   = new Mmx(4), mm5 = new Mmx(5), mm6 = new Mmx(6), mm7 = new Mmx(7),
-		xmm0  = new Xmm(0), xmm1 = new Xmm(1), xmm2 = new Xmm(2), xmm3 = new Xmm(3),
-		xmm4  = new Xmm(4), xmm5 = new Xmm(5), xmm6 = new Xmm(6), xmm7 = new Xmm(7),
-		ymm0  = new Ymm(0), ymm1 = new Ymm(1), ymm2 = new Ymm(2), ymm3 = new Ymm(3),
-		ymm4  = new Ymm(4), ymm5 = new Ymm(5), ymm6 = new Ymm(6), ymm7 = new Ymm(7),
-		zmm0  = new Zmm(0), zmm1 = new Zmm(1), zmm2 = new Zmm(2), zmm3 = new Zmm(3),
-		zmm4  = new Zmm(4), zmm5 = new Zmm(5), zmm6 = new Zmm(6), zmm7 = new Zmm(7),
+		mm0 = Mmx(0), mm1 = Mmx(1), mm2 = Mmx(2), mm3 = Mmx(3), mm4 = Mmx(4), mm5 = Mmx(5), mm6 = Mmx(6), mm7 = Mmx(7),
+		xmm0 = Xmm(0), xmm1 = Xmm(1), xmm2 = Xmm(2), xmm3 = Xmm(3), xmm4 = Xmm(4), xmm5 = Xmm(5), xmm6 = Xmm(6), xmm7 = Xmm(7),
+		ymm0 = Ymm(0), ymm1 = Ymm(1), ymm2 = Ymm(2), ymm3 = Ymm(3), ymm4 = Ymm(4), ymm5 = Ymm(5), ymm6 = Ymm(6), ymm7 = Ymm(7),
+		zmm0 = Zmm(0), zmm1 = Zmm(1), zmm2 = Zmm(2), zmm3 = Zmm(3), zmm4 = Zmm(4), zmm5 = Zmm(5), zmm6 = Zmm(6), zmm7 = Zmm(7),
 		// for my convenience		
-		xm0   = xmm0, xm1 = xmm1, xm2 = xmm2, xm3 = xmm3,
-		xm4   = xmm4, xm5 = xmm5, xm6 = xmm6, xm7 = xmm7,
-		ym0   = ymm0, ym1 = ymm1, ym2 = ymm2, ym3 = ymm3,
-		ym4   = ymm4, ym5 = ymm5, ym6 = ymm6, ym7 = ymm7,
-		zm0   = zmm0, zm1 = zmm1, zm2 = zmm2, zm3 = zmm3,
-		zm4   = zmm4, zm5 = zmm5, zm6 = zmm6, zm7 = zmm7,		
+		xm0 = xmm0, xm1 = xmm1, xm2 = xmm2, xm3 = xmm3, xm4 = xmm4, xm5 = xmm5, xm6 = xmm6, xm7 = xmm7,
+		ym0 = ymm0, ym1 = ymm1, ym2 = ymm2, ym3 = ymm3, ym4 = ymm4, ym5 = ymm5, ym6 = ymm6, ym7 = ymm7,
+		zm0 = zmm0, zm1 = zmm1, zm2 = zmm2, zm3 = zmm3, zm4 = zmm4, zm5 = zmm5, zm6 = zmm6, zm7 = zmm7,		
 			
-		eax = new Reg32(Operand.EAX),
-		ecx = new Reg32(Operand.ECX),
-		edx = new Reg32(Operand.EDX),
-		ebx = new Reg32(Operand.EBX),
-		esp = new Reg32(Operand.ESP),
-		ebp = new Reg32(Operand.EBP),
-		esi = new Reg32(Operand.ESI),
-		edi = new Reg32(Operand.EDI),
+		eax = Reg32(Operand.EAX), ecx = Reg32(Operand.ECX), edx = Reg32(Operand.EDX), ebx = Reg32(Operand.EBX),
+		esp = Reg32(Operand.ESP), ebp = Reg32(Operand.EBP), esi = Reg32(Operand.ESI), edi = Reg32(Operand.EDI),
 		
-		ax = new Reg16(Operand.EAX),
-		cx = new Reg16(Operand.ECX),
-		dx = new Reg16(Operand.EDX),
-		bx = new Reg16(Operand.EBX),
-		sp = new Reg16(Operand.ESP),
-		bp = new Reg16(Operand.EBP),
-		si = new Reg16(Operand.ESI),
-		di = new Reg16(Operand.EDI),
-		al = new Reg8(Operand.AL),
-		cl = new Reg8(Operand.CL),
-		dl = new Reg8(Operand.DL),
-		bl = new Reg8(Operand.BL),
-		ah = new Reg8(Operand.AH),
-		ch = new Reg8(Operand.CH),
-		dh = new Reg8(Operand.DH),
-		bh = new Reg8(Operand.BH),
+		ax = Reg16(Operand.EAX), cx = Reg16(Operand.ECX), dx = Reg16(Operand.EDX), bx = Reg16(Operand.EBX),
+		sp = Reg16(Operand.ESP), bp = Reg16(Operand.EBP), si = Reg16(Operand.ESI), di = Reg16(Operand.EDI),
+		
+		al = Reg8(Operand.AL), cl = Reg8(Operand.CL), dl = Reg8(Operand.DL), bl = Reg8(Operand.BL),
+		ah = Reg8(Operand.AH), ch = Reg8(Operand.CH), dh = Reg8(Operand.DH), bh = Reg8(Operand.BH),
 		
 		ptr   = new AddressFrame(0),
 		byte_ = new AddressFrame(8),
@@ -3647,14 +3619,9 @@ public:
 		yword_b = new AddressFrame(256, true),
 		zword_b = new AddressFrame(512, true),
 		
-		st0   = new Fpu(0), st1 = new Fpu(1), st2 = new Fpu(2), st3 = new Fpu(3),
-		st4   = new Fpu(4), st5 = new Fpu(5), st6 = new Fpu(6), st7 = new Fpu(7),
-		k0 = new Opmask(0), k1 = new Opmask(1), k2 = new Opmask(2), k3 = new Opmask(3), 
-		k4 = new Opmask(4), k5 = new Opmask(5), k6 = new Opmask(6), k7 = new Opmask(7),
-		bnd0 = new BoundsReg(0),
-		bnd1 = new BoundsReg(1),
-		bnd2 = new BoundsReg(2),
-		bnd3 = new BoundsReg(3),
+		st0 = Fpu(0), st1 = Fpu(1), st2 = Fpu(2), st3 = Fpu(3), st4 = Fpu(4), st5 = Fpu(5), st6 = Fpu(6), st7 = Fpu(7),
+		k0 = Opmask(0), k1 = Opmask(1), k2 = Opmask(2), k3 = Opmask(3), k4 = Opmask(4), k5 = Opmask(5), k6 = Opmask(6), k7 = Opmask(7),
+		bnd0 = BoundsReg(0), bnd1 = BoundsReg(1), bnd2 = BoundsReg(2), bnd3 = BoundsReg(3),
 		T_sae = new EvexModifierRounding(EvexModifierRounding.T_SAE),
 		T_rn_sae = new EvexModifierRounding(EvexModifierRounding.T_RN_SAE),
 		T_rd_sae = new EvexModifierRounding(EvexModifierRounding.T_RD_SAE),
@@ -3669,202 +3636,61 @@ version (XBYAK64)
 {
 		enum
 		{
-			rax = new Reg64(Operand.RAX),
-			rcx = new Reg64(Operand.RCX),
-			rdx = new Reg64(Operand.RDX),
-			rbx = new Reg64(Operand.RBX),
-			rsp = new Reg64(Operand.RSP),
-			rbp = new Reg64(Operand.RBP),
-			rsi = new Reg64(Operand.RSI),
-			rdi = new Reg64(Operand.RDI),
-			r8 = new Reg64(Operand.R8),
-			r9 = new Reg64(Operand.R9),
-			r10 = new Reg64(Operand.R10),
-			r11 = new Reg64(Operand.R11),
-			r12 = new Reg64(Operand.R12),
-			r13 = new Reg64(Operand.R13),
-			r14 = new Reg64(Operand.R14),
-			r15 = new Reg64(Operand.R15),
-			r16 = new Reg64(Operand.R16),
-			r17 = new Reg64(Operand.R17),
-			r18 = new Reg64(Operand.R18),
-			r19 = new Reg64(Operand.R19),
-			r20 = new Reg64(Operand.R20),
-			r21 = new Reg64(Operand.R21),
-			r22 = new Reg64(Operand.R22),
-			r23 = new Reg64(Operand.R23),
-			r24 = new Reg64(Operand.R24),
-			r25 = new Reg64(Operand.R25),
-			r26 = new Reg64(Operand.R26),
-			r27 = new Reg64(Operand.R27),
-			r28 = new Reg64(Operand.R28),
-			r29 = new Reg64(Operand.R29),
-			r30 = new Reg64(Operand.R30),
-			r31 = new Reg64(Operand.R31),
+			rax = Reg64(Operand.RAX), rcx = Reg64(Operand.RCX), rdx = Reg64(Operand.RDX), rbx = Reg64(Operand.RBX),
+			rsp = Reg64(Operand.RSP), rbp = Reg64(Operand.RBP),	rsi = Reg64(Operand.RSI), rdi = Reg64(Operand.RDI),
+			r8 = Reg64(Operand.R8), r9 = Reg64(Operand.R9), r10 = Reg64(Operand.R10), r11 = Reg64(Operand.R11),
+			r12 = Reg64(Operand.R12), r13 = Reg64(Operand.R13), r14 = Reg64(Operand.R14), r15 = Reg64(Operand.R15),
+			r16 = Reg64(Operand.R16), r17 = Reg64(Operand.R17),	r18 = Reg64(Operand.R18), r19 = Reg64(Operand.R19),
+			r20 = Reg64(Operand.R20), r21 = Reg64(Operand.R21),	r22 = Reg64(Operand.R22), r23 = Reg64(Operand.R23),
+			r24 = Reg64(Operand.R24), r25 = Reg64(Operand.R25), r26 = Reg64(Operand.R26), r27 = Reg64(Operand.R27),
+			r28 = Reg64(Operand.R28), r29 = Reg64(Operand.R29), r30 = Reg64(Operand.R30), r31 = Reg64(Operand.R31),
 			
-			r8d = new Reg32(Operand.R8D),
-			r9d = new Reg32(Operand.R9D),
-			r10d = new Reg32(Operand.R10D),
-			r11d = new Reg32(Operand.R11D),
-			r12d = new Reg32(Operand.R12D),
-			r13d = new Reg32(Operand.R13D),
-			r14d = new Reg32(Operand.R14D),
-			r15d = new Reg32(Operand.R15D),
-			r16d = new Reg32(Operand.R16D),
-			r17d = new Reg32(Operand.R17D),
-			r18d = new Reg32(Operand.R18D),
-			r19d = new Reg32(Operand.R19D),
-			r20d = new Reg32(Operand.R20D),
-			r21d = new Reg32(Operand.R21D),
-			r22d = new Reg32(Operand.R22D),
-			r23d = new Reg32(Operand.R23D),
-			r24d = new Reg32(Operand.R24D),
-			r25d = new Reg32(Operand.R25D),
-			r26d = new Reg32(Operand.R26D),
-			r27d = new Reg32(Operand.R27D),
-			r28d = new Reg32(Operand.R28D),
-			r29d = new Reg32(Operand.R29D),
-			r30d = new Reg32(Operand.R30D),
-			r31d = new Reg32(Operand.R31D),
+			r8d = Reg32(Operand.R8D), r9d = Reg32(Operand.R9D), r10d = Reg32(Operand.R10D), r11d = Reg32(Operand.R11D),
+			r12d = Reg32(Operand.R12D), r13d = Reg32(Operand.R13D), r14d = Reg32(Operand.R14D), r15d = Reg32(Operand.R15D),
+			r16d = Reg32(Operand.R16D),	r17d = Reg32(Operand.R17D),	r18d = Reg32(Operand.R18D),	r19d = Reg32(Operand.R19D),
+			r20d = Reg32(Operand.R20D),	r21d = Reg32(Operand.R21D),	r22d = Reg32(Operand.R22D),	r23d = Reg32(Operand.R23D),
+			r24d = Reg32(Operand.R24D),	r25d = Reg32(Operand.R25D),	r26d = Reg32(Operand.R26D),	r27d = Reg32(Operand.R27D),
+			r28d = Reg32(Operand.R28D),	r29d = Reg32(Operand.R29D),	r30d = Reg32(Operand.R30D),	r31d = Reg32(Operand.R31D),
 
-			r8w = new Reg16(Operand.R8W),
-			r9w = new Reg16(Operand.R9W),
-			r10w = new Reg16(Operand.R10W),
-			r11w = new Reg16(Operand.R11W),
-			r12w = new Reg16(Operand.R12W),
-			r13w = new Reg16(Operand.R13W),
-			r14w = new Reg16(Operand.R14W),
-			r15w = new Reg16(Operand.R15W),
-			r16w = new Reg16(Operand.R16W),
-			r17w = new Reg16(Operand.R17W),
-			r18w = new Reg16(Operand.R18W),
-			r19w = new Reg16(Operand.R19W),
-			r20w = new Reg16(Operand.R20W),
-			r21w = new Reg16(Operand.R21W),
-			r22w = new Reg16(Operand.R22W),
-			r23w = new Reg16(Operand.R23W),
-			r24w = new Reg16(Operand.R24W),
-			r25w = new Reg16(Operand.R25W),
-			r26w = new Reg16(Operand.R26W),
-			r27w = new Reg16(Operand.R27W),
-			r28w = new Reg16(Operand.R28W),
-			r29w = new Reg16(Operand.R29W),
-			r30w = new Reg16(Operand.R30W),
-			r31w = new Reg16(Operand.R31W),
+			r8w = Reg16(Operand.R8W), r9w = Reg16(Operand.R9W),	r10w = Reg16(Operand.R10W),	r11w = Reg16(Operand.R11W),
+			r12w = Reg16(Operand.R12W),	r13w = Reg16(Operand.R13W),	r14w = Reg16(Operand.R14W),	r15w = Reg16(Operand.R15W),
+			r16w = Reg16(Operand.R16W),	r17w = Reg16(Operand.R17W),	r18w = Reg16(Operand.R18W),	r19w = Reg16(Operand.R19W),
+			r20w = Reg16(Operand.R20W),	r21w = Reg16(Operand.R21W),	r22w = Reg16(Operand.R22W),	r23w = Reg16(Operand.R23W),
+			r24w = Reg16(Operand.R24W),	r25w = Reg16(Operand.R25W),	r26w = Reg16(Operand.R26W),	r27w = Reg16(Operand.R27W),
+			r28w = Reg16(Operand.R28W),	r29w = Reg16(Operand.R29W),	r30w = Reg16(Operand.R30W),	r31w = Reg16(Operand.R31W),
 
-			r8b = new Reg8(Operand.R8B),
-			r9b = new Reg8(Operand.R9B),
-			r10b = new Reg8(Operand.R10B),
-			r11b = new Reg8(Operand.R11B),
-			r12b = new Reg8(Operand.R12B),
-			r13b = new Reg8(Operand.R13B),
-			r14b = new Reg8(Operand.R14B),
-			r15b = new Reg8(Operand.R15B),	
-			r16b = new Reg8(Operand.R16B),
-			r17b = new Reg8(Operand.R17B),
-			r18b = new Reg8(Operand.R18B),
-			r19b = new Reg8(Operand.R19B),
-			r20b = new Reg8(Operand.R20B),
-			r21b = new Reg8(Operand.R21B),
-			r22b = new Reg8(Operand.R22B),
-			r23b = new Reg8(Operand.R23B),
-			r24b = new Reg8(Operand.R24B),
-			r25b = new Reg8(Operand.R25B),
-			r26b = new Reg8(Operand.R26B),
-			r27b = new Reg8(Operand.R27B),
-			r28b = new Reg8(Operand.R28B),
-			r29b = new Reg8(Operand.R29B),
-			r30b = new Reg8(Operand.R30B),
-			r31b = new Reg8(Operand.R31B),
+			r8b = Reg8(Operand.R8B), r9b = Reg8(Operand.R9B), r10b = Reg8(Operand.R10B), r11b = Reg8(Operand.R11B),
+			r12b = Reg8(Operand.R12B), r13b = Reg8(Operand.R13B), r14b = Reg8(Operand.R14B), r15b = Reg8(Operand.R15B),	
+			r16b = Reg8(Operand.R16B), r17b = Reg8(Operand.R17B), r18b = Reg8(Operand.R18B), r19b = Reg8(Operand.R19B),
+			r20b = Reg8(Operand.R20B), r21b = Reg8(Operand.R21B), r22b = Reg8(Operand.R22B), r23b = Reg8(Operand.R23B),
+			r24b = Reg8(Operand.R24B), r25b = Reg8(Operand.R25B), r26b = Reg8(Operand.R26B), r27b = Reg8(Operand.R27B),
+			r28b = Reg8(Operand.R28B), r29b = Reg8(Operand.R29B), r30b = Reg8(Operand.R30B), r31b = Reg8(Operand.R31B),
 
-			spl = new Reg8(Operand.SPL, true),
-			bpl = new Reg8(Operand.BPL, true),
-			sil = new Reg8(Operand.SIL, true),
-			dil = new Reg8(Operand.DIL, true),
+			spl = Reg8(Operand.SPL, true), bpl = Reg8(Operand.BPL, true), sil = Reg8(Operand.SIL, true), dil = Reg8(Operand.DIL, true),
 
-			xmm8 = new Xmm(8),
-			xmm9 = new Xmm(9),
-			xmm10 = new Xmm(10),
-			xmm11 = new Xmm(11),
-			xmm12 = new Xmm(12),
-			xmm13 = new Xmm(13),
-			xmm14 = new Xmm(14),
-			xmm15 = new Xmm(15),
-			xmm16 = new Xmm(16),
-			xmm17 = new Xmm(17),
-			xmm18 = new Xmm(18),
-			xmm19 = new Xmm(19),
-			xmm20 = new Xmm(20),
-			xmm21 = new Xmm(21),
-			xmm22 = new Xmm(22),
-			xmm23 = new Xmm(23),
-			xmm24 = new Xmm(24),
-			xmm25 = new Xmm(25),
-			xmm26 = new Xmm(26),
-			xmm27 = new Xmm(27),
-			xmm28 = new Xmm(28),
-			xmm29 = new Xmm(29),
-			xmm30 = new Xmm(30),
-			xmm31 = new Xmm(31),
+			xmm8 = Xmm(8), xmm9 = Xmm(9), xmm10 = Xmm(10), xmm11 = Xmm(11),
+			xmm12 = Xmm(12), xmm13 = Xmm(13), xmm14 = Xmm(14), xmm15 = Xmm(15),
+			xmm16 = Xmm(16), xmm17 = Xmm(17), xmm18 = Xmm(18), xmm19 = Xmm(19),
+			xmm20 = Xmm(20), xmm21 = Xmm(21), xmm22 = Xmm(22), xmm23 = Xmm(23),
+			xmm24 = Xmm(24), xmm25 = Xmm(25), xmm26 = Xmm(26), xmm27 = Xmm(27),
+			xmm28 = Xmm(28), xmm29 = Xmm(29), xmm30 = Xmm(30), xmm31 = Xmm(31),
 		
-			ymm8 = new Ymm(8),
-			ymm9 = new Ymm(9),
-			ymm10 = new Ymm(10),
-			ymm11 = new Ymm(11),
-			ymm12 = new Ymm(12),
-			ymm13 = new Ymm(13),
-			ymm14 = new Ymm(14),
-			ymm15 = new Ymm(15),
-			ymm16 = new Ymm(16),
-			ymm17 = new Ymm(17),
-			ymm18 = new Ymm(18),
-			ymm19 = new Ymm(19),
-			ymm20 = new Ymm(20),
-			ymm21 = new Ymm(21),
-			ymm22 = new Ymm(22),
-			ymm23 = new Ymm(23),
-			ymm24 = new Ymm(24),
-			ymm25 = new Ymm(25),
-			ymm26 = new Ymm(26),
-			ymm27 = new Ymm(27),
-			ymm28 = new Ymm(28),
-			ymm29 = new Ymm(29),
-			ymm30 = new Ymm(30),
-			ymm31 = new Ymm(31),
+			ymm8 = Ymm(8), ymm9 = Ymm(9), ymm10 = Ymm(10), ymm11 = Ymm(11),
+			ymm12 = Ymm(12), ymm13 = Ymm(13), ymm14 = Ymm(14), ymm15 = Ymm(15),
+			ymm16 = Ymm(16), ymm17 = Ymm(17), ymm18 = Ymm(18), ymm19 = Ymm(19),
+			ymm20 = Ymm(20), ymm21 = Ymm(21), ymm22 = Ymm(22), ymm23 = Ymm(23),
+			ymm24 = Ymm(24), ymm25 = Ymm(25), ymm26 = Ymm(26), ymm27 = Ymm(27),
+			ymm28 = Ymm(28), ymm29 = Ymm(29), ymm30 = Ymm(30),ymm31 = Ymm(31),
 
-			zmm8 = new Zmm(8),
-			zmm9 = new Zmm(9),
-			zmm10 = new Zmm(10),
-			zmm11 = new Zmm(11),
-			zmm12 = new Zmm(12),
-			zmm13 = new Zmm(13),
-			zmm14 = new Zmm(14),
-			zmm15 = new Zmm(15),
-			zmm16 = new Zmm(16),
-			zmm17 = new Zmm(17),
-			zmm18 = new Zmm(18),
-			zmm19 = new Zmm(19),
-			zmm20 = new Zmm(20),
-			zmm21 = new Zmm(21),
-			zmm22 = new Zmm(22),
-			zmm23 = new Zmm(23),
-			zmm24 = new Zmm(24),
-			zmm25 = new Zmm(25),
-			zmm26 = new Zmm(26),
-			zmm27 = new Zmm(27),
-			zmm28 = new Zmm(28),
-			zmm29 = new Zmm(29),
-			zmm30 = new Zmm(30),
-			zmm31 = new Zmm(31),
+			zmm8 = Zmm(8), zmm9 = Zmm(9), zmm10 = Zmm(10), zmm11 = Zmm(11),
+			zmm12 = Zmm(12), zmm13 = Zmm(13), zmm14 = Zmm(14), zmm15 = Zmm(15),
+			zmm16 = Zmm(16), zmm17 = Zmm(17), zmm18 = Zmm(18), zmm19 = Zmm(19),
+			zmm20 = Zmm(20), zmm21 = Zmm(21), zmm22 = Zmm(22), zmm23 = Zmm(23),
+			zmm24 = Zmm(24), zmm25 = Zmm(25), zmm26 = Zmm(26), zmm27 = Zmm(27),
+			zmm28 = Zmm(28), zmm29 = Zmm(29), zmm30 = Zmm(30),	zmm31 = Zmm(31),
 
-			tmm0 = new Tmm(0),
-			tmm1 = new Tmm(1),
-			tmm2 = new Tmm(2),
-			tmm3 = new Tmm(3),
-			tmm4 = new Tmm(4),
-			tmm5 = new Tmm(5),
-			tmm6 = new Tmm(6),
-			tmm7 = new Tmm(7),
+			tmm0 = Tmm(0), tmm1 = Tmm(1), tmm2 = Tmm(2), tmm3 = Tmm(3),
+			tmm4 = Tmm(4), tmm5 = Tmm(5), tmm6 = Tmm(6), tmm7 = Tmm(7),
 						
 			// for my convenience
 			xm8 = xmm8, xm9 = xmm9, xm10 = xmm10, xm11 = xmm11, xm12 = xmm12, xm13 = xmm13, xm14 = xmm14, xm15 = xmm15, 
@@ -4210,11 +4036,11 @@ public:
 	// set read/exec
 	void readyRE() { return ready(ProtectMode.PROTECT_RE); }
 
-version(XBYAK_TEST) {
+version(XBYAK_TEST)
+{
 	override void dump(bool doClear = true)
 	{
-		xbyak.CodeArray.dump();
-		if (doClear) size_ = 0; 
+		xbyak.CodeArray.dump(doClear);
 	}
 }
 	
