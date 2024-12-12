@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7210
- * Date: 2024/12/10
+ * Date: 2024/12/11
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -10,15 +10,15 @@
 
 module xbyak;
 
-version(X86)
-{
+  version(X86)
+  {
     version = XBYAK32;
-}
+  }
 
-version(X86_64)
-{
-   version = XBYAK64;
-}
+  version(X86_64)
+  {
+    version = XBYAK64;
+  }
 
 //version = XBYAK_USE_MMAP_ALLOCATOR;
 //version = XBYAK_USE_MEMFD;
@@ -28,13 +28,14 @@ version(X86_64)
 //version = XBYAK_NO_EXCEPTION;
 
 //version = XBYAK_DISABLE_SEGMENT;
-version = XBYAK_ENABLE_OMITTED_OPERAND;
+//version = XBYAK_ENABLE_OMITTED_OPERAND;
 //version = XBYAK_DISABLE_AVX512;
 //version = XBYAK_TEST;
 //version = XBYAK_DONT_READ_LIST;
 //version = XBYAK_OLD_DISP_CHECK;
+//version = MIE_INTEGER_TYPE_DEFINED;
 
-
+import core.memory;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import std.algorithm;
@@ -46,32 +47,35 @@ import std.stdio;
 import std.string;
 
 
-version (Windows)
-{
+  version (Windows)
+  {
     import core.sys.windows.windows;  // VirtualProtect
-}
+  }
 
-version (Posix)
-{
+  version (Posix)
+  {
     import core.sys.posix.fcntl;
     import core.sys.posix.sys.mman;
     import core.sys.posix.sys.stat;
     import core.sys.posix.unistd;
-}
+  }
 
 size_t    DEFAULT_MAX_CODE_SIZE = 4096 * 8;
 size_t    VERSION               = 0x0721;  // 0xABCD = A.BC(D)
 
 
-/* //#ifndef MIE_INTEGER_TYPE_DEFINED
-// for backward compatibility
-alias uint64 = uint64_t;
-alias sint64 = int64_t;
-alias unit32 = uint32_t;
-alias int32  = int32_t;
-alias uint16 = uint16_t;
-alias uint8  = uint8_t;
-//*/
+  version(MIE_INTEGER_TYPE_DEFINED)
+  {}
+  else
+  {
+    // for backward compatibility
+    alias uint64 = uint64_t;
+    alias sint64 = int64_t;
+    alias unit32 = uint32_t;
+    alias int32  = int32_t;
+    alias uint16 = uint16_t;
+    alias uint8  = uint8_t;
+  }
 
 // MIE_ALIGN
 T MIE_PACK(T)(T x, T y, T z, T w)
@@ -202,8 +206,8 @@ string ConvertErrorToString(ERR err)
     return err <= ERR.INTERNAL ? errTbl[err] : "unknown err";
 }
 
-version(XBYAK_NO_EXCEPTION)
-{
+  version(XBYAK_NO_EXCEPTION)
+  {
     struct local
     {
         static ref int GetErrorRef() {
@@ -237,9 +241,9 @@ version(XBYAK_NO_EXCEPTION)
         return "local.SetError(" ~ err ~ "); return " ~ r ~";";
     }
 
-}
-else
-{
+  }
+  else
+  {
     class XError : Exception
     {
         ERR err_;
@@ -281,11 +285,10 @@ else
     {
         return "throw new XError(" ~ err ~ ");";
     }
+  } //version(XBYAK_NO_EXCEPTION)
 
-} //version(XBYAK_NO_EXCEPTION)
-
-version(CRuntime_Microsoft)
-{
+  version(CRuntime_Microsoft)
+  {
     @nogc nothrow pure private extern(C) void* _aligned_malloc(size_t, size_t);
     @nogc nothrow pure private extern(C) void _aligned_free(void* memblock);
     
@@ -298,15 +301,14 @@ version(CRuntime_Microsoft)
     {
         _aligned_free(p);
     }
-}
+  }
 
-version (Posix)
-{
+  version (Posix)
+  {
     import core.sys.posix.stdlib : posix_memalign;
 
     void* AlignedMalloc(size_t size, size_t alignment)
     {
-        void* p;
         int ret = posix_memalign(&p, alignment, size);
         return (ret == 0) ? p : null;
     }
@@ -315,7 +317,7 @@ version (Posix)
     {
         free(p);
     }
-}
+  }
 
 
 To CastTo(To, From)(From p)
@@ -329,18 +331,19 @@ static:
     size_t getPageSize()
     {
         size_t pageSize = 4096;
-version(Windows)
-{        
+  version(Windows)
+  {        
         import core.sys.windows.windows;
         SYSTEM_INFO sysinfo;
         GetSystemInfo(&sysinfo);
         pageSize = sysinfo.dwAllocationGranularity;
-}
-version(Posix)
-{        
+  }
+
+  version(Posix)
+  {        
         import core.sys.posix.unistd;
         pageSize = cast(size_t) sysconf(_SC_PAGESIZE); 
-}
+  }
         return pageSize;
     }
     
@@ -372,23 +375,30 @@ class Allocator
 {
     this(string = "") {} // same interface with MmapAllocator
     // ~this() {}
-    uint8_t* alloc(size_t size) { return cast(uint8_t*)(AlignedMalloc(size, inner.getPageSize())); }
-    void free(uint8_t* p) { AlignedFree(p); } 
+    uint8_t* alloc(size_t size)
+    {
+        void* p = AlignedMalloc(size, inner.getPageSize());
+        GC.addRange(p, (p is null ? 0 : size));
+        return cast(uint8_t*)p;
+    }
+    void free(uint8_t* p)
+    {
+        GC.removeRange(cast(void*)p);
+        AlignedFree(p);
+    } 
     /* override to return false if you call protect() manually */
     bool useProtect() const { return true; }
 }
 
+  version(XBYAK_USE_MEMFD)
+  {
+    extern(C) int memfd_create(const char*, uint);
+  }
 
-//version = XBYAK_USE_MMAP_ALLOCATOR;
-version(XBYAK_USE_MEMFD)
-{
-        extern(C) int memfd_create(const char*, uint);
-}
-
-version(XBYAK_USE_MMAP_ALLOCATOR)
-{
+  version(XBYAK_USE_MMAP_ALLOCATOR)
+  {
     class MmapAllocator : Allocator
-     {
+    {
         struct Allocation
         {
             size_t size;
@@ -416,63 +426,69 @@ version(XBYAK_USE_MMAP_ALLOCATOR)
             const size_t alignedSizeM1 = inner.getPageSize() - 1;
             size = (size + alignedSizeM1) & ~alignedSizeM1;
             int mode = MAP_PRIVATE | MAP_ANON;
-            int fd = -1;
-            
-version(XBYAK_USE_MEMFD)
-{
-        uint flag = 0;
-        fd = memfd_create(name_.toStringz(), flag);
-        if (fd != -1) {
-            mode = MAP_SHARED;
-            if (ftruncate(fd, size) != 0) {
-                close(fd);
-                mixin(XBYAK_THROW_RET(ERR.CANT_ALLOC, "0"));
-            }
-        }
-}
-
-        void* p = mmap(null, size, PROT_READ | PROT_WRITE, mode, fd, 0);
-        if (p == MAP_FAILED) {
+            int fd = -1; 
+      version(XBYAK_USE_MEMFD)
+      {
+            uint flag = 0;
+            fd = memfd_create(name_.toStringz(), flag);
             if (fd != -1)
             {
-                close(fd);
+                mode = MAP_SHARED;
+                if (ftruncate(fd, size) != 0)
+                {
+                    close(fd);
+                    mixin(XBYAK_THROW_RET(ERR.CANT_ALLOC, "0"));
+                }
             }
-            mixin(XBYAK_THROW_RET(ERR.CANT_ALLOC, "0"));
-        }
-        assert(p);
-        Allocation alloc = allocList_[cast(uintptr_t)p];
-        alloc.size = size;
+      }
+            void* p = mmap(null, size, PROT_READ | PROT_WRITE, mode, fd, 0);
+            if (p == MAP_FAILED)
+            {
+                if (fd != -1)
+                {
+                    close(fd);
+                }
+                mixin(XBYAK_THROW_RET(ERR.CANT_ALLOC, "0"));
+            }
+            assert(p);
+            Allocation alloc = allocList_[cast(uintptr_t)p];
+            alloc.size = size;
     
-version(XBYAK_USE_MEMFD)
-{
-        alloc.fd = fd;
-}
-        return cast(uint8_t*)p;
-    }
-
-    override void free(uint8_t* p)
-    {
-        if (p == null) return;
-        uintptr_t uintp = cast(uintptr_t)p;
-        if (null == (uintp in allocList_)) mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
-        if (munmap(cast(void*)uintp, allocList_[uintp].size) < 0) mixin(XBYAK_THROW(ERR.MUNMAP));
-
-version(XBYAK_USE_MEMFD)
-{
-        if (allocList_[uintp].fd != -1)
-        {
-            close(allocList_[uintp].fd);
+      version(XBYAK_USE_MEMFD)
+      {
+            alloc.fd = fd;
+      }
+            GC.addRange(p, (p is null ? 0 : size));
+            return cast(uint8_t*)p;
         }
-}
-        allocList_.remove(uintp);
+
+        override void free(uint8_t* p)
+        {
+            if (p == null) return;
+            uintptr_t uintp = cast(uintptr_t)p;
+            if (null == (uintp in allocList_)) mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
+            
+            GC.removeRange(cast(void*)p);
+            if (munmap(cast(void*)uintp, allocList_[uintp].size) < 0) mixin(XBYAK_THROW(ERR.MUNMAP));
+
+      version(XBYAK_USE_MEMFD)
+      {
+            if (allocList_[uintp].fd != -1)
+            {
+                close(allocList_[uintp].fd);
+            }
+      }
+            allocList_.remove(uintp);
     }
 }
-}
+  }
 
-version(XBYAK_USE_MMAP_ALLOCATOR)
-{}else{
+  version(XBYAK_USE_MMAP_ALLOCATOR)
+  {}
+  else
+  {
     alias MmapAllocator = Allocator;
-}
+  }
 
 struct ApxFlagNF
 {
@@ -517,7 +533,8 @@ enum Kind
 }
 
 
-public class Operand {
+public class Operand
+{
 private:
     static const uint8_t EXT8BIT = 0x20;
     uint idx_ = 6; // 0..31 + EXT8BIT = 1 if spl/bpl/sil/dil
@@ -548,8 +565,8 @@ public:
         TMM = 1 << 9
     }
     
-version(XBYAK64)
-{
+  version(XBYAK64)
+  {
     enum : int //Code
     {
         RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
@@ -562,7 +579,7 @@ version(XBYAK64)
         R16B, R17B, R18B, R19B, R20B, R21B, R22B, R23B, R24B, R25B, R26B, R27B, R28B, R29B, R30B, R31B,
         SPL = 4, BPL, SIL, DIL,
     }
-}
+  }
     enum : int //Code 
     {
         EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
@@ -613,7 +630,7 @@ version(XBYAK64)
         return new Operand();
     }
 
-    int getKind() const { return cast(Kind)kind_; } ///
+    int getKind() const { return cast(Kind)kind_; }
     int  getIdx () const { return idx_ & (EXT8BIT - 1); }
     bool hasIdxBit(int bit) const { return cast(bool)(idx_ & (1<<bit)); }
     bool isNone () const {return this.kind_ == 0; }
@@ -668,21 +685,27 @@ version(XBYAK64)
             switch (bit)
             {
                 case 8:
-version(XBYAK32){            
+  version(XBYAK32)
+  {
                     if (idx >= 4) goto ERR;
-}else{
+  }
+  else
+  {
                     if (idx >= 32) goto ERR;
                     if (4 <= idx && idx < 8) idx |= EXT8BIT;
-}
+  }
                     break;
                 case 16:
                 case 32:
                 case 64:
-version(XBYAK32){        
+  version(XBYAK32)
+  {
                     if (idx >= 16) goto ERR;
-}else{
+  }
+  else
+  {
                     if (idx >= 32) goto ERR;
-}    
+  }    
                     break;
                 case 128: kind = Kind.XMM; break;
                 case 256: kind = Kind.YMM; break;
@@ -858,6 +881,7 @@ public:
     {
         return new Reg(idx, kind, bit, ext8bit);
     }
+
     // convert to Reg8/Reg16/Reg32/Reg64/XMM/YMM/ZMM
     Reg changeBit(int bit) 
     {
@@ -881,13 +905,13 @@ public:
         return new Reg32(changeBit(32).getIdx());
     }
 
-version (XBYAK64)
-{
+  version(XBYAK64)
+  {
     Reg64 cvt64()
     {
         return new Reg64(changeBit(64).getIdx());
     }
-}
+  }
 
     Xmm cvt128()
     {
@@ -1113,8 +1137,8 @@ public:
     }
 }
 
-version(XBYAK64)
-{
+  version(XBYAK64)
+  {
     public class Tmm : Reg
     {
     public:
@@ -1133,7 +1157,7 @@ version(XBYAK64)
             return new Tmm(idx);
         }
     }
-}
+  }
 
 
 class Opmask : Reg
@@ -1267,8 +1291,8 @@ public class Reg32 : Reg32e
     }
 }
 
-version (XBYAK64)
-{
+  version (XBYAK64)
+  {
     public class Reg64 : Reg32e
     {
         this(int idx = 0, int bit = 64)
@@ -1328,11 +1352,13 @@ version (XBYAK64)
             return RegRip(this.disp_ + cast(int64_t)addr, null, true);
         }    
     }
-}
+  }
 
-version (XBYAK_DISABLE_SEGMENT) {}
-else{
-// not derived from Reg
+  version(XBYAK_DISABLE_SEGMENT)
+  {}
+  else
+  {
+    // not derived from Reg
     class Segment
     {
         int idx_;
@@ -1350,19 +1376,19 @@ else{
             return tbl[idx_];
         }
     }
-}
+  }
 
 class RegExp
 {
 public:
-version(XBYAK64)
-{
+  version(XBYAK64)
+  {
     enum { i32e = 32 | 64 };
-}
-else
-{
+  }
+  else
+  {
     enum { i32e = 32 };
-}    
+  }    
     
     this(size_t disp = 0)
     {
@@ -1527,13 +1553,17 @@ class CodeArray
     alias AddrInfoList = AddrInfo[] ;
     AddrInfoList addrInfoList_;
     Type type_;
-version(XBYAK_USE_MMAP_ALLOCATOR) {
-    MmapAllocator defaultAllocator_;
-} else {
-    Allocator defaultAllocator_;
-}
-    Allocator alloc_;
 
+  version(XBYAK_USE_MMAP_ALLOCATOR)
+  {
+    MmapAllocator defaultAllocator_;
+  }
+  else
+  {
+    Allocator defaultAllocator_;
+  }
+    
+    Allocator alloc_;
 protected:
     size_t maxSize_;
     uint8_t* top_;
@@ -1642,13 +1672,13 @@ public:
         for (size_t i = 0; i < codeSize; i++) db( cast(uint8_t)(code >> (i * 8)));
     }
 
-    void dw(uint32_t code) { db(code, 2); }
+    void dw(uint32_t code) { db(code, 2); } 
     void dd(uint32_t code) { db(code, 4); }
     void dq(uint64_t code) { db(code, 8); }
     uint8_t* getCode() { return top_; }
     F getCode(F)() const { return CastTo !(F)(top_); }
     uint8_t* getCurr() { return &top_[size_];}
-    F getCurr(F)() const { return CastTo !(F)(&top_[size_]);    }
+    F getCurr(F)() const { return CastTo !(F)(&top_[size_]); }
     size_t getSize() const { return size_; }
     void setSize(size_t size)
     {
@@ -1661,26 +1691,30 @@ public:
         uint8_t* p     = getCode();
         size_t bufSize = getSize();
         size_t remain  = bufSize;
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++)
+        {
             size_t disp = 16;
-            if (remain < 16) {
+            if (remain < 16)
+            {
                 disp = remain;
             }
-            for (size_t j = 0; j < 16; j++) {
+            for (size_t j = 0; j < 16; j++)
+            {
                 if (j < disp) {
                     write(format("%02X", p[i * 16 + j]));
                 }
             }
             writeln();
             remain -= disp;
-            if (remain <= 0) {
+            if (remain <= 0)
+            {
                 break;
             }
         }
-version(XBYAK_TEST)
-{
+  version(XBYAK_TEST)
+  {
         if (doClear) size_ = 0;
-}    
+  }    
     }
 
 //  @param data [in] address of jmp data
@@ -1711,20 +1745,20 @@ version(XBYAK_TEST)
     
     static bool protect(void* addr, size_t size, ProtectMode protectMode_)
     {
-version (Windows)
-{
+  version (Windows)
+  {
         const DWORD c_rw = PAGE_READWRITE;
         const DWORD c_rwe = PAGE_EXECUTE_READWRITE;
         const DWORD c_re = PAGE_EXECUTE_READ;
         DWORD mode;
-}
-else
-{
+  }
+  else
+  {
         const int c_rw = PROT_READ | PROT_WRITE;
         const int c_rwe = PROT_READ | PROT_WRITE | PROT_EXEC;
         const int c_re = PROT_READ | PROT_EXEC;
         int mode;
-}
+  }
         
         switch (protectMode_)
         {
@@ -1735,23 +1769,26 @@ else
                 return false;
         }
         
-version(Windows)
-{
+  version(Windows)
+  {
         DWORD oldProtect;
         return VirtualProtect(addr, size, mode, &oldProtect) != 0;
-} else {   
-version (Posix)
-{
+  }
+  else
+  {   
+      version (Posix)
+      {
         size_t pageSize = sysconf(_SC_PAGESIZE);
         size_t iaddr = cast(size_t)(addr);
         size_t roundAddr = iaddr & ~(pageSize - cast(size_t)(1));
         return mprotect(cast(void*)(roundAddr), size + (iaddr - roundAddr), mode) == 0;
-} else {
+      }
+      else
+      {
         return true;
-}
-
-}
-}
+      }
+  }
+    }
 //  get aligned memory pointer
 //  @param addr [in] address
 //  @param alingedSize [in] power of two
@@ -1801,8 +1838,8 @@ public:
         e_.verify();
     }
 
-version(XBYAK64)
-{
+  version(XBYAK64)
+  {
     this(size_t disp)
     {
         super(0, Kind.MEM, 64);
@@ -1828,8 +1865,8 @@ version(XBYAK64)
         broadcast_ = broadcast;
         optimize_ = true;
     }
-
-}
+  }
+    
     RegExp getRegExp(bool optimize = true)
     {
         return optimize ? e_.optimize() : e_;
@@ -1843,7 +1880,7 @@ version(XBYAK64)
     size_t getDisp() const { return e_.getDisp(); }
     bool is64bitDisp() const { return mode_ == Mode.M_64bitDisp; } // for moffset
     bool isBroadcast() const { return broadcast_; }
-    override bool hasRex2() const { return e_.getBase().hasRex2() || e_.getIndex().hasRex2(); } ///
+    override bool hasRex2() const { return e_.getBase().hasRex2() || e_.getIndex().hasRex2(); }
     Label getLabel() { return label_; }
 
     override bool opEquals(Object o) const
@@ -2067,10 +2104,10 @@ class LabelManager
             else
             {
                 disp = addrOffset - jmp.endOfJmp + jmp.disp;
-version (XBYAK64)
-{
+  version (XBYAK64)
+  {
                 if (jmp.jmpSize <= 4 && !inner.IsInInt32(disp)) mixin(XBYAK_THROW(ERR.OFFSET_IS_TOO_BIG));
-}
+  }
                 if (jmp.jmpSize == 1 && !inner.IsInDisp8(cast(uint32_t) disp)) mixin(XBYAK_THROW(ERR.LABEL_IS_TOO_FAR));
             }
 
@@ -2125,12 +2162,12 @@ version (XBYAK64)
 
     bool hasUndefinedLabel_inner(T)(T list) const
     {
-debug
-{
+  debug
+  {
         foreach(c; list) {
             writeln("undefined label:", c);
         }
-}        
+  }        
         return !list.empty();
     }
     
@@ -2212,7 +2249,6 @@ public:
         define_inner(st.defList, st.undefList, label, base_.getSize());
     }
 
-
     void defineClabel(ref Label label)
     {
         define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize);
@@ -2231,7 +2267,7 @@ public:
         labelPtrList_ ~= dst;
     }
 
-    bool getOffset(size_t* offset, ref string label)  ////fix :( Add ref )
+    bool getOffset(size_t* offset, ref string label)
     {
         SlabelDefList df = stateList_[0].defList;
         if (label == "@b")
@@ -2320,16 +2356,18 @@ public:
     }
 
 private:
-version (XBYAK64)
-{
+  version(XBYAK64)
+  {
         enum { i32e = 64 | 32, BIT = 64 }
         static const size_t dummyAddr = cast(uint64_t) (0x1122334455667788UL);
         alias NativeReg = Reg64;
-} else {
+  }
+  else
+  {
         enum { i32e = 32, BIT = 32 }
         static const size_t dummyAddr = 0x12345678;
         alias NativeReg = Reg32;
-}
+  }
 
     // (XMM, XMM|MEM)
     bool isXMM_XMMorMEM  (Operand op1, Operand op2)
@@ -2631,21 +2669,21 @@ static const uint64_t T_F2 = 1uL << 37; // pp = 3
     void setSIB(RegExp e, int reg, int disp8N = 0)
     {
         size_t disp64 = e.getDisp();
-version (XBYAK64)
-{        
-    version(XBYAK_OLD_DISP_CHECK)
-    {    
+  version (XBYAK64)
+  {        
+      version(XBYAK_OLD_DISP_CHECK)
+      {    
         // treat 0xffffffff as 0xffffffffffffffff
         uint64_t high = disp64 >> 32;
         if (high != 0 && high != 0xFFFFFFFF) mixin(XBYAK_THROW(ERR.OFFSET_IS_TOO_BIG));
-    }
-    else
-    {
+      }
+      else
+      {
         // displacement should be a signed 32-bit value, so also check sign bit
         uint64_t high = disp64 >> 31;
         if (high != 0 && high != 0x1FFFFFFFF) mixin(XBYAK_THROW(ERR.OFFSET_IS_TOO_BIG));
-    }
-}
+      } 
+  }
         uint32_t disp = cast(uint32_t)(disp64);
         Reg base = e.getBase();
         Reg index = e.getIndex();
@@ -2675,10 +2713,10 @@ version (XBYAK64)
         const int newBaseIdx = baseBit ? (baseIdx & 7) : Operand.EBP;
         /* ModR/M = [2:3:3] = [Mod:reg/code:R/M] */
         bool hasSIB = indexBit || (baseIdx & 7) == Operand.ESP;
-version (XBYAK64)
-{
+  version(XBYAK64)
+  {
         if (!baseBit && !indexBit) hasSIB = true;
-}
+  }
         if (hasSIB) {
             setModRM(mod, reg, Operand.ESP);
             /* SIB = [2:3:3] = [SS:index:base(=rm)] */
@@ -3056,7 +3094,8 @@ version (XBYAK64)
     
     void opIncDec(Reg d, Operand op, int ext)
     {
-version(XBYAK64) {
+  version(XBYAK64)
+  {
         if (d.isREG()) {
             int code = d.isBit(8) ? 0xFE : 0xFF;
             uint64_t type = T_APX|T_NF|T_ND1;
@@ -3064,18 +3103,22 @@ version(XBYAK64) {
             opROO(d, op, Reg(ext, Kind.REG, d.getBit()), type, code);
             return;
         }
-} else {
+  }
+  else
+  {
         cast(void)d;
-}
+  }
         verifyMemHasSize(op);
-version(XBYAK64)
-{} else {
+  version(XBYAK64)
+  {}
+  else
+  {
         if (op.isREG() && !op.isBit(8)) {
             rex(op);
             db((ext ? 0x48 : 0x40) | op.getIdx());
             return;
         }
-}
+  }
         opRext(op, op.getBit(), ext, 0, 0xFE);
     }
 
@@ -3114,7 +3157,7 @@ version(XBYAK64)
         int bit = reg.getBit();
         const int idx  = reg.getIdx();
         int code = 0xB0 | ((bit == 8 ? 0 : 1) << 3);
-        if (bit == 64 && (imm & ~cast(uint64_t) (0xffff_ffffUL)) == 0)
+        if (bit == 64 && (imm & ~cast(uint64_t) (0xffff_ffffu)) == 0)
         {
             rex(new Reg32(idx));
             bit = 32;
@@ -3421,7 +3464,6 @@ version(XBYAK64)
         opVex(x, null, addr, type, code);
     }
     
-
     void opEncoding(Xmm x1, Xmm x2, Operand op, uint64_t type, int code, PreferredEncoding encoding, int imm = NONE, uint64_t typeVex = 0, uint64_t typeEvex = 0, int sel = 0)
     {
         opAVX_X_X_XM(x1, x2, op, type | orEvexIf(encoding, typeVex, typeEvex, sel), code, imm);
@@ -3438,10 +3480,10 @@ version(XBYAK64)
         {
             mixin(XBYAK_THROW_RET(ERR.BAD_ENCODING_MODE, "PreferredEncoding.VexEncoding"));
         }
-version(XBYAK_DISABLE_AVX512)
-{
+  version(XBYAK_DISABLE_AVX512)
+  {
         if (enc == EvexEncoding || enc == AVX10v2Encoding) mixin(XBYAK_THROW(ERR.EVEX_IS_INVALID));
-}
+  }
         return enc;
     }
     
@@ -3464,6 +3506,7 @@ version(XBYAK_DISABLE_AVX512)
         }
         mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
     }
+
     void opInOut(Reg a, uint8_t code, uint8_t v)
     {
         if (a.getIdx() == Operand.AL) {
@@ -3519,7 +3562,8 @@ version(XBYAK_DISABLE_AVX512)
         }
     }
 
-version(XBYAK64) {
+  version(XBYAK64)
+  {
     void opAMX(Tmm t1, Address addr, uint64_t type, int code)
     {
         // require both base and index
@@ -3529,7 +3573,7 @@ version(XBYAK64) {
         if (opROO(Reg(), addr2, t1, T_APX|type, code)) return;
         opVex(t1, tmm0, addr2, type, code);
     }
-}
+  }
 
     // (reg32e/mem, k) if rev else (k, k/mem/reg32e)
     // size = 8, 16, 32, 64
@@ -3655,8 +3699,8 @@ public:
         T_zu = ApxFlagZU()
     }
 
-version (XBYAK64)
-{
+  version (XBYAK64)
+  {
         enum
         {
             rax = Reg64(Operand.RAX), rcx = Reg64(Operand.RCX), rdx = Reg64(Operand.RDX), rbx = Reg64(Operand.RBX),
@@ -3731,8 +3775,10 @@ version (XBYAK64)
             rip = RegRip()
         }
 
-version (XBYAK_DISABLE_SEGMENT)
-{} else{
+      version(XBYAK_DISABLE_SEGMENT)
+      {}
+      else
+      {
         enum {
             es = new Segment(Segment.es),
             cs = new Segment(Segment.cs),
@@ -3741,8 +3787,8 @@ version (XBYAK_DISABLE_SEGMENT)
             fs = new Segment(Segment.fs),
             gs = new Segment(Segment.gs)
         }
-    }     
-}
+      }
+  }
 
 private:
     bool isDefaultJmpNEAR_;
@@ -3784,13 +3830,13 @@ public:
     void call(ref Label label) { opJmp(label, T_NEAR, 0, 0xE8, 0); }
 
     // call(function pointer)
-version(XBYAK_VARIADIC_TEMPLATE)
-{    
+  version(XBYAK_VARIADIC_TEMPLATE)
+  {    
     void call(Ret, Params)(Ret function(Params...) func)
     {
         call(CastTo(opJmpAbs(&func)));
     }
-}   
+  }
     
     void call(void* addr) { opJmpAbs(addr, T_NEAR, 0, 0xE8); }
 
@@ -3864,8 +3910,8 @@ version(XBYAK_VARIADIC_TEMPLATE)
             code = 0xA2;
         }
 
-version (XBYAK64)
-{
+  version (XBYAK64)
+  {
         if (addr && addr.is64bitDisp())
         {
             if (code) {
@@ -3881,9 +3927,9 @@ version (XBYAK64)
             opRO_MR(op1, op2, 0x88);
         }
         return;
-}
-else
-{
+  }
+  else
+  {
         if (code && addr.isOnlyDisp())
         {
             rex(reg, addr);
@@ -3895,7 +3941,7 @@ else
             opRO_MR(op1, op2, 0x88);
         }
         return;
-}
+  }
     }
 
     void mov(Operand op, uint64_t imm)
@@ -3951,9 +3997,10 @@ else
         if (p1.isMEM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
 
         bool BL = true;
-version (XBYAK64) {
+  version (XBYAK64)
+  {
         BL = (p2.getIdx != 0 || !p1.isREG(32));
-}
+  }
         if (p2.isREG && (p1.isREG(16 | i32e) && p1.getIdx == 0) && BL)
         {
             rex(p2, p1);
@@ -3964,9 +4011,10 @@ version (XBYAK64) {
         opRO(cast(Reg)p1, p2, 0, 0x86 | (p1.isBit(8) ? 0 : 1), (p1.isREG() && (p1.getBit() == p2.getBit())));
     }
 
-version(XBYAK_DISABLE_SEGMENT){}
-else
-{
+  version(XBYAK_DISABLE_SEGMENT)
+  {}
+  else
+  {
     void push(Segment seg)
     {
         switch (seg.getIdx()) {
@@ -3980,6 +4028,7 @@ else
             assert(0);
         }
     }
+    
     void pop(Segment seg)
     {
         switch (seg.getIdx()) {
@@ -3993,6 +4042,7 @@ else
             assert(0);
         }
     }
+    
     void putSeg(Segment seg)
     {
         switch (seg.getIdx()) {
@@ -4006,15 +4056,17 @@ else
             assert(0);
         }
     }
+    
     void mov(Operand op, Segment seg)
     {
         opRO(new Reg8(seg.getIdx()), op, 0, 0x8C, op.isREG(16|i32e));
     }
+    
     void mov(Segment seg, Operand op)
     {
         opRO(new Reg8(seg.getIdx()), op.isREG(16|i32e) ? cast(Operand)(op.getReg().cvt32()) : op, 0, 0x8E, op.isREG(16|i32e));
     }
-}        
+  }
         
     enum { NONE = 256 }
 public:
@@ -4025,7 +4077,7 @@ public:
         setDefaultEncoding();
         setDefaultEncodingAVX10();
         
-        labelMgr_.reset();    ////fix
+        labelMgr_.reset();
         labelMgr_.set(this);
     }
 
@@ -4059,13 +4111,13 @@ public:
     // set read/exec
     void readyRE() { return ready(ProtectMode.PROTECT_RE); }
 
-version(XBYAK_TEST)
-{
+  version(XBYAK_TEST)
+  {
     override void dump(bool doClear = true)
     {
         xbyak.CodeArray.dump(doClear);
     }
-}
+  }
     
     // set default encoding of VNNI
     // EvexEncoding : AVX512_VNNI, VexEncoding : AVX-VNNI
@@ -4103,6 +4155,7 @@ version(XBYAK_TEST)
         int[4] codeTbl = [ 0x7E, 0x6E, 0xD6, 0x7E ];
         opAVX10ZeroExt(op1, op2, typeTbl, codeTbl, enc, 32);
     }
+    
     void vmovw(Operand op1, Operand op2, PreferredEncoding enc = DefaultEncoding)
     {
         uint64_t[4] typeTbl = [
@@ -4113,9 +4166,7 @@ version(XBYAK_TEST)
         opAVX10ZeroExt(op1, op2, typeTbl, codeTbl, enc, 16|32|64);
     }
 
-    /*
-        use single byte nop if useMultiByteNop = false
-    */
+    //  use single byte nop if useMultiByteNop = false
     void nop(size_t size = 1, bool useMultiByteNop = true)
     {
         if (!useMultiByteNop) {
@@ -4150,10 +4201,10 @@ version(XBYAK_TEST)
         }
     }
 
-version(XBYAK_DONT_READ_LIST)
-{}
-else
-{
+  version(XBYAK_DONT_READ_LIST)
+  {}
+  else
+  {
     /*
         use single byte nop if useMultiByteNop = false
     */
@@ -4167,12 +4218,13 @@ else
             nop(x - remain, useMultiByteNop);
         }
     }
-}
+  }
 
 version(XBYAK_DONT_READ_LIST)
 {}
 else
 {
+
 string getVersionString() const { return "0.0721"; }
 void aadd(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38, 0x0FC, T_APX); }
 void aand(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38|T_66, 0x0FC, T_APX|T_66); }
@@ -5791,8 +5843,8 @@ void xorps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x57, &isXMM_XMMorMEM); }
 void xresldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE9); }
 void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
 
-version(XBYAK_ENABLE_OMITTED_OPERAND)
-{
+  version(XBYAK_ENABLE_OMITTED_OPERAND)
+  {
     void vblendpd(Xmm x, Operand op, uint8_t imm) { vblendpd(x, x, op, imm); }
     void vblendps(Xmm x, Operand op, uint8_t imm) { vblendps(x, x, op, imm); }
     void vblendvpd(Xmm x1, Operand op, Xmm x4) { vblendvpd(x1, x1, op, x4); }
@@ -6049,9 +6101,10 @@ version(XBYAK_ENABLE_OMITTED_OPERAND)
     void vunpckhps(Xmm x, Operand op) { vunpckhps(x, x, op); }
     void vunpcklpd(Xmm x, Operand op) { vunpcklpd(x, x, op); }
     void vunpcklps(Xmm x, Operand op) { vunpcklps(x, x, op); }
-}
+  }
 
-version(XBYAK64) {
+  version(XBYAK64)
+  {
     void jecxz(string label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
     void jecxz(ref Label label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
     void jrcxz(string label) { opJmp(label, T_SHORT, 0xe3, 0, 0); }
@@ -6133,7 +6186,9 @@ version(XBYAK64) {
     void tdpbuud(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_0F38 | T_W0, 0x5e); }
     void tdpfp16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F2 | T_0F38 | T_W0, 0x5c); }
     void tdpbf16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3 | T_0F38 | T_W0, 0x5c); }
-} else {
+  }
+  else
+  {
     void jcxz(string label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
     void jcxz(ref Label label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
     void jecxz(string label) { opJmp(label, T_SHORT, 0xe3, 0, 0); }
@@ -6153,12 +6208,12 @@ version(XBYAK64) {
     void popa() { db(0x61); }
     void lds(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NONE, 0xC5); }
     void les(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NONE, 0xC4); }
-}
+  }
 
-version(XBYAK_DISABLE_AVX512)
-{}
-else
-{
+  version(XBYAK_DISABLE_AVX512)
+  {}
+  else
+  {
     void kaddb(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_66 | T_W0, 0x4A); }
     void kaddd(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_66 | T_W1, 0x4A); }
     void kaddq(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_W1, 0x4A); }
@@ -6851,12 +6906,12 @@ else
     void vucomxsd(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N8|T_F2|T_0F|T_EW1|T_SAE_X|T_MUST_EVEX, 0x2E); }
     void vucomxsh(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N2|T_F3|T_MAP5|T_EW0|T_SAE_X|T_MUST_EVEX, 0x2E); }
     void vucomxss(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N4|T_F3|T_0F|T_EW0|T_SAE_X|T_MUST_EVEX, 0x2E); }
-    version(XBYAK64)
-    {
+      version(XBYAK64)
+      {
         void kmovq(Reg64 r, Opmask k) { opKmov(k, r, true, 64); }
         void vpbroadcastq(Xmm x, Reg64 r) { opVex(x, null, r, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x7C); }
-    }
-}
+      }
+  }
 }// version(XBYAK_DONT_READ_LIST) else
 
 }// CodeGenerator
@@ -6893,8 +6948,8 @@ mixin(["T_sae","T_rn_sae","T_rd_sae","T_ru_sae","T_rz_sae"].def_alias);
 
 mixin(["T_z"].def_alias);
 
-version (XBYAK64)
-{
+  version (XBYAK64)
+  {
     mixin(["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi"].def_alias);
     mixin(["r8","r9","r10","r11","r12","r13","r14","r15"].def_alias);
     mixin(["r16","r17","r18","r19","r20","r21","r22","r23"].def_alias);
@@ -6929,18 +6984,19 @@ version (XBYAK64)
     mixin(["rip"].def_alias);
     mixin(["T_nf"].def_alias);
     mixin(["T_zu"].def_alias);
-}
+  }
 
-version(XBYAK_DISABLE_SEGMENT){}
-else
-{
+  version(XBYAK_DISABLE_SEGMENT)
+  {}
+  else
+  {
     alias es = Segment.es;
     alias cs = Segment.cs;
     alias ss = Segment.ss;
     alias ds = Segment.ds;
     alias fs = Segment.fs;
     alias gs = Segment.gs;
-}
+  }
 
 @("test_toString")
 unittest
@@ -6967,8 +7023,8 @@ unittest
     mixin(def_string(["k0","k1","k2","k3","k4","k5","k6","k7"]));
     mixin(def_string(["bnd0","bnd1","bnd2","bnd3"]));
 
-version (XBYAK64)
-{
+  version (XBYAK64)
+  {
     mixin(def_string(["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi"]));
     mixin(def_string(["r8","r9","r10","r11","r12","r13","r14","r15"]));
     mixin(def_string(["r16","r17","r18","r19","r20","r21","r22","r23"]));
@@ -7000,6 +7056,6 @@ version (XBYAK64)
     mixin(def_string(["zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm30","zmm31"]));
 
     mixin(def_string(["tmm0","tmm1","tmm2","tmm3","tmm4","tmm5","tmm6","tmm7"]));
-}
+  }
 
 }
