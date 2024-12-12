@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.7220
- * Date: 2024/12/12
+ * Version: 0.7210
+ * Date: 2024/12/11
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -452,9 +452,7 @@ class Allocator
                 mixin(XBYAK_THROW_RET(ERR.CANT_ALLOC, "0"));
             }
             assert(p);
-            uintptr_t uip = cast(uintptr_t)p;
-            allocList_[uip] = Allocation();
-            Allocation* alloc = &allocList_[uip];
+            Allocation alloc = allocList_[cast(uintptr_t)p];
             alloc.size = size;
     
       version(XBYAK_USE_MEMFD)
@@ -468,20 +466,20 @@ class Allocator
         override void free(uint8_t* p)
         {
             if (p == null) return;
-            uintptr_t uip = cast(uintptr_t)p;
-            if (null == (uip in allocList_)) mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
+            uintptr_t uintp = cast(uintptr_t)p;
+            if (null == (uintp in allocList_)) mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
             
             GC.removeRange(cast(void*)p);
-            if (munmap(cast(void*)uip, allocList_[uip].size) < 0) mixin(XBYAK_THROW(ERR.MUNMAP));
+            if (munmap(cast(void*)uintp, allocList_[uintp].size) < 0) mixin(XBYAK_THROW(ERR.MUNMAP));
 
       version(XBYAK_USE_MEMFD)
       {
-            if (allocList_[uip].fd != -1)
+            if (allocList_[uintp].fd != -1)
             {
-                close(allocList_[uip].fd);
+                close(allocList_[uintp].fd);
             }
       }
-            allocList_.remove(uip);
+            allocList_.remove(uintp);
     }
 }
   }
@@ -1559,12 +1557,13 @@ class CodeArray
 
   version(XBYAK_USE_MMAP_ALLOCATOR)
   {
-    MmapAllocator defaultAllocator_ = new MmapAllocator();
+    MmapAllocator defaultAllocator_;
   }
   else
   {
-    Allocator defaultAllocator_ = new Allocator();
+    Allocator defaultAllocator_;
   }
+    
     Allocator alloc_;
 protected:
     size_t maxSize_;
@@ -1610,7 +1609,7 @@ public:
     this(size_t maxSize, void* userPtr = null, Allocator allocator = null)
     {
         type_ = (userPtr == AutoGrow ? Type.AUTO_GROW : (userPtr == null || userPtr == DontSetProtectRWE) ? Type.ALLOC_BUF : Type.USER_BUF);
-        alloc_  = allocator ? allocator : defaultAllocator_;
+        alloc_  = allocator;
         maxSize_ = maxSize;
         top_ = type_ == Type.USER_BUF ? cast(uint8_t*)userPtr: alloc_.alloc(max(maxSize, 1));
         size_ = 0;
@@ -4072,7 +4071,7 @@ public:
         
     enum { NONE = 256 }
 public:
-    this(size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = null, Allocator allocator = null)
+    this(size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = null, Allocator allocator = new Allocator())
     {
         super(maxSize, userPtr, allocator);
         this.isDefaultJmpNEAR_ = false;
@@ -4227,7 +4226,7 @@ version(XBYAK_DONT_READ_LIST)
 else
 {
 
-string getVersionString() const { return "0.0722"; }
+string getVersionString() const { return "0.0721"; }
 void aadd(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38, 0x0FC, T_APX); }
 void aand(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38|T_66, 0x0FC, T_APX|T_66); }
 void adc(Operand op, uint32_t imm) { opOI(op, imm, 0x10, 2); }
