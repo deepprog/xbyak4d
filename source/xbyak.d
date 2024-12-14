@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7220
- * Date: 2024/12/12
+ * Date: 2024/12/14
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -34,6 +34,7 @@ module xbyak;
 //version = XBYAK_DONT_READ_LIST;
 //version = XBYAK_OLD_DISP_CHECK;
 //version = MIE_INTEGER_TYPE_DEFINED;
+//version = XBYAK_VARIADIC_TEMPLATE;
 
 import core.memory;
 import core.stdc.stdio;
@@ -323,7 +324,7 @@ string ConvertErrorToString(ERR err)
 
 To CastTo(To, From)(From p)
 {
-    return cast(To) (p);
+    return cast(const To)cast(size_t)(p);
 }
 
 struct inner
@@ -617,7 +618,7 @@ public:
 
     this(Operand op)
     {
-        setIdx(op.idx_);
+        this.idx_ = op.idx_;
         this.kind_ = op.kind_;
         this.bit_  = op.bit_;
         this.zero_ = op.zero_;
@@ -767,14 +768,25 @@ public:
                 return tbl[idx - 4];
             }
             string[32][4] tbl = [
-                ["al", "cl", "dl", "bl", "ah", "ch", "dh", "bh", "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b",
-                "r16b", "r17b", "r18b", "r19b", "r20b", "r21b", "r22b", "r23b", "r24b", "r25b", "r26b", "r27b", "r28b", "r29b", "r30b", "r31b"],
-                ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di", "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w",
-                "r16w", "r17w", "r18w", "r19w", "r20w", "r21w", "r22w", "r23w", "r24w", "r25w", "r26w", "r27w", "r28w", "r29w", "r30w", "r31w"],
-                ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi", "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d",
-                "r16d", "r17d", "r18d", "r19d", "r20d", "r21d", "r22d", "r23d", "r24d", "r25d", "r26d", "r27d", "r28d", "r29d", "r30d", "r31d"],
-                ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
-                "r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23", "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"],
+                ["al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
+                 "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b",
+                 "r16b", "r17b", "r18b", "r19b", "r20b", "r21b", "r22b", "r23b",
+                 "r24b","r25b", "r26b", "r27b", "r28b", "r29b", "r30b", "r31b"],
+
+                ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di",
+                 "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w",
+                 "r16w", "r17w", "r18w", "r19w", "r20w", "r21w", "r22w", "r23w",
+                 "r24w", "r25w", "r26w", "r27w", "r28w", "r29w", "r30w", "r31w"],
+                
+                ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi",
+                 "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d",
+                 "r16d", "r17d", "r18d", "r19d", "r20d", "r21d", "r22d", "r23d",
+                 "r24d", "r25d", "r26d", "r27d", "r28d", "r29d", "r30d", "r31d"],
+                
+                ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi",
+                 "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
+                 "r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
+                 "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"],
             ];
             return tbl[bit_ == 8 ? 0 : bit_ == 16 ? 1 : bit_ == 32 ? 2 : 3][idx];
         } else if (isOPMASK()) {
@@ -1386,11 +1398,11 @@ class RegExp
 public:
   version(XBYAK64)
   {
-    enum { i32e = 32 | 64 };
+    enum { i32e = 32 | 64 }
   }
   else
   {
-    enum { i32e = 32 };
+    enum { i32e = 32 }
   }    
     
     this(size_t disp = 0)
@@ -3452,8 +3464,13 @@ static const uint64_t T_F2 = 1uL << 37; // pp = 3
     {
         if (mode)
         {
-            if (!op.isMEM() && !((op.isXMM() && x.isXMM()) || (op.isXMM() && x.isYMM()) || (op.isYMM() && x.isZMM())))  mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
-        } else {
+            if (!op.isMEM() && !((op.isXMM() && x.isXMM()) || (op.isXMM() && x.isYMM()) || (op.isYMM() && x.isZMM())))
+            {
+                mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
+            }
+        }
+        else
+        {
             if (!op.isMEM() && !op.isXMM()) mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
         }
         opVex(x, null, op, type, code);
