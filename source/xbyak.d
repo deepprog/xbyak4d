@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7220
- * Date: 2024/12/14
+ * Date: 2024/12/15
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -62,7 +62,7 @@ import std.string;
   }
 
 size_t    DEFAULT_MAX_CODE_SIZE = 4096 * 8;
-size_t    VERSION               = 0x0721;  // 0xABCD = A.BC(D)
+size_t    VERSION               = 0x0722;  // 0xABCD = A.BC(D)
 
 
   version(MIE_INTEGER_TYPE_DEFINED)
@@ -1383,7 +1383,7 @@ public class Reg32 : Reg32e
         }
         this(int idx){ assert(0 <= idx_ && idx_ < 6); idx_ = idx; }
         int getIdx() const { return idx_; }
-        override string toString()
+        override string toString() const
         {
             string[] tbl = [
                 "es", "cs", "ss", "ds", "fs", "gs"
@@ -2585,7 +2585,7 @@ static const uint64_t T_F2 = 1uL << 37; // pp = 3
     }
     
     int evex(Reg reg, Reg base, Operand v, uint64_t type, int code, Reg x = null, bool b = false, int aaa = 0, uint32_t VL = 0, bool Hi16Vidx = false)
-     {
+    {
         if (!(type & (T_EVEX | T_MUST_EVEX))) mixin(XBYAK_THROW_RET(ERR.EVEX_IS_INVALID, "0"));
         int w = (type & T_EW1) ? 1 : 0;
         uint32_t mmm = getMap(type);
@@ -3377,7 +3377,7 @@ static const uint64_t T_F2 = 1uL << 37; // pp = 3
         }
         mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
     }
-    const Xmm cvtIdx0(Operand x)
+    Xmm cvtIdx0(Operand x)
     {
         return x.isZMM() ? zm0 : x.isYMM() ? ym0 : xm0;
     }
@@ -3673,10 +3673,17 @@ public:
     }
     enum
     {
-        mm0 = Mmx(0), mm1 = Mmx(1), mm2 = Mmx(2), mm3 = Mmx(3), mm4 = Mmx(4), mm5 = Mmx(5), mm6 = Mmx(6), mm7 = Mmx(7),
-        xmm0 = Xmm(0), xmm1 = Xmm(1), xmm2 = Xmm(2), xmm3 = Xmm(3), xmm4 = Xmm(4), xmm5 = Xmm(5), xmm6 = Xmm(6), xmm7 = Xmm(7),
-        ymm0 = Ymm(0), ymm1 = Ymm(1), ymm2 = Ymm(2), ymm3 = Ymm(3), ymm4 = Ymm(4), ymm5 = Ymm(5), ymm6 = Ymm(6), ymm7 = Ymm(7),
-        zmm0 = Zmm(0), zmm1 = Zmm(1), zmm2 = Zmm(2), zmm3 = Zmm(3), zmm4 = Zmm(4), zmm5 = Zmm(5), zmm6 = Zmm(6), zmm7 = Zmm(7),
+        mm0 = Mmx(0), mm1 = Mmx(1), mm2 = Mmx(2), mm3 = Mmx(3),
+        mm4 = Mmx(4), mm5 = Mmx(5), mm6 = Mmx(6), mm7 = Mmx(7),
+        
+        xmm0 = Xmm(0), xmm1 = Xmm(1), xmm2 = Xmm(2), xmm3 = Xmm(3),
+        xmm4 = Xmm(4), xmm5 = Xmm(5), xmm6 = Xmm(6), xmm7 = Xmm(7),
+        
+        ymm0 = Ymm(0), ymm1 = Ymm(1), ymm2 = Ymm(2), ymm3 = Ymm(3),
+        ymm4 = Ymm(4), ymm5 = Ymm(5), ymm6 = Ymm(6), ymm7 = Ymm(7),
+        
+        zmm0 = Zmm(0), zmm1 = Zmm(1), zmm2 = Zmm(2), zmm3 = Zmm(3),
+        zmm4 = Zmm(4), zmm5 = Zmm(5), zmm6 = Zmm(6), zmm7 = Zmm(7),
         // for my convenience
         xm0 = xmm0, xm1 = xmm1, xm2 = xmm2, xm3 = xmm3, xm4 = xmm4, xm5 = xmm5, xm6 = xmm6, xm7 = xmm7,
         ym0 = ymm0, ym1 = ymm1, ym2 = ymm2, ym3 = ymm3, ym4 = ymm4, ym5 = ymm5, ym6 = ymm6, ym7 = ymm7,
@@ -3705,8 +3712,12 @@ public:
         yword_b = new AddressFrame(256, true),
         zword_b = new AddressFrame(512, true),
 
-        st0 = Fpu(0), st1 = Fpu(1), st2 = Fpu(2), st3 = Fpu(3), st4 = Fpu(4), st5 = Fpu(5), st6 = Fpu(6), st7 = Fpu(7),
-        k0 = Opmask(0), k1 = Opmask(1), k2 = Opmask(2), k3 = Opmask(3), k4 = Opmask(4), k5 = Opmask(5), k6 = Opmask(6), k7 = Opmask(7),
+        st0 = Fpu(0), st1 = Fpu(1), st2 = Fpu(2), st3 = Fpu(3),
+        st4 = Fpu(4), st5 = Fpu(5), st6 = Fpu(6), st7 = Fpu(7),
+        
+        k0 = Opmask(0), k1 = Opmask(1), k2 = Opmask(2), k3 = Opmask(3),
+        k4 = Opmask(4), k5 = Opmask(5), k6 = Opmask(6), k7 = Opmask(7),
+        
         bnd0 = BoundsReg(0), bnd1 = BoundsReg(1), bnd2 = BoundsReg(2), bnd3 = BoundsReg(3),
         T_sae = new EvexModifierRounding(EvexModifierRounding.T_SAE),
         T_rn_sae = new EvexModifierRounding(EvexModifierRounding.T_RN_SAE),
@@ -3720,79 +3731,91 @@ public:
 
   version (XBYAK64)
   {
-        enum
-        {
-            rax = Reg64(Operand.RAX), rcx = Reg64(Operand.RCX), rdx = Reg64(Operand.RDX), rbx = Reg64(Operand.RBX),
-            rsp = Reg64(Operand.RSP), rbp = Reg64(Operand.RBP), rsi = Reg64(Operand.RSI), rdi = Reg64(Operand.RDI),
-            r8 = Reg64(Operand.R8), r9 = Reg64(Operand.R9), r10 = Reg64(Operand.R10), r11 = Reg64(Operand.R11),
-            r12 = Reg64(Operand.R12), r13 = Reg64(Operand.R13), r14 = Reg64(Operand.R14), r15 = Reg64(Operand.R15),
-            r16 = Reg64(Operand.R16), r17 = Reg64(Operand.R17), r18 = Reg64(Operand.R18), r19 = Reg64(Operand.R19),
-            r20 = Reg64(Operand.R20), r21 = Reg64(Operand.R21), r22 = Reg64(Operand.R22), r23 = Reg64(Operand.R23),
-            r24 = Reg64(Operand.R24), r25 = Reg64(Operand.R25), r26 = Reg64(Operand.R26), r27 = Reg64(Operand.R27),
-            r28 = Reg64(Operand.R28), r29 = Reg64(Operand.R29), r30 = Reg64(Operand.R30), r31 = Reg64(Operand.R31),
+    enum
+    {
+        rax = Reg64(Operand.RAX), rcx = Reg64(Operand.RCX), rdx = Reg64(Operand.RDX), rbx = Reg64(Operand.RBX),
+        rsp = Reg64(Operand.RSP), rbp = Reg64(Operand.RBP), rsi = Reg64(Operand.RSI), rdi = Reg64(Operand.RDI),
+        r8 = Reg64(Operand.R8), r9 = Reg64(Operand.R9), r10 = Reg64(Operand.R10), r11 = Reg64(Operand.R11),
+        r12 = Reg64(Operand.R12), r13 = Reg64(Operand.R13), r14 = Reg64(Operand.R14), r15 = Reg64(Operand.R15),
+        r16 = Reg64(Operand.R16), r17 = Reg64(Operand.R17), r18 = Reg64(Operand.R18), r19 = Reg64(Operand.R19),
+        r20 = Reg64(Operand.R20), r21 = Reg64(Operand.R21), r22 = Reg64(Operand.R22), r23 = Reg64(Operand.R23),
+        r24 = Reg64(Operand.R24), r25 = Reg64(Operand.R25), r26 = Reg64(Operand.R26), r27 = Reg64(Operand.R27),
+        r28 = Reg64(Operand.R28), r29 = Reg64(Operand.R29), r30 = Reg64(Operand.R30), r31 = Reg64(Operand.R31),
 
-            r8d = Reg32(Operand.R8D), r9d = Reg32(Operand.R9D), r10d = Reg32(Operand.R10D), r11d = Reg32(Operand.R11D),
-            r12d = Reg32(Operand.R12D), r13d = Reg32(Operand.R13D), r14d = Reg32(Operand.R14D), r15d = Reg32(Operand.R15D),
-            r16d = Reg32(Operand.R16D), r17d = Reg32(Operand.R17D), r18d = Reg32(Operand.R18D), r19d = Reg32(Operand.R19D),
-            r20d = Reg32(Operand.R20D), r21d = Reg32(Operand.R21D), r22d = Reg32(Operand.R22D), r23d = Reg32(Operand.R23D),
-            r24d = Reg32(Operand.R24D), r25d = Reg32(Operand.R25D), r26d = Reg32(Operand.R26D), r27d = Reg32(Operand.R27D),
-            r28d = Reg32(Operand.R28D), r29d = Reg32(Operand.R29D), r30d = Reg32(Operand.R30D), r31d = Reg32(Operand.R31D),
+        r8d = Reg32(Operand.R8D), r9d = Reg32(Operand.R9D), r10d = Reg32(Operand.R10D), r11d = Reg32(Operand.R11D),
+        r12d = Reg32(Operand.R12D), r13d = Reg32(Operand.R13D), r14d = Reg32(Operand.R14D), r15d = Reg32(Operand.R15D),
+        r16d = Reg32(Operand.R16D), r17d = Reg32(Operand.R17D), r18d = Reg32(Operand.R18D), r19d = Reg32(Operand.R19D),
+        r20d = Reg32(Operand.R20D), r21d = Reg32(Operand.R21D), r22d = Reg32(Operand.R22D), r23d = Reg32(Operand.R23D),
+        r24d = Reg32(Operand.R24D), r25d = Reg32(Operand.R25D), r26d = Reg32(Operand.R26D), r27d = Reg32(Operand.R27D),
+        r28d = Reg32(Operand.R28D), r29d = Reg32(Operand.R29D), r30d = Reg32(Operand.R30D), r31d = Reg32(Operand.R31D),
 
-            r8w = Reg16(Operand.R8W), r9w = Reg16(Operand.R9W), r10w = Reg16(Operand.R10W), r11w = Reg16(Operand.R11W),
-            r12w = Reg16(Operand.R12W), r13w = Reg16(Operand.R13W), r14w = Reg16(Operand.R14W), r15w = Reg16(Operand.R15W),
-            r16w = Reg16(Operand.R16W), r17w = Reg16(Operand.R17W), r18w = Reg16(Operand.R18W), r19w = Reg16(Operand.R19W),
-            r20w = Reg16(Operand.R20W), r21w = Reg16(Operand.R21W), r22w = Reg16(Operand.R22W), r23w = Reg16(Operand.R23W),
-            r24w = Reg16(Operand.R24W), r25w = Reg16(Operand.R25W), r26w = Reg16(Operand.R26W), r27w = Reg16(Operand.R27W),
-            r28w = Reg16(Operand.R28W), r29w = Reg16(Operand.R29W), r30w = Reg16(Operand.R30W), r31w = Reg16(Operand.R31W),
+        r8w = Reg16(Operand.R8W), r9w = Reg16(Operand.R9W), r10w = Reg16(Operand.R10W), r11w = Reg16(Operand.R11W),
+        r12w = Reg16(Operand.R12W), r13w = Reg16(Operand.R13W), r14w = Reg16(Operand.R14W), r15w = Reg16(Operand.R15W),
+        r16w = Reg16(Operand.R16W), r17w = Reg16(Operand.R17W), r18w = Reg16(Operand.R18W), r19w = Reg16(Operand.R19W),
+        r20w = Reg16(Operand.R20W), r21w = Reg16(Operand.R21W), r22w = Reg16(Operand.R22W), r23w = Reg16(Operand.R23W),
+        r24w = Reg16(Operand.R24W), r25w = Reg16(Operand.R25W), r26w = Reg16(Operand.R26W), r27w = Reg16(Operand.R27W),
+        r28w = Reg16(Operand.R28W), r29w = Reg16(Operand.R29W), r30w = Reg16(Operand.R30W), r31w = Reg16(Operand.R31W),
 
-            r8b = Reg8(Operand.R8B), r9b = Reg8(Operand.R9B), r10b = Reg8(Operand.R10B), r11b = Reg8(Operand.R11B),
-            r12b = Reg8(Operand.R12B), r13b = Reg8(Operand.R13B), r14b = Reg8(Operand.R14B), r15b = Reg8(Operand.R15B),
-            r16b = Reg8(Operand.R16B), r17b = Reg8(Operand.R17B), r18b = Reg8(Operand.R18B), r19b = Reg8(Operand.R19B),
-            r20b = Reg8(Operand.R20B), r21b = Reg8(Operand.R21B), r22b = Reg8(Operand.R22B), r23b = Reg8(Operand.R23B),
-            r24b = Reg8(Operand.R24B), r25b = Reg8(Operand.R25B), r26b = Reg8(Operand.R26B), r27b = Reg8(Operand.R27B),
-            r28b = Reg8(Operand.R28B), r29b = Reg8(Operand.R29B), r30b = Reg8(Operand.R30B), r31b = Reg8(Operand.R31B),
+        r8b = Reg8(Operand.R8B), r9b = Reg8(Operand.R9B), r10b = Reg8(Operand.R10B), r11b = Reg8(Operand.R11B),
+        r12b = Reg8(Operand.R12B), r13b = Reg8(Operand.R13B), r14b = Reg8(Operand.R14B), r15b = Reg8(Operand.R15B),
+        r16b = Reg8(Operand.R16B), r17b = Reg8(Operand.R17B), r18b = Reg8(Operand.R18B), r19b = Reg8(Operand.R19B),
+        r20b = Reg8(Operand.R20B), r21b = Reg8(Operand.R21B), r22b = Reg8(Operand.R22B), r23b = Reg8(Operand.R23B),
+        r24b = Reg8(Operand.R24B), r25b = Reg8(Operand.R25B), r26b = Reg8(Operand.R26B), r27b = Reg8(Operand.R27B),
+        r28b = Reg8(Operand.R28B), r29b = Reg8(Operand.R29B), r30b = Reg8(Operand.R30B), r31b = Reg8(Operand.R31B),
 
-            spl = Reg8(Operand.SPL, true), bpl = Reg8(Operand.BPL, true), sil = Reg8(Operand.SIL, true), dil = Reg8(Operand.DIL, true),
+        spl = Reg8(Operand.SPL, true),
+        bpl = Reg8(Operand.BPL, true),
+        sil = Reg8(Operand.SIL, true),
+        dil = Reg8(Operand.DIL, true),
 
-            xmm8 = Xmm(8), xmm9 = Xmm(9), xmm10 = Xmm(10), xmm11 = Xmm(11),
-            xmm12 = Xmm(12), xmm13 = Xmm(13), xmm14 = Xmm(14), xmm15 = Xmm(15),
-            xmm16 = Xmm(16), xmm17 = Xmm(17), xmm18 = Xmm(18), xmm19 = Xmm(19),
-            xmm20 = Xmm(20), xmm21 = Xmm(21), xmm22 = Xmm(22), xmm23 = Xmm(23),
-            xmm24 = Xmm(24), xmm25 = Xmm(25), xmm26 = Xmm(26), xmm27 = Xmm(27),
-            xmm28 = Xmm(28), xmm29 = Xmm(29), xmm30 = Xmm(30), xmm31 = Xmm(31),
+        xmm8 = Xmm(8), xmm9 = Xmm(9), xmm10 = Xmm(10), xmm11 = Xmm(11),
+        xmm12 = Xmm(12), xmm13 = Xmm(13), xmm14 = Xmm(14), xmm15 = Xmm(15),
+        xmm16 = Xmm(16), xmm17 = Xmm(17), xmm18 = Xmm(18), xmm19 = Xmm(19),
+        xmm20 = Xmm(20), xmm21 = Xmm(21), xmm22 = Xmm(22), xmm23 = Xmm(23),
+        xmm24 = Xmm(24), xmm25 = Xmm(25), xmm26 = Xmm(26), xmm27 = Xmm(27),
+        xmm28 = Xmm(28), xmm29 = Xmm(29), xmm30 = Xmm(30), xmm31 = Xmm(31),
 
-            ymm8 = Ymm(8), ymm9 = Ymm(9), ymm10 = Ymm(10), ymm11 = Ymm(11),
-            ymm12 = Ymm(12), ymm13 = Ymm(13), ymm14 = Ymm(14), ymm15 = Ymm(15),
-            ymm16 = Ymm(16), ymm17 = Ymm(17), ymm18 = Ymm(18), ymm19 = Ymm(19),
-            ymm20 = Ymm(20), ymm21 = Ymm(21), ymm22 = Ymm(22), ymm23 = Ymm(23),
-            ymm24 = Ymm(24), ymm25 = Ymm(25), ymm26 = Ymm(26), ymm27 = Ymm(27),
-            ymm28 = Ymm(28), ymm29 = Ymm(29), ymm30 = Ymm(30),ymm31 = Ymm(31),
+        ymm8 = Ymm(8), ymm9 = Ymm(9), ymm10 = Ymm(10), ymm11 = Ymm(11),
+        ymm12 = Ymm(12), ymm13 = Ymm(13), ymm14 = Ymm(14), ymm15 = Ymm(15),
+        ymm16 = Ymm(16), ymm17 = Ymm(17), ymm18 = Ymm(18), ymm19 = Ymm(19),
+        ymm20 = Ymm(20), ymm21 = Ymm(21), ymm22 = Ymm(22), ymm23 = Ymm(23),
+        ymm24 = Ymm(24), ymm25 = Ymm(25), ymm26 = Ymm(26), ymm27 = Ymm(27),
+        ymm28 = Ymm(28), ymm29 = Ymm(29), ymm30 = Ymm(30),ymm31 = Ymm(31),
 
-            zmm8 = Zmm(8), zmm9 = Zmm(9), zmm10 = Zmm(10), zmm11 = Zmm(11),
-            zmm12 = Zmm(12), zmm13 = Zmm(13), zmm14 = Zmm(14), zmm15 = Zmm(15),
-            zmm16 = Zmm(16), zmm17 = Zmm(17), zmm18 = Zmm(18), zmm19 = Zmm(19),
-            zmm20 = Zmm(20), zmm21 = Zmm(21), zmm22 = Zmm(22), zmm23 = Zmm(23),
-            zmm24 = Zmm(24), zmm25 = Zmm(25), zmm26 = Zmm(26), zmm27 = Zmm(27),
-            zmm28 = Zmm(28), zmm29 = Zmm(29), zmm30 = Zmm(30), zmm31 = Zmm(31),
+        zmm8 = Zmm(8), zmm9 = Zmm(9), zmm10 = Zmm(10), zmm11 = Zmm(11),
+        zmm12 = Zmm(12), zmm13 = Zmm(13), zmm14 = Zmm(14), zmm15 = Zmm(15),
+        zmm16 = Zmm(16), zmm17 = Zmm(17), zmm18 = Zmm(18), zmm19 = Zmm(19),
+        zmm20 = Zmm(20), zmm21 = Zmm(21), zmm22 = Zmm(22), zmm23 = Zmm(23),
+        zmm24 = Zmm(24), zmm25 = Zmm(25), zmm26 = Zmm(26), zmm27 = Zmm(27),
+        zmm28 = Zmm(28), zmm29 = Zmm(29), zmm30 = Zmm(30), zmm31 = Zmm(31),
 
-            tmm0 = Tmm(0), tmm1 = Tmm(1), tmm2 = Tmm(2), tmm3 = Tmm(3),
-            tmm4 = Tmm(4), tmm5 = Tmm(5), tmm6 = Tmm(6), tmm7 = Tmm(7),
+        tmm0 = Tmm(0), tmm1 = Tmm(1), tmm2 = Tmm(2), tmm3 = Tmm(3),
+        tmm4 = Tmm(4), tmm5 = Tmm(5), tmm6 = Tmm(6), tmm7 = Tmm(7),
 
-            // for my convenience
-            xm8 = xmm8, xm9 = xmm9, xm10 = xmm10, xm11 = xmm11, xm12 = xmm12, xm13 = xmm13, xm14 = xmm14, xm15 = xmm15,
-            xm16 = xmm16, xm17 = xmm17, xm18 = xmm18, xm19 = xmm19, xm20 = xmm20, xm21 = xmm21, xm22 = xmm22, xm23 = xmm23,
-            xm24 = xmm24, xm25 = xmm25, xm26 = xmm26, xm27 = xmm28, xm29 = xmm29, xm30 = xmm30, xm31 = xmm31,
+        // for my convenience
+        xm8 = xmm8, xm9 = xmm9, xm10 = xmm10, xm11 = xmm11,
+        xm12 = xmm12, xm13 = xmm13, xm14 = xmm14, xm15 = xmm15,
+        xm16 = xmm16, xm17 = xmm17, xm18 = xmm18, xm19 = xmm19,
+        xm20 = xmm20, xm21 = xmm21, xm22 = xmm22, xm23 = xmm23,
+        xm24 = xmm24, xm25 = xmm25, xm26 = xmm26, xm27 = xmm28,
+        xm29 = xmm29, xm30 = xmm30, xm31 = xmm31,
 
-            ym8 = ymm8, ym9 = ymm9, ym10 = ymm10, ym11 = ymm11, ym12 = ymm12, ym13 = ymm13, ym14 = ymm14, ym15 = ymm15,
-            ym16 = ymm16, ym17 = ymm17, ym18 = ymm18, ym19 = ymm19, ym20 = ymm20, ym21 = ymm21, ym22 = ymm22, ym23 = ymm23,
-            ym24 = ymm24, ym25 = ymm25, ym26 = ymm26, ym27 = ymm28, ym29 = ymm29, ym30 = ymm30, ym31 = ymm31,
+        ym8 = ymm8, ym9 = ymm9, ym10 = ymm10, ym11 = ymm11,
+        ym12 = ymm12, ym13 = ymm13, ym14 = ymm14, ym15 = ymm15,
+        ym16 = ymm16, ym17 = ymm17, ym18 = ymm18, ym19 = ymm19,
+        ym20 = ymm20, ym21 = ymm21, ym22 = ymm22, ym23 = ymm23,
+        ym24 = ymm24, ym25 = ymm25, ym26 = ymm26, ym27 = ymm28,
+        ym29 = ymm29, ym30 = ymm30, ym31 = ymm31,
 
-            zm8 = zmm8, zm9 = zmm9, zm10 = zmm10, zm11 = zmm11, zm12 = zmm12, zm13 = zmm13, zm14 = zmm14, zm15 = zmm15,
-            zm16 = zmm16, zm17 = zmm17, zm18 = zmm18, zm19 = zmm19, zm20 = zmm20, zm21 = zmm21, zm22 = zmm22, zm23 = zmm23,
-            zm24 = zmm24, zm25 = zmm25, zm26 = zmm26, zm27 = zmm28, zm29 = zmm29, zm30 = zmm30, zm31 = zmm31,
+        zm8 = zmm8, zm9 = zmm9, zm10 = zmm10, zm11 = zmm11,
+        zm12 = zmm12, zm13 = zmm13, zm14 = zmm14, zm15 = zmm15,
+        zm16 = zmm16, zm17 = zmm17, zm18 = zmm18, zm19 = zmm19,
+        zm20 = zmm20, zm21 = zmm21, zm22 = zmm22, zm23 = zmm23,
+        zm24 = zmm24, zm25 = zmm25, zm26 = zmm26, zm27 = zmm28,
+        zm29 = zmm29, zm30 = zmm30, zm31 = zmm31,
 
-            rip = RegRip()
-        }
+        rip = RegRip()
+    }
 
       version(XBYAK_DISABLE_SEGMENT)
       {}
