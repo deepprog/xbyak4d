@@ -1333,10 +1333,10 @@ public class Reg32 : Reg32e
     struct RegRip
     {
         int64_t disp_ = 0;
-        Label label_;
+        Label* label_;
         bool isAddr_;
         
-        this(int64_t disp, Label label = null, bool isAddr = false)
+        this(int64_t disp, Label* label = null, bool isAddr = false)
         {
             disp_  = disp;
             label_ = label;
@@ -1362,8 +1362,7 @@ public class Reg32 : Reg32e
         RegRip opBinary(string op:"+") (ref Label label)
         {
             if (this.label_ || this.isAddr_) mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegRip()"));
-            if (label is null) label = new Label();
-            return RegRip(this.disp_, label);
+            return RegRip(this.disp_, &label);
         }
         RegRip opBinary(string op:"+")(void* addr)
         {
@@ -1899,7 +1898,7 @@ public:
     bool is64bitDisp() const { return mode_ == Mode.M_64bitDisp; } // for moffset
     bool isBroadcast() const { return broadcast_; }
     override bool hasRex2() const { return e_.getBase().hasRex2() || e_.getIndex().hasRex2(); }
-    Label getLabel() { return label_; }
+    Label* getLabel() { return label_; }
 
     override bool opEquals(Object o) const
     {
@@ -1921,7 +1920,7 @@ public:
 
 private:
     RegExp e_;
-    Label label_;
+    Label* label_;
     Mode mode_;
 public:
     int immSize; // the size of immediate value of nmemonics (0, 1, 2, 4)
@@ -1999,37 +1998,41 @@ struct JmpLabel
     }
 }
 
-class Label
+struct Label
 {
     LabelManager mgr = null;
     int id = 0;
-public:
-    this()
-    {
-        mgr = null;
-        id = 0;
-    }
- 
+public:   
     this(ref Label rhs)
     {
-        id  = rhs.id;
-        mgr = rhs.mgr;
-        if (mgr) mgr.incRefCount(id, this);
+        this.id  = rhs.id;
+        this.mgr = rhs.mgr;
+        if (this.mgr) mgr.incRefCount(id, &this);
     }
 
     ~this()
     {
-        if(id && mgr) mgr.decRefCount(id, this);
+        if(id && mgr) mgr.decRefCount(id, &this);
     }
-    
+
+    Label opAssign(ref Label rhs)
+    {
+        if (id) mixin(XBYAK_THROW_RET(ERR.LABEL_IS_ALREADY_SET_BY_L, "*this"));
+        id = rhs.id;
+        mgr = rhs.mgr;
+        if (mgr) mgr.incRefCount(id, &this);
+        return this;
+    }
+
     uint8_t* getAddress()
     {
         if (mgr is null) return null;
         if (!mgr.isReady()) return null;
         size_t offset;
-        if (!mgr.getOffset(&offset, this)) return null;
+        if (!mgr.getOffset(&offset, &this)) return null;
         return mgr.getCode() + offset;
     }
+    
     
     void clear()
     {
@@ -2083,7 +2086,7 @@ class LabelManager
 
     alias ClabelDefList = ClabelVal[int] ;
     alias ClabelUndefList = JmpLabel[][int] ;
-    alias LabelPtrList = Label[];
+    alias LabelPtrList = Label*[];
 
     CodeArray base_;
 
@@ -2094,7 +2097,7 @@ class LabelManager
     ClabelUndefList clabelUndefList_;
     LabelPtrList labelPtrList_;
     
-    int getId(ref Label label)
+    int getId(Label* label)
     {
         if (label.id == 0) label.id = labelId_++;
         return label.id;
@@ -2103,7 +2106,7 @@ class LabelManager
     void define_inner(DefList, UndefList, T)(ref DefList deflist, ref UndefList undeflist, T labelId, size_t addrOffset)
     {    
         // add label
-        if (labelId in deflist)    mixin(XBYAK_THROW(ERR.LABEL_IS_REDEFINED));
+        if (labelId in deflist) mixin(XBYAK_THROW(ERR.LABEL_IS_REDEFINED));
         deflist[labelId] = typeof(deflist[labelId])(addrOffset);
         // search undefined label
         if (null == (labelId in undeflist)) return;
@@ -2140,6 +2143,7 @@ class LabelManager
     }
 
     bool getOffset_inner(DefList, T)(DefList defList, size_t* offset, T label)
+    if(is(T == string) || is(T == int))
     {
         if (null == (label in defList))
         {
@@ -2150,18 +2154,19 @@ class LabelManager
         return true;
     }
 
-    void incRefCount(int id, Label label)
+    void incRefCount(int id, Label* label)
     {
         clabelDefList_[id].refCount++;
         labelPtrList_ ~= label;
     }
 
-    void decRefCount(int id, Label label)
+    void decRefCount(int id, Label* label)
     {
-        for(int i; i < labelPtrList_.length; i++)
+        foreach(i, labelptr; labelPtrList_)
         {
-            if(labelPtrList_[i] != label)
+            if(labelptr == label) {
                 labelPtrList_.remove(i);
+            }
         }
         
         if (null == (id in clabelDefList_)) {
@@ -2192,7 +2197,7 @@ class LabelManager
     // detach all labels linked to LabelManager
     void resetLabelPtrList()
     {
-        labelPtrList_.length = 0;
+        labelPtrList_ = [];
     }
     
 public:
@@ -2210,9 +2215,10 @@ public:
     {
         base_ = null;
         labelId_ = 1;
-        stateList_.length = 0;
-        stateList_ = [SlabelState(), SlabelState()];
-
+        stateList_ = [];
+        stateList_ ~= SlabelState();
+        stateList_ ~= SlabelState();
+        
         foreach(key; clabelDefList_.keys) {
             clabelDefList_.remove(key);
         }
@@ -2221,6 +2227,7 @@ public:
         }
         resetLabelPtrList();
     }
+    
     void enterLocal()
     {
         stateList_ ~= SlabelState();
@@ -2267,7 +2274,8 @@ public:
         define_inner(st.defList, st.undefList, label, base_.getSize());
     }
 
-    void defineClabel(ref Label label)
+    
+    void defineClabel(Label* label)
     {
         define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize);
         label.mgr = this;
@@ -2275,14 +2283,15 @@ public:
     }
 
     void assign(ref Label dst, ref Label src)
-    {    
-        if(dst is null) dst = new Label();
+    {        
+    
         if(null == (src.id in clabelDefList_)){
             mixin(XBYAK_THROW(ERR.LABEL_ISNOT_SET_BY_L));
         }
         define_inner(clabelDefList_, clabelUndefList_, dst.id, clabelDefList_[src.id].offset);
         dst.mgr = this;
-        labelPtrList_ ~= dst;
+        Label* dst_ptr = &dst;
+        labelPtrList_ ~= dst_ptr;
     }
 
     bool getOffset(size_t* offset, ref string label)
@@ -2308,7 +2317,7 @@ public:
         return getOffset_inner(st.defList, offset, label);
     }
 
-    bool getOffset(size_t* offset, Label label)
+    bool getOffset(size_t* offset, Label* label)
     {
         return getOffset_inner(clabelDefList_, offset, getId(label));
     }
@@ -2319,7 +2328,7 @@ public:
         st.undefList[label] ~= jmp;
     }
 
-    void addUndefinedLabel(ref Label label, ref JmpLabel jmp)
+    void addUndefinedLabel(Label* label, ref JmpLabel jmp)
     {
         clabelUndefList_[label.id] ~= jmp;
     }
@@ -2346,7 +2355,7 @@ public:
         return !base_.isAutoGrow() || base_.isCalledCalcJmpAddress();
     }    
 }    
-    
+
 enum PreferredEncoding
 {
     DefaultEncoding,
@@ -2890,12 +2899,10 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     
     void opJmp(ref Label label, LabelType type, uint8_t shortCode, uint8_t longCode, uint8_t longPref)
     {
-        if(label is null) label = new Label();
-        
         if (type == T_FAR) mixin(XBYAK_THROW(ERR.NOT_SUPPORTED));
         if (isAutoGrow() && size_ + 16 >= maxSize_)    growMemory(); // avoid splitting code of jmp
         size_t offset = 0;                      
-        if (labelMgr_.getOffset(&offset, label))    // label exists
+        if (labelMgr_.getOffset(&offset, &label))    // label exists
         {
             makeJmp(inner.VerifyInInt32(offset - size_), type, shortCode, longCode, longPref);
         }
@@ -2916,7 +2923,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
                 db(0);
             }
             JmpLabel jmp = JmpLabel(size_, jmpSize, inner.LabelMode.LasIs);
-            labelMgr_.addUndefinedLabel(label, jmp);
+            labelMgr_.addUndefinedLabel(&label, jmp);
         }
     }
 
@@ -3246,7 +3253,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
 
 
     void putL_inner(T)(T label, bool relative = false, size_t disp = 0)
-    if(is(T == string) || is(T == Label) )
+    if(is(T == string) || is(T == Label*) )
     {
         const int jmpSize = relative ? 4 : cast(int) size_t.sizeof;
         if (isAutoGrow() && size_ + 16 >= maxSize_) growMemory();
@@ -3908,7 +3915,7 @@ private:
     PreferredEncoding[2] defaultEncoding_; // 0:vnni, 1:vmpsadbw
 public:
     void L(string label) { labelMgr_.defineSlabel(label); }
-    void L(ref Label label) { if(label is null) label = new Label(); labelMgr_.defineClabel(label); }
+    void L(ref Label label) { labelMgr_.defineClabel(&label); }
     Label L(){ Label label; L(label); return label; }
     void inLocalLabel() { labelMgr_.enterLocal; }
     void outLocalLabel() { labelMgr_.leaveLocal; }
@@ -3924,8 +3931,7 @@ public:
     void putL(string label) { putL_inner(label); }
     void putL(ref Label label)
     {
-        if(label is null) label = new Label();
-        putL_inner(label);
+        putL_inner(&label);
     }
 
     // set default type of `jmp` of undefined label to T_NEAR

@@ -18,6 +18,45 @@ version(X86_64)
 	version = XBYAK64;
 }
 
+@("test0")
+unittest
+{
+
+	test1();
+	testJmpCx();
+	testloop();
+	test2();
+	//test3();
+	test4();
+	test5();	//MyAllocator
+	MovLabel();
+	testMovLabel2();
+	testF_B();
+	test6();
+	test_jcc();
+
+	testNewLabel();
+	
+	returnLabel();
+	testAssige();
+
+//	doubleDefine();
+	getAddress1();
+	LabelTable();
+
+	testGetAddressCode2();
+
+	testrip();
+	rip_jmp(); //ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW
+
+//	rip_addr();	// we can't assume |&x - &code| < 2GiB anymore
+	rip_addr_with_fixed_buf();
+	release_label_after_code(); //dlang
+	setDefaultJmpNEAR();
+	ambiguousFarJmp();
+
+	doubleDefine();
+}
 
 void putNop(CodeGenerator gen, int n)
 {
@@ -97,7 +136,6 @@ void test1()
 	*/
 		this(int offset, bool isBack, bool isShort, bool useNewLabel)
 		{
-			super();
 			if (useNewLabel) {
 				Label label;
 				if (isBack) {
@@ -158,8 +196,18 @@ void test1()
 			uint8_t* q = cast(uint8_t*)testjmp.getCode();
 			if (p.isBack) q += p.offset; /* skip nop */
 			for (int j = 0; j < p.size; j++) {
-				assert(q[j] == p.result[j]); 
+				writeln(q[j], " : ", p.result[j]);
+				bool b = q[j] == p.result[j];
+				assert(b);
 			}
+		
+			for (size_t j = 0; j < testjmp.getSize(); j++) {
+				if ((j % 16) == 0) printf("%04x ", cast(int)(j / 16));
+				printf("%02x ", q[j]);
+				if ((j % 16) == 15) putchar('\n');
+			}
+			putchar('\n');
+
 		}
 	}
 }
@@ -179,7 +227,7 @@ void testJmpCx()
 
 			if (useNewLabel)
 			{
-				Label lp; // = new Label();
+				Label lp;
 			L(lp);
 version(XBYAK64) {
 				/*
@@ -259,7 +307,6 @@ void testloop()
 	class Code : CodeGenerator {
 		this(bool useLabel)
 		{
-			super();
 			if (useLabel) {
  			Label lp = L();
 				xor(eax, eax);
@@ -364,7 +411,6 @@ void test2()
 				nop();
 				nop();
 				Label f1, f2, f3, f4;
-			//	, f2, f3, f4;
 			L(f1);
 				putNop(this, 126);
 				jmp(f1);
@@ -451,7 +497,7 @@ void test2()
 			printf("TestJmp2(AutoGrow, false) NG: %X != %X\n", code[i], ok[i]); 
 			assert(0);
 		}
-	}
+	}	
 }
 
 version(XBYAK32)
@@ -707,7 +753,8 @@ version(XBYAK64) {
 			if (useNewLabel)
 			{
 				nop(); // 0x90
-				Label lp1, lp2;
+				Label lp1;
+				Label lp2;
 			L(lp1);
 				nop();
 				mov(a, lp1); // 0xb8 + <4byte> / 0x48bb + <8byte>
@@ -870,6 +917,7 @@ void testF_B()
 {
 	class Code : CodeGenerator
 	{
+		int a;
 		this(int type)
 		{
 			super();
@@ -1074,7 +1122,6 @@ void test_jcc()
 	{
 		this()
 		{
-			super();
 			add(eax, 5);
 			ret();
 		}
@@ -1159,10 +1206,9 @@ void testNewLabel()
 				jmp(label2);
 			L(exit);
 			}
-			Label callLabel; // = new Label();
+			Label callLabel;
 			{	// eax == 8
-				Label label1; // = new Label();
-				Label label2; // = new Label();
+				Label label1, label2;
 			L(label1);
 				inc(eax); // 9, 10, 11, 13
 				cmp(eax, 9);
@@ -1264,10 +1310,10 @@ void testAssige()
 			putNop(this, 128);
 			jne(dst, T_NEAR);
 			ret();
-			assignL(dst, src);
+		assignL(dst, src);
 			// test of copy  label
 			{
-				Label sss = new Label(dst);
+				Label sss = dst;
 				{
 					Label ttt;
 					ttt = src;
@@ -1355,9 +1401,13 @@ void doubleDefine()
 	}
 
 	Code1 code1 = new Code1();
+	auto f1 = code1.getCode();
 	Code2 code2 = new Code2();
+	auto f2 = code2.getCode();
 	Code3 code3 = new Code3();
+	auto f3 = code3.getCode();
 	Code4 code4 = new Code4();
+	auto f4 = code4.getCode();
 }
 
 
@@ -1462,7 +1512,7 @@ void LabelTable()
 	auto c = new CodeLabelTable();
 	auto fn = cast(int function(int))c.getCode();
 	c.dump();
-	assert(fn(0) == c.ret0);
+	assert(fn(1) == c.ret1);
 	assert(fn(1) == c.ret1);
 	assert(fn(2) == c.ret2);
 }
@@ -1521,10 +1571,10 @@ void testGetAddressCode2()
 		4096 // not grow
 	];
 
-	for (size_t i = 0; i < sizeTbl.length; i++) {
-		int size = sizeTbl[i];
+	foreach (int size; sizeTbl) {
+	//	int size = sizeTbl[i];
 		auto c = new GetAddressCode2(size);
-		c.ready();
+		c.readyRE();
 		uint8_t* p = c.getCode();
 
 		auto tmp1 = c.L1.getAddress() == p + c.a1;
@@ -1609,7 +1659,6 @@ void rip_jmp()
 	{
 		this()
 		{
-			super();
 			Label label;
 			xor(eax, eax);
 			call(ptr [rip + label]);
@@ -1633,7 +1682,7 @@ void rip_jmp()
 }
 
 
-/* //#if 0
+//* //#if 0
 @("rip_addr")
 unittest{
 	rip_addr();
@@ -1647,7 +1696,7 @@ void rip_addr()
 	{
 		this()
 		{
-			super();
+		//	super();
 			mov(eax, 123);
 			mov(ptr[rip + &x], eax);
 			ret();
@@ -1761,7 +1810,7 @@ void release_label_after_code()
 	//	assert(L4.getAddress() == null);
 	//	assert(L5.getId() == 0);
 	//	assert(L5.getAddress() == null);
-	//	writef("id=%d %d %d %d %d\n", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
+		writef("id=%d %d %d %d %d\n", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
 	}
 }
 
@@ -1844,7 +1893,7 @@ void setDefaultJmpNEAR()
 			auto exp1 = tbl[i].expect1;
 			writeln("size:", size);
 			writeln("exp1:", exp1);
-
+		//	code1.dump;
 			assert(size == exp1);
 		} else {
 			bool ret = false;
@@ -1905,15 +1954,20 @@ version(unittest)
 else
 {
 void main()
-	{
-
+{
+	testAssige();
+//	testGetAddressCode2();
+//	release_label_after_code(); //dlang
+}
+}
+__EOF__
 	test1();
 	testJmpCx();
 	testloop();
 	test2();
-//	test3();
+	//test3();
 	test4();
-//	test5();	//MyAllocator
+	test5();	//MyAllocator
 	MovLabel();
 	testMovLabel2();
 	testF_B();
@@ -1922,17 +1976,17 @@ void main()
 	testNewLabel();
 	
 	returnLabel();
-	testAssige();
+//	testAssige();
 	doubleDefine();
 	getAddress1();
 	LabelTable();
-	testGetAddressCode2();
+//	testGetAddressCode2();
 	testrip();
-	rip_jmp();
+	rip_jmp(); //ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW
 
-//	rip_addr();	// we can't assume |&x - &code| < 2GiB anymore
+	rip_addr();	// we can't assume |&x - &code| < 2GiB anymore
 	rip_addr_with_fixed_buf();
-	release_label_after_code(); //dlang
+//	release_label_after_code(); //dlang
 	setDefaultJmpNEAR();
 	ambiguousFarJmp();
 	}
