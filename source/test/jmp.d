@@ -1512,7 +1512,7 @@ void LabelTable()
 	auto c = new CodeLabelTable();
 	auto fn = cast(int function(int))c.getCode();
 	c.dump();
-	assert(fn(1) == c.ret1);
+	assert(fn(0) == c.ret0);
 	assert(fn(1) == c.ret1);
 	assert(fn(2) == c.ret2);
 }
