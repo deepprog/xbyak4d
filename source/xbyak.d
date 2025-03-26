@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7242
- * Date: 2025/03/21
+ * Date: 2025/03/26
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -2000,7 +2000,7 @@ struct JmpLabel
 
 struct Label
 {
-    LabelManager mgr = null;
+    LabelManager* mgr = null;
     int id = 0;
 public:   
     this(ref Label rhs)
@@ -2049,7 +2049,7 @@ public:
 }
 
 
-class LabelManager
+struct LabelManager
 {
 // for string label
     struct SlabelVal
@@ -2201,11 +2201,6 @@ class LabelManager
     }
     
 public:
-    this()
-    {
-        reset();
-
-    }
     ~this()
     {
         resetLabelPtrList();
@@ -2278,7 +2273,7 @@ public:
     void defineClabel(Label* label)
     {
         define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize);
-        label.mgr = this;
+        label.mgr = &this;
         labelPtrList_ ~= label;
     }
 
@@ -2289,7 +2284,7 @@ public:
             mixin(XBYAK_THROW(ERR.LABEL_ISNOT_SET_BY_L));
         }
         define_inner(clabelDefList_, clabelUndefList_, dst.id, clabelDefList_[src.id].offset);
-        dst.mgr = this;
+        dst.mgr = &this;
         Label* dst_ptr = &dst;
         labelPtrList_ ~= dst_ptr;
     }
@@ -2793,7 +2788,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         }
     }
 
-    LabelManager labelMgr_ = new LabelManager();
+    LabelManager labelMgr_;
  
     void writeCode(uint64_t type, Reg r, int code, bool rex2 = false)
     {
