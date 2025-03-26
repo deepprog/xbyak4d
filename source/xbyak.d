@@ -956,32 +956,32 @@ public:
     
     RegExp opBinary(string op:"+") (Reg b)
     {
-        return new RegExp(this) + new RegExp(b);
+        return RegExp(this) + RegExp(b);
     }
 
     RegExp opBinaryRight(string op:"+") (Reg a)
     {
-        return new RegExp(a) + new RegExp(this);
+        return RegExp(a) + RegExp(this);
     }
 
     RegExp opBinary(string op:"*") (int scale)
     {
-        return new RegExp(this, scale);
+        return RegExp(this, scale);
     }
     
     RegExp opBinaryRight(string op:"*") (int scale)
     {
-        return new RegExp(this, scale);
+        return RegExp(this, scale);
     }
 
     RegExp opBinary(string op:"+") (int disp)
     {
-        return new RegExp(this) + disp;
+        return RegExp(this) + disp;
     }
     
     RegExp opBinaryRight(string op:"+") (int disp)
     {
-        return new RegExp(this) + disp;
+        return RegExp(this) + disp;
     }
 }
 
@@ -1043,7 +1043,7 @@ public:
     }
 }
 
-class EvexModifierRounding
+struct EvexModifierRounding
 {
     enum {
         T_RN_SAE = 1,
@@ -1055,20 +1055,20 @@ class EvexModifierRounding
     
     this(int rounding)
     {
-        this.rounding = rounding;
+        rounding_ = rounding;
     }
-    
-    int rounding;
+
+    int rounding_;
     
     T opBinaryRight(string op:"|", T)(T x)
     {        
         T r = new T(x);
-        r.setRounding(this.rounding);
+        r.setRounding(this.rounding_);
         return r;
     }
 }
 
-class EvexModifierZero
+struct EvexModifierZero
 {
     T opBinaryRight(string op:"|", T)(T x)
     {
@@ -1262,12 +1262,12 @@ public class Reg32e : Reg
 
     RegExp opBinary(string op:"+") (Reg32e b)
     {
-        return new RegExp(this) + new RegExp(b);
+        return RegExp(this) + RegExp(b);
     }
 
     RegExp opBinary(string op:"*") (int scale)
     {
-        return new RegExp(this, scale);
+        return RegExp(this, scale);
     }
     
     RegExp opBinaryRight(string op:"*") (int scale)
@@ -1277,17 +1277,17 @@ public class Reg32e : Reg
 
     RegExp opBinary(string op:"+") (int disp)
     {
-        return new RegExp(this) + disp;
+        return RegExp(this) + disp;
     }
 
     RegExp opBinaryRight(string op:"+") (int disp)
     {
-        return new RegExp(this) + disp;
+        return RegExp(this) + disp;
     }
 
     RegExp opBinary(string op:"-") (int disp)
     {
-        return new RegExp(this) - disp;
+        return RegExp(this) - disp;
     }
 }
 
@@ -1377,7 +1377,7 @@ public class Reg32 : Reg32e
   else
   {
     // not derived from Reg
-    class Segment
+    struct Segment
     {
         int idx_;
     public:
@@ -1386,7 +1386,7 @@ public class Reg32 : Reg32e
         }
         this(int idx){ assert(0 <= idx_ && idx_ < 6); idx_ = idx; }
         int getIdx() const { return idx_; }
-        override string toString() const
+        string toString() const
         {
             string[] tbl = [
                 "es", "cs", "ss", "ds", "fs", "gs"
@@ -1396,7 +1396,7 @@ public class Reg32 : Reg32e
     }
   }
 
-class RegExp
+struct RegExp
 {
 public:
   version(XBYAK64)
@@ -1408,13 +1408,12 @@ public:
     enum { i32e = 32 }
   }    
     
-    this(size_t disp = 0)
+    this(size_t disp)
     {
         scale_ = 0;
         disp_ = disp;
     }
     
-
     this(Reg r, int scale = 1)
     {
         scale_ = scale;
@@ -1436,16 +1435,14 @@ public:
         RegExp exp = this;
         // [reg * 2] => [reg + reg]
         if (index_.isBit(i32e) && !base_.getBit() && scale_ == 2) {
-            exp.base_ = this.getIndex();
+            exp.base_ = this.index_;
             exp.scale_ = 1;
         }
         return exp;
     }
     
-    override bool opEquals(Object o) const
-    {
-        RegExp rhs = cast(RegExp) o;
-        
+    bool opEquals(const ref RegExp rhs) const
+    {    
         bool Base_ = this.base_ == rhs.base_;
         bool Index_ = this.index_ == rhs.index_;
         bool Dsip_ = this.disp_ == rhs.disp_;
@@ -1455,7 +1452,7 @@ public:
     
     Reg getBase() const { return cast(Reg)base_; }
     Reg getIndex() const { return cast(Reg)index_; }
-    int getScale() const { return scale_;    }
+    int getScale() const { return scale_; }
     size_t getDisp() const { return cast(size_t)disp_; }
     
     void verify() const
@@ -1470,12 +1467,12 @@ public:
 
     RegExp opBinary(string op:"+") (RegExp b)
     {
-        if (this.index_.getBit() && b.index_.getBit()) mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "new RegExp()"));
+        if (this.index_.getBit() && b.index_.getBit()) mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegExp()"));
         RegExp ret = this;
         if (!ret.index_.getBit()) { ret.index_ = b.index_; ret.scale_ = b.scale_; }
         if (b.base_.getBit()) {
             if (ret.base_.getBit()) {
-                if (ret.index_.getBit()) mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "new RegExp()"));
+                if (ret.index_.getBit()) mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegExp()"));
                 // base + base => base + index * 1
                 ret.index_ = b.base_;
                 // [reg + esp] => [esp + reg]
@@ -1490,14 +1487,14 @@ public:
         return ret;
     }
     
-     RegExp opBinary(string op:"+") (Reg32e b)
+    RegExp opBinary(string op:"+") (Reg32e b)
     {
-        return this + new RegExp(b);
+        return this + RegExp(b);
     }
     
     RegExp opBinaryRight(string op:"+") (Reg32e a)
     {
-        return new RegExp(a) + this;
+        return RegExp(a) + this;
     }
     
     RegExp opBinary(string op:"+") (int disp)
@@ -1525,8 +1522,8 @@ private:
     */
     Reg base_ = Reg();
     Reg index_ = Reg();
-    int scale_;
-    size_t disp_;
+    int scale_ = 0;
+    size_t disp_ = 0;
 }
 
 // 2nd parameter for constructor of CodeArray(maxSize, userPtr, alloc)
@@ -1860,7 +1857,7 @@ public:
     this(size_t disp)
     {
         super(0, Kind.MEM, 64);
-        e_ = new RegExp(disp);
+        e_ = RegExp(disp);
         label_ = null;
         mode_ = Mode.M_64bitDisp;
         immSize = 0;
@@ -1873,7 +1870,7 @@ public:
     this(uint32_t sizeBit, bool broadcast, RegRip addr)
     {
         super(0, Kind.MEM, sizeBit);
-        e_ = new RegExp(addr.disp_);
+        e_ = RegExp(addr.disp_);
         label_ = addr.label_;
         mode_ = addr.isAddr_ ? Mode.M_ripAddr : Mode.M_rip;
         immSize = 0;
@@ -1931,8 +1928,7 @@ private:
     bool optimize_;
 }
 
-
-class AddressFrame
+struct AddressFrame
 {
 public:
     uint32_t bit_;
@@ -1951,7 +1947,7 @@ public:
     
     Address opIndex(void* disp) const
     {
-        return new Address(bit_, broadcast_, new RegExp(cast(size_t)disp));
+        return new Address(bit_, broadcast_, RegExp(cast(size_t)disp));
     }
 
 
@@ -1970,13 +1966,13 @@ public:
 
     Address opIndex(Reg32e reg)
     {
-        RegExp ret = new RegExp(reg);
+        RegExp ret = RegExp(reg);
         return opIndex(ret);
     }
 
     Address opIndex(Mmx mmx)
     {
-        RegExp ret = new RegExp(mmx);
+        RegExp ret = RegExp(mmx);
         return opIndex(ret);
     }
 
@@ -2983,7 +2979,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         if (!isValidSSE(mmx)) mixin(XBYAK_THROW(ERR.NOT_SUPPORTED));
         uint64_t type = T_0F;
         if (mmx.isXMM()) type |= T_66;
-        opRR(new Reg32(ext), mmx, type, code);
+        opRR(Reg32(ext), mmx, type, code);
         db(imm8);
     }
     
@@ -3057,7 +3053,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     {
         int opBit = op.getBit();
         if (disableRex && opBit == 64) opBit = 32;
-        Reg r = new Reg(ext, Kind.REG, opBit);
+        Reg r = Reg(ext, Kind.REG, opBit);
         if ((type & T_APX) && (d !is null || op.hasRex2NFZU()) && opROO(d ? d : Reg(0, Kind.REG, opBit), op, r, type, code)) return;
         if (op.isMEM()) {
             opMR(op.getAddress(immSize), r, type, code);
@@ -3158,7 +3154,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     {
         uint32_t immBit = getImmBit(d, imm);
         int code = immBit < min(d.getBit(), 32U) ? 2 : 0;
-        opROO(d, op, new Reg(ext, Kind.REG, d.getBit()), type, 0x80 | code, immBit / 8);
+        opROO(d, op, Reg(ext, Kind.REG, d.getBit()), type, 0x80 | code, immBit / 8);
         db(imm, immBit / 8);
     }
     
@@ -3229,7 +3225,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         int code = 0xB0 | ((bit == 8 ? 0 : 1) << 3);
         if (bit == 64 && (imm & ~cast(uint64_t) (0xffff_ffffu)) == 0)
         {
-            rex(new Reg32(idx));
+            rex(Reg32(idx));
             bit = 32;
         }
         else
@@ -3410,7 +3406,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     void opCvt3(Xmm x1, Xmm x2, Operand op, uint64_t type, uint64_t type64, uint64_t type32, uint8_t code)
     {
         if (!(x1.isXMM() && x2.isXMM() && (op.isREG(i32e) || op.isMEM()))) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
-        Xmm x = new Xmm(op.getIdx());
+        Xmm x = Xmm(op.getIdx());
         Operand p = op.isREG() ? x : op;
         opVex(x1, x2, p, (type | (op.isBit(64) ? type64 : type32)), code);
     }
@@ -3771,19 +3767,19 @@ public:
         al = Reg8(Operand.AL), cl = Reg8(Operand.CL), dl = Reg8(Operand.DL), bl = Reg8(Operand.BL),
         ah = Reg8(Operand.AH), ch = Reg8(Operand.CH), dh = Reg8(Operand.DH), bh = Reg8(Operand.BH),
 
-        ptr = new AddressFrame(0),
-        byte_ = new AddressFrame(8),
-        word  = new AddressFrame(16),
-        dword = new AddressFrame(32),
-        qword = new AddressFrame(64),
-        xword = new AddressFrame(128),
-        yword = new AddressFrame(256),
-        zword = new AddressFrame(512),
+        ptr = AddressFrame(0),
+        byte_ = AddressFrame(8),
+        word  = AddressFrame(16),
+        dword = AddressFrame(32),
+        qword = AddressFrame(64),
+        xword = AddressFrame(128),
+        yword = AddressFrame(256),
+        zword = AddressFrame(512),
 
-        ptr_b = new AddressFrame(0, true),
-        xword_b = new AddressFrame(128, true),
-        yword_b = new AddressFrame(256, true),
-        zword_b = new AddressFrame(512, true),
+        ptr_b = AddressFrame(0, true),
+        xword_b = AddressFrame(128, true),
+        yword_b = AddressFrame(256, true),
+        zword_b = AddressFrame(512, true),
 
         st0 = Fpu(0), st1 = Fpu(1), st2 = Fpu(2), st3 = Fpu(3),
         st4 = Fpu(4), st5 = Fpu(5), st6 = Fpu(6), st7 = Fpu(7),
@@ -3792,12 +3788,12 @@ public:
         k4 = Opmask(4), k5 = Opmask(5), k6 = Opmask(6), k7 = Opmask(7),
         
         bnd0 = BoundsReg(0), bnd1 = BoundsReg(1), bnd2 = BoundsReg(2), bnd3 = BoundsReg(3),
-        T_sae = new EvexModifierRounding(EvexModifierRounding.T_SAE),
-        T_rn_sae = new EvexModifierRounding(EvexModifierRounding.T_RN_SAE),
-        T_rd_sae = new EvexModifierRounding(EvexModifierRounding.T_RD_SAE),
-        T_ru_sae = new EvexModifierRounding(EvexModifierRounding.T_RU_SAE),
-        T_rz_sae = new EvexModifierRounding(EvexModifierRounding.T_RZ_SAE),
-        T_z = new EvexModifierZero(),
+        T_sae = EvexModifierRounding(EvexModifierRounding.T_SAE),
+        T_rn_sae = EvexModifierRounding(EvexModifierRounding.T_RN_SAE),
+        T_rd_sae = EvexModifierRounding(EvexModifierRounding.T_RD_SAE),
+        T_ru_sae = EvexModifierRounding(EvexModifierRounding.T_RU_SAE),
+        T_rz_sae = EvexModifierRounding(EvexModifierRounding.T_RZ_SAE),
+        T_z = EvexModifierZero(),
         T_nf = ApxFlagNF(),
         T_zu = ApxFlagZU()
     }
@@ -3895,12 +3891,12 @@ public:
       else
       {
         enum {
-            es = new Segment(Segment.es),
-            cs = new Segment(Segment.cs),
-            ss = new Segment(Segment.ss),
-            ds = new Segment(Segment.ds),
-            fs = new Segment(Segment.fs),
-            gs = new Segment(Segment.gs)
+            es = Segment(Segment.es),
+            cs = Segment(Segment.cs),
+            ss = Segment(Segment.ss),
+            ds = Segment(Segment.ds),
+            fs = Segment(Segment.fs),
+            gs = Segment(Segment.gs)
         }
       }
   }
@@ -4129,7 +4125,7 @@ public:
   {}
   else
   {
-    void push(Segment seg)
+    void push(const ref Segment seg)
     {
         switch (seg.getIdx()) {
         case Segment.es: db(0x06); break;
@@ -4143,7 +4139,7 @@ public:
         }
     }
     
-    void pop(Segment seg)
+    void pop(const ref Segment seg)
     {
         switch (seg.getIdx()) {
         case Segment.es: db(0x07); break;
@@ -4157,7 +4153,7 @@ public:
         }
     }
     
-    void putSeg(Segment seg)
+    void putSeg(const ref Segment seg)
     {
         switch (seg.getIdx()) {
         case Segment.es: db(0x2E); break;
@@ -4171,12 +4167,12 @@ public:
         }
     }
     
-    void mov(Operand op, Segment seg)
+    void mov(Operand op, const ref Segment seg)
     {
         opRO(Reg8(seg.getIdx()), op, T_ALLOW_DIFF_SIZE | T_ALLOW_ABCDH, 0x8C, op.isREG(16|i32e));
     }
     
-    void mov(Segment seg, Operand op)
+    void mov(const ref Segment seg, Operand op)
     {
         opRO(Reg8(seg.getIdx()), op.isREG(16|i32e) ? cast(Operand)(op.getReg().cvt32()) : op, T_ALLOW_DIFF_SIZE | T_ALLOW_ABCDH, 0x8E, op.isREG(16|i32e));
     }
