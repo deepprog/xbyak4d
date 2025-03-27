@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7242
- * Date: 2025/03/26
+ * Date: 2025/03/27
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -989,7 +989,7 @@ public:
 public class Reg8 : Reg
 {
 public:
-    this(int idx = 0, bool ext8bit = false)
+    this(int idx, bool ext8bit = false)
     {
         super(idx, Kind.REG, 8, ext8bit);
     }
@@ -999,7 +999,7 @@ public:
         super(cast(Reg)r);
     }
     
-    static Reg8 opCall(int idx = 0, bool ext8bit = false)
+    static Reg8 opCall(int idx, bool ext8bit = false)
     {
         return new Reg8(idx, ext8bit);
     }
@@ -1008,7 +1008,7 @@ public:
 public class Reg16 : Reg
 {
 public:
-    this(int idx = 0)
+    this(int idx)
     {
         super(idx, Kind.REG, 16);
     }
@@ -1027,7 +1027,7 @@ public:
 public class Mmx : Reg
 {
 public:
-    this(int idx = 0, int kind = Kind.MMX, int bit = 64)
+    this(int idx, int kind = Kind.MMX, int bit = 64)
     {
         super(idx, kind, bit);
     }
@@ -1121,7 +1121,7 @@ public:
 public class Ymm : Xmm
 {
 public:
-    this(int idx = 0, int kind = Kind.YMM, int bit = 256)
+    this(int idx, int kind = Kind.YMM, int bit = 256)
     {
         super(idx, kind, bit);
     }
@@ -1140,7 +1140,7 @@ public:
 public class Zmm : Ymm
 {
 public:
-    this(int idx = 0, int kind = Kind.ZMM, int bit = 512)
+    this(int idx, int kind = Kind.ZMM, int bit = 512)
     {
         super(idx, kind, bit);
     }
@@ -1161,7 +1161,7 @@ public:
     public class Tmm : Reg
     {
     public:
-        this(int idx = 0, Kind kind = Kind.TMM, int bit = 8192)
+        this(int idx, Kind kind = Kind.TMM, int bit = 8192)
         {
             super(idx, kind, bit);
         }
@@ -1181,7 +1181,7 @@ public:
 
 class Opmask : Reg
 {
-    this(int idx = 0)
+    this(int idx)
     {
         super(idx, Kind.OPMASK, 64);
     }
@@ -1206,7 +1206,7 @@ class Opmask : Reg
 
 class BoundsReg : Reg
 {
-    this(int idx = 0)
+    this(int idx)
     {
         super(idx, Kind.BNDREG, 128);
     }
@@ -1294,7 +1294,7 @@ public class Reg32e : Reg
 
 public class Reg32 : Reg32e
 {
-    this(int idx = 0, int bit = 32)
+    this(int idx, int bit = 32)
     {
         super(idx, bit);
     }
@@ -1314,7 +1314,7 @@ public class Reg32 : Reg32e
   {
     public class Reg64 : Reg32e
     {
-        this(int idx = 0, int bit = 64)
+        this(int idx, int bit = 64)
         {
             super(idx, bit);
         }
@@ -1388,7 +1388,7 @@ public class Reg32 : Reg32e
         int getIdx() const { return idx_; }
         string toString() const
         {
-            string[] tbl = [
+            string[6] tbl = [
                 "es", "cs", "ss", "ds", "fs", "gs"
             ];
             return tbl[idx_];
@@ -1487,7 +1487,7 @@ public:
         return ret;
     }
     
-    RegExp opBinary(string op:"+") (Reg32e b)
+    RegExp opBinary(string op:"+") (const ref Reg32e b)
     {
         return this + RegExp(b);
     }
@@ -1998,7 +1998,7 @@ struct Label
 {
     LabelManager* mgr = null;
     int id = 0;
-public:   
+public:
     this(ref Label rhs)
     {
         this.id  = rhs.id;
