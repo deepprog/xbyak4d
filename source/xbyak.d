@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7242
- * Date: 2025/03/27
+ * Date: 2025/03/28
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -550,10 +550,10 @@ private:
 
 protected:
     bool zero_= false;
-    uint mask_=3;
+    uint mask_= 3;
     uint rounding_ = 3;
-    uint NF_ =1;
-    uint ZU_=1; // ND=ZU
+    uint NF_ = 1;
+    uint ZU_= 1; // ND=ZU
     void setIdx(int idx) { idx_ = idx; }
 
 public:
@@ -638,7 +638,7 @@ public:
     }
 
     int getKind() const { return cast(Kind)kind_; }
-    int  getIdx () const { return idx_ & (EXT8BIT - 1); }
+    int getIdx () const { return idx_ & (EXT8BIT - 1); }
     bool hasIdxBit(int bit) const { return cast(bool)(idx_ & (1<<bit)); }
     bool isNone () const {return this.kind_ == 0; }
     bool isMMX  () const { return isKind(Kind.MMX); }
@@ -999,7 +999,7 @@ public:
         super(cast(Reg)r);
     }
     
-    static Reg8 opCall(int idx, bool ext8bit = false)
+    static Reg8 opCall(int idx = 0, bool ext8bit = false)
     {
         return new Reg8(idx, ext8bit);
     }
@@ -1055,7 +1055,7 @@ struct EvexModifierRounding
     
     this(int rounding)
     {
-        rounding_ = rounding;
+        this.rounding_ = rounding;
     }
 
     int rounding_;
@@ -1487,7 +1487,7 @@ public:
         return ret;
     }
     
-    RegExp opBinary(string op:"+") (const ref Reg32e b)
+    RegExp opBinary(string op:"+") (Reg32e b)
     {
         return this + RegExp(b);
     }
@@ -2801,13 +2801,13 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     }
     
     void opRR(Reg r1, Reg r2, uint64_t type, int code)
-	{
-		if (!(type & T_ALLOW_DIFF_SIZE) && r1.isREG() && r2.isREG() && r1.getBit() != r2.getBit()) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
-		if (!(type & T_ALLOW_ABCDH) && (isBadCombination(r1, r2) || isBadCombination(r2, r1))) mixin(XBYAK_THROW(ERR.CANT_USE_ABCDH));
-		bool rex2 = rex(r2, r1, type);
-		writeCode(type, r1, code, rex2);
-		setModRM(3, r1.getIdx(), r2.getIdx());
-	}
+    {
+        if (!(type & T_ALLOW_DIFF_SIZE) && r1.isREG() && r2.isREG() && r1.getBit() != r2.getBit()) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
+        if (!(type & T_ALLOW_ABCDH) && (isBadCombination(r1, r2) || isBadCombination(r2, r1))) mixin(XBYAK_THROW(ERR.CANT_USE_ABCDH));
+        bool rex2 = rex(r2, r1, type);
+        writeCode(type, r1, code, rex2);
+        setModRM(3, r1.getIdx(), r2.getIdx());
+    }
     
     void opMR(Address addr, Reg r, uint64_t type, int code, uint64_t type2 = 0, int code2 = NONE)
     {
@@ -3713,6 +3713,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     {
         Operand p1 = op1;
         Operand p2 = op2;
+
         bool rev = false;
         if (p1.isMEM()) {
             swap(p1, p2);
@@ -4125,7 +4126,7 @@ public:
   {}
   else
   {
-    void push(const ref Segment seg)
+    void push(Segment seg)
     {
         switch (seg.getIdx()) {
         case Segment.es: db(0x06); break;
@@ -4139,7 +4140,7 @@ public:
         }
     }
     
-    void pop(const ref Segment seg)
+    void pop(Segment seg)
     {
         switch (seg.getIdx()) {
         case Segment.es: db(0x07); break;
@@ -4153,7 +4154,7 @@ public:
         }
     }
     
-    void putSeg(const ref Segment seg)
+    void putSeg(Segment seg)
     {
         switch (seg.getIdx()) {
         case Segment.es: db(0x2E); break;
@@ -4167,12 +4168,12 @@ public:
         }
     }
     
-    void mov(Operand op, const ref Segment seg)
+    void mov(Operand op, Segment seg)
     {
         opRO(Reg8(seg.getIdx()), op, T_ALLOW_DIFF_SIZE | T_ALLOW_ABCDH, 0x8C, op.isREG(16|i32e));
     }
     
-    void mov(const ref Segment seg, Operand op)
+    void mov(Segment seg, Operand op)
     {
         opRO(Reg8(seg.getIdx()), op.isREG(16|i32e) ? cast(Operand)(op.getReg().cvt32()) : op, T_ALLOW_DIFF_SIZE | T_ALLOW_ABCDH, 0x8E, op.isREG(16|i32e));
     }
