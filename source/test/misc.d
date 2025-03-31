@@ -109,7 +109,6 @@ unittest{
 
 void compOperand()
 {
-	//using namespace Xbyak::util;
 	assert(eax == eax);
 	assert(ecx != xmm0);
 	assert(ptr[eax] == ptr[eax]);
@@ -295,7 +294,7 @@ version(XBYAK64)
 		//	writeln("size:", end-p2);
 			for(int i=0; i < end - p2; i++)
 			{
-		//		writeln(p1[i], ":", p2[i]);
+		// writeln(p1[i], ":", p2[i]);
 				assert(p1[i] == p2[i]);
 			}
 		}
@@ -354,7 +353,7 @@ void vfmaddps()
 			vp4dpwssds(zmm10 | k4, zmm3, ptr [rsp + rax * 4 + 64]);
 		}
 	}
-	auto c = new Code();
+	
 
 	const uint8_t[] tbl = [
 		0x62, 0xf2, 0x3f, 0x48, 0x9a, 0x4a, 0x04,
@@ -365,6 +364,7 @@ void vfmaddps()
 		0x62, 0x72, 0x67, 0x4c, 0x53, 0x54, 0x84, 0x04,
 	];
 
+	auto c = new Code();
 	assert(c.getSize() == tbl.length);
 	auto ctbl = c.getCode();
 	for(int i=0; i < tbl.length; i++)
@@ -2867,14 +2867,4 @@ void vmovw()
 	}
 }
 
-}
-
-version(unittest)
-{}
-else
-{
-	void main()
-	{
-		tileloadd();
-	}
 }

@@ -1,9 +1,9 @@
-module test.bad_address;
+module bad_address;
 
 unittest
 {
     import std.stdio;
-	import xbyak;
+    import xbyak;
     import std.exception;
 
     class Code : CodeGenerator
@@ -11,8 +11,8 @@ unittest
         this()
         {
             assertThrown(mov(eax, ptr [esp + esp]));
-            assertThrown(mov(eax, ptr [ax]));             // not support
-			assertThrown(mov(eax, ptr [esp * 4]));
+            assertThrown(mov(eax, ptr [ax]));   // not support
+            assertThrown(mov(eax, ptr [esp * 4]));
             assertThrown(mov(eax, ptr [eax * 16]));
             assertThrown(mov(eax, ptr [eax + eax + eax]));
             assertThrown(mov(eax, ptr [eax * 2 + ecx * 4]));
