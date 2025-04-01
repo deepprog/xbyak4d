@@ -1,5 +1,16 @@
 module bad_address;
 
+  version(X86)
+  {
+    version = XBYAK32;
+  }
+
+  version(X86_64)
+  {
+    version = XBYAK64;
+  }
+
+@("bad_address")
 unittest
 {
     import std.stdio;
@@ -22,7 +33,7 @@ unittest
             version(XBYAK64)
             {
                 assertThrown(mov(eax, ptr [rax + eax]));
-                assertThrown( mov(eax, ptr [xmm0 + ymm0]));
+                assertThrown(mov(eax, ptr [xmm0 + ymm0]));
             }
         }
     }

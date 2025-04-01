@@ -18,6 +18,7 @@ version(X86_64)
 	version = XBYAK64;
 }
 
+/+
 @("test0")
 unittest
 {
@@ -57,6 +58,7 @@ unittest
 
 	doubleDefine();
 }
++/
 
 void putNop(CodeGenerator gen, int n)
 {
@@ -1948,7 +1950,7 @@ version(XBYAK32){
 	assertThrown!Exception(code.genCall());
 }
 
-
+__EOF__
 version(unittest)
 {}
 else

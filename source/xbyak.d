@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7242
- * Date: 2025/03/28
+ * Date: 2025/04/01
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -953,15 +953,10 @@ public:
         Reg r = new Reg(cast(Reg)this);
         return r;
     }
-    
+
     RegExp opBinary(string op:"+") (Reg b)
     {
         return RegExp(this) + RegExp(b);
-    }
-
-    RegExp opBinaryRight(string op:"+") (Reg a)
-    {
-        return RegExp(a) + RegExp(this);
     }
 
     RegExp opBinary(string op:"*") (int scale)
@@ -971,17 +966,14 @@ public:
     
     RegExp opBinaryRight(string op:"*") (int scale)
     {
-        return RegExp(this, scale);
+        return r * scale;
     }
 
-    RegExp opBinary(string op:"+") (int disp)
+    RegExp opBinary(string op:"-") (int disp)
     {
-        return RegExp(this) + disp;
-    }
-    
-    RegExp opBinaryRight(string op:"+") (int disp)
-    {
-        return RegExp(this) + disp;
+        RegExp ret = e;
+        ret.disp_ -= disp;
+        return ret;
     }
 }
 
@@ -1260,11 +1252,18 @@ public class Reg32e : Reg
         return new Reg32e(idx, bit);
     }
 
-    RegExp opBinary(string op:"+") (Reg32e b)
+    RegExp opBinary(string op:"+") (Reg b)
     {
-        return RegExp(this) + RegExp(b);
+        RegExp ret = this;
+        return ret + RegExp(b);
     }
-
+    
+    RegExp opBinary(string op:"+") (Mmx b)
+    {
+        RegExp ret = this;
+        return ret + RegExp(b);
+    }
+    
     RegExp opBinary(string op:"*") (int scale)
     {
         return RegExp(this, scale);
@@ -1418,7 +1417,7 @@ public:
     {
         scale_ = scale;
         disp_ = 0;
-        if (!r.isREG(i32e) && !r.isKind(Kind.XMM | Kind.YMM | Kind.ZMM)) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
+        if (!r.isREG(i32e) && !r.isKind(Kind.XMM | Kind.YMM | Kind.ZMM | Kind.TMM)) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
         if (scale == 0) return;
         if (scale != 1 && scale != 2 && scale != 4 && scale != 8) mixin(XBYAK_THROW(ERR.BAD_SCALE));
         if (r.getBit() >= 128 || scale != 1) { // xmm/ymm is always index
@@ -1453,11 +1452,11 @@ public:
     Reg getBase() const { return cast(Reg)base_; }
     Reg getIndex() const { return cast(Reg)index_; }
     int getScale() const { return scale_; }
-    size_t getDisp() const { return cast(size_t)disp_; }
+    size_t getDisp() const { return disp_; }
     
     void verify() const
     {
-        if (base_.getBit() >= 128)    mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
+        if (base_.getBit() >= 128) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
         if (index_.getBit() && index_.getBit() <= 64)
         {
             if (index_.getIdx()== Operand.ESP) mixin(XBYAK_THROW(ERR.ESP_CANT_BE_INDEX));
@@ -1478,7 +1477,6 @@ public:
                 // [reg + esp] => [esp + reg]
                 if (ret.index_.getIdx() == Operand.ESP) swap(ret.base_, ret.index_);
                 ret.scale_ = 1;
-
             } else { 
                 ret.base_ = b.base_;
             }
@@ -1486,7 +1484,7 @@ public:
         ret.disp_ += b.disp_;
         return ret;
     }
-    
+   
     RegExp opBinary(string op:"+") (Reg32e b)
     {
         return this + RegExp(b);
@@ -1496,23 +1494,29 @@ public:
     {
         return RegExp(a) + this;
     }
+
+    RegExp opBinary(string op:"+") (Mmx b)
+    {
+        return this + RegExp(b);
+    }
+    
+    RegExp opBinaryRight(string op:"+") (Mmx a)
+    {
+        return RegExp(a) + this;
+    }
     
     RegExp opBinary(string op:"+") (int disp)
     {
-        this.disp_ += disp;
-        return this;
+        RegExp ret = this;
+        ret.disp_ += disp;
+        return ret;
     }
-    
-    RegExp opBinaryRight(string op:"+") (int disp)
-    {
-        this.disp_ += disp;
-        return this;
-    }
-    
+
     RegExp opBinary(string op:"-") (int disp)
     {
-        this.disp_ -= disp;
-        return this;
+        RegExp ret = this;
+        ret.disp_ -= disp;
+        return ret;
     }
 
 private:
@@ -1950,6 +1954,11 @@ public:
         return new Address(bit_, broadcast_, RegExp(cast(size_t)disp));
     }
 
+    Address opIndex(Reg reg) const
+    {
+        RegExp ret = RegExp(reg);
+        return opIndex(ret);
+    }
 
     version (XBYAK64)
     {
@@ -1963,19 +1972,6 @@ public:
             return new Address(bit_, broadcast_, addr);
         }
     }
-
-    Address opIndex(Reg32e reg)
-    {
-        RegExp ret = RegExp(reg);
-        return opIndex(ret);
-    }
-
-    Address opIndex(Mmx mmx)
-    {
-        RegExp ret = RegExp(mmx);
-        return opIndex(ret);
-    }
-
 }
 
 struct JmpLabel
@@ -2558,12 +2554,12 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         bool b = base.isExtIdx();
         int idx = v ? v.getIdx() : 0;
         if ((idx | reg.getIdx() | base.getIdx()) >= 16) mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
-        uint32_t pp = (type & T_66) ? 1 : (type & T_F3) ? 2 : (type & T_F2) ? 3 : 0;
+        uint32_t pp = getPP(type);
         uint32_t vvvv = (((~idx) & 15) << 3) | (is256 ? 4 : 0) | pp;
         if (!b && !x && !w && (type & T_0F)) {
             db(0xC5); db((r ? 0 : 0x80) | vvvv);
         } else {
-            uint32_t mmmm = (type & T_0F) ? 1 : (type & T_0F38) ? 2 : (type & T_0F3A) ? 3 : 0;
+            uint32_t mmmm = getMap(type);
             db(0xC4); db((r ? 0 : 0x80) | (x ? 0 : 0x40) | (b ? 0 : 0x20) | mmmm); db((w << 7) | vvvv);
         }
         db(code);
