@@ -963,15 +963,20 @@ public:
     {
         return RegExp(this, scale);
     }
-    
-    RegExp opBinaryRight(string op:"*") (int scale)
+
+    RegExp opBinary(string op:"+") (int disp)
     {
-        return r * scale;
+        return RegExp(this) + disp;
+    }
+    
+    RegExp opBinaryRight(string op:"+") (int disp)
+    {
+        return RegExp(this) + disp;
     }
 
     RegExp opBinary(string op:"-") (int disp)
     {
-        RegExp ret = e;
+        RegExp ret = this;
         ret.disp_ -= disp;
         return ret;
     }
@@ -1251,35 +1256,19 @@ public class Reg32e : Reg
     {
         return new Reg32e(idx, bit);
     }
-
+    
     RegExp opBinary(string op:"+") (Reg b)
     {
         RegExp ret = this;
         return ret + RegExp(b);
     }
-    
-    RegExp opBinary(string op:"+") (Mmx b)
-    {
-        RegExp ret = this;
-        return ret + RegExp(b);
-    }
-    
+
     RegExp opBinary(string op:"*") (int scale)
     {
         return RegExp(this, scale);
     }
-    
-    RegExp opBinaryRight(string op:"*") (int scale)
-    {
-        return this * scale;
-    }
 
     RegExp opBinary(string op:"+") (int disp)
-    {
-        return RegExp(this) + disp;
-    }
-
-    RegExp opBinaryRight(string op:"+") (int disp)
     {
         return RegExp(this) + disp;
     }
@@ -1489,7 +1478,7 @@ public:
     {
         return this + RegExp(b);
     }
-    
+
     RegExp opBinaryRight(string op:"+") (Reg32e a)
     {
         return RegExp(a) + this;
