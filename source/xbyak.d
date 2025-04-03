@@ -606,7 +606,7 @@ public:
         ZU_ = 0;
     }
 
-    this(int idx, int kind, int bit = 0, bool ext8bit = false)
+    this(int idx, int kind, int bit, bool ext8bit = false)
     {
         idx_ = cast(uint8_t)(idx | (ext8bit ? EXT8BIT : 0));
         kind_ = kind;
@@ -3957,7 +3957,7 @@ public:
     void mov(Operand op1, Operand op2)
     {
         Reg reg = null;
-        Address addr;
+        Address addr = null;
         uint8_t code = 0;
         if (op1.isREG() && op1.getIdx() == 0 && op2.isMEM())   // mov eax|ax|al, [disp]
         {
