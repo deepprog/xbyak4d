@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7242
- * Date: 2025/04/01
+ * Date: 2025/04/03
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -964,6 +964,11 @@ public:
         return RegExp(this, scale);
     }
 
+    RegExp opBinaryRight(string op:"*") (int scale)
+    {
+        return this * scale;
+    }
+
     RegExp opBinary(string op:"+") (int disp)
     {
         return RegExp(this) + disp;
@@ -973,15 +978,7 @@ public:
     {
         return RegExp(this) + disp;
     }
-
-    RegExp opBinary(string op:"-") (int disp)
-    {
-        RegExp ret = this;
-        ret.disp_ -= disp;
-        return ret;
-    }
 }
-
 
 public class Reg8 : Reg
 {
@@ -1256,27 +1253,6 @@ public class Reg32e : Reg
     {
         return new Reg32e(idx, bit);
     }
-    
-    RegExp opBinary(string op:"+") (Reg b)
-    {
-        RegExp ret = this;
-        return ret + RegExp(b);
-    }
-
-    RegExp opBinary(string op:"*") (int scale)
-    {
-        return RegExp(this, scale);
-    }
-
-    RegExp opBinary(string op:"+") (int disp)
-    {
-        return RegExp(this) + disp;
-    }
-
-    RegExp opBinary(string op:"-") (int disp)
-    {
-        return RegExp(this) - disp;
-    }
 }
 
 
@@ -1474,26 +1450,16 @@ public:
         return ret;
     }
    
-    RegExp opBinary(string op:"+") (Reg32e b)
+    RegExp opBinary(string op:"+") (Reg b)
     {
         return this + RegExp(b);
     }
 
-    RegExp opBinaryRight(string op:"+") (Reg32e a)
+    RegExp opBinaryRight(string op:"+") (Reg a)
     {
         return RegExp(a) + this;
     }
 
-    RegExp opBinary(string op:"+") (Mmx b)
-    {
-        return this + RegExp(b);
-    }
-    
-    RegExp opBinaryRight(string op:"+") (Mmx a)
-    {
-        return RegExp(a) + this;
-    }
-    
     RegExp opBinary(string op:"+") (int disp)
     {
         RegExp ret = this;
