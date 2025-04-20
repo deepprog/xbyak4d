@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7242
- * Date: 2025/04/13
+ * Date: 2025/04/20
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -20,6 +20,8 @@ module xbyak;
     version = XBYAK64;
   }
 
+version = XBYAK_ENABLE_OMITTED_OPERAND;
+//version = XBYAK_OLD_DISP_CHECK;
 //version = XBYAK_NO_OP_NAMES;
 //version = XBYAK_USE_MMAP_ALLOCATOR;
 //version = XBYAK_USE_MEMFD;
@@ -29,11 +31,10 @@ module xbyak;
 //version = XBYAK_NO_EXCEPTION;
 
 //version = XBYAK_DISABLE_SEGMENT;
-//version = XBYAK_ENABLE_OMITTED_OPERAND;
 //version = XBYAK_DISABLE_AVX512;
 //version = XBYAK_TEST;
 //version = XBYAK_DONT_READ_LIST;
-//version = XBYAK_OLD_DISP_CHECK;
+
 //version = MIE_INTEGER_TYPE_DEFINED;
 //version = XBYAK_VARIADIC_TEMPLATE;
 
@@ -218,20 +219,13 @@ string ConvertErrorToString(ERR err)
             static int err = 0;
             return err;
         }
-
         static void SetError(int err) {
             if (local.GetErrorRef()) return; // keep the first err code
             local.GetErrorRef() = err;
         }
-
     } // local
-
-    void ClearError() {
-        local.GetErrorRef() = 0;
-    }
-
+    void ClearError() { local.GetErrorRef() = 0; }
     int GetError() { return local.GetErrorRef(); }
-
     string XBYAK_THROW(ERR err)
     {
         return "local.SetError(" ~ typeof(err).stringof ~ "." ~ to!string(err) ~ "); return;";
@@ -244,7 +238,6 @@ string ConvertErrorToString(ERR err)
     {
         return "local.SetError(" ~ err ~ "); return " ~ r ~";";
     }
-
   }
   else
   {
@@ -258,24 +251,21 @@ string ConvertErrorToString(ERR err)
             if (err_ < 0 || err_ > ERR.INTERNAL) err_ = ERR.INTERNAL;
             super(this.what(), file, line, next);
         }
-
         int opCast(T : int)() const {
             return err_;
         }
-
         string what() const
         {
             return ConvertErrorToString(err_);
         }
     }
-
     string ConvertErrorToString(XError err) {
         return err.what();
     }
-    
     // dummy functions
     void ClearError() { }
     int GetError() { return 0; }
+
 
     string XBYAK_THROW(ERR err)
     {
@@ -300,7 +290,6 @@ string ConvertErrorToString(ERR err)
     {
         return _aligned_malloc(size, alignment);
     }
-    
     void AlignedFree(void* p)
     {
         _aligned_free(p);
@@ -317,7 +306,6 @@ string ConvertErrorToString(ERR err)
         int ret = posix_memalign(&p, alignment, size);
         return (ret == 0) ? p : null;
     }
-
     void AlignedFree(void* p)
     {
         free(p);
@@ -845,28 +833,24 @@ public:
         bool Mask_ = this.mask_ == rhs.mask_;
         bool Rounding_ = this.rounding_ == rhs.rounding_;
         return Idx_ && Kind_ && Bit_ && Zero_ && Mask_ && Rounding_;
-     }
-
+    }
     override bool opEquals(Object o) const
     {
         Operand rhs = cast(Operand) o;
         if (this.isMEM() && rhs.isMEM()) return this.getAddress() == rhs.getAddress();
         return isEqualIfNotInherited(rhs);
     }
-
     Address getAddress() const
     {
         assert(isMEM());
         return cast(Address)this;
     }
-    
     Address getAddress(int immSize) const
     {
         Address addr = getAddress();
         addr.immSize = immSize;
         return addr;
     }
-    
     Reg getReg() const
     {
         assert(!isMEM());
@@ -880,22 +864,18 @@ public class Reg : Operand
 {
 public:
     this(){}
-
     this(int idx, int kind, int bit = 0, bool ext8bit = false)
     {
         super(idx, kind, bit, ext8bit);
     }
-
     this(Reg r)
     {
         super(cast(Operand)r);
     }
-    
     static Reg opCall()
     {
         return new Reg();
     }
-    
     static Reg opCall(int idx, int kind, int bit = 0, bool ext8bit = false)
     {
         return new Reg(idx, kind, bit, ext8bit);
@@ -908,17 +888,14 @@ public:
         r.setBit(bit);
         return r; 
     }
-    
     Reg8 cvt8()
     {
         Reg r = this.changeBit(8); return new Reg8(r.getIdx(), r.isExt8bit());
     }
-    
     Reg16 cvt16()
     {
         return new Reg16(changeBit(16).getIdx());
     }
-
     Reg32 cvt32()
     {
         return new Reg32(changeBit(32).getIdx());
@@ -936,12 +913,10 @@ public:
     {
         return new Xmm(changeBit(128).getIdx());
     }
-
     Ymm cvt256()
     {
         return new Ymm(changeBit(256).getIdx());
     }
-
     Zmm cvt512()
     {
         return new Zmm(changeBit(512).getIdx());
@@ -958,32 +933,26 @@ public:
     {
         return RegExp(this) + RegExp(b);
     }
-
     RegExp opBinary(string op:"*") (int scale)
     {
         return RegExp(this, scale);
     }
-
     RegExp opBinaryRight(string op:"*") (int scale)
     {
         return this * scale;
     }
-
     RegExp opBinary(string op:"+") (int disp)
     {
         return RegExp(this) + disp;
     }
-    
     RegExp opBinaryRight(string op:"+") (int disp)
     {
         return RegExp(this) + disp;
     }
-
     RegExp opBinary(string op:"-") (int disp)
     {
         return RegExp(this) - disp;
     }
-    
     RegExp opBinaryRight(string op:"-") (int disp)
     {
         return RegExp(this) - disp;
@@ -998,12 +967,10 @@ public:
     {
         super(idx, Kind.REG, 8, ext8bit);
     }
-
     this(Reg8 r)
     {
         super(cast(Reg)r);
     }
-    
     static Reg8 opCall(int idx = 0, bool ext8bit = false)
     {
         return new Reg8(idx, ext8bit);
@@ -1017,12 +984,10 @@ public:
     {
         super(idx, Kind.REG, 16);
     }
-
     this(Reg16 r)
     {
         super(cast(Reg)r);
     }
-
     static Reg16 opCall(int idx)
     {
         return new Reg16(idx);
@@ -1036,12 +1001,10 @@ public:
     {
         super(idx, kind, bit);
     }
-
     this(Mmx m)
     {
         super(cast(Reg)m);
     }
-    
     static Mmx opCall(int idx)
     {
         return new Mmx(idx);
@@ -1091,29 +1054,24 @@ public:
     {
         super(idx, kind, bit);
     }
-    
     this(Xmm x)
     {
         super(cast(Mmx)x);
     }
-    
     static Xmm opCall(int idx)
     {
         return new Xmm(idx);
     }
-    
     static Xmm opCall(int kind, int idx)
     {
         return new Xmm(idx, kind, kind == Kind.XMM ? 128 : kind == Kind.YMM ? 256 : 512);
     }
-
     Xmm copyAndSetIdx(int idx)
     {
         Xmm ret = new Xmm(this);
         ret.setIdx(idx);
         return ret;
     }
-    
     Xmm copyAndSetKind(int kind)
     {
         Xmm ret = new Xmm(this);
@@ -1130,12 +1088,10 @@ public:
     {
         super(idx, kind, bit);
     }
-    
     this(Ymm y)
     {
         super(cast(Xmm)y);
     }
-    
     static Ymm opCall(int idx)
     {
         return new Ymm(idx);
@@ -1149,12 +1105,10 @@ public:
     {
         super(idx, kind, bit);
     }
-    
     this(Zmm z)
     {
         super(cast(Ymm)z);
     }
-    
     static Zmm opCall(int idx)
     {
         return new Zmm(idx);
@@ -1170,12 +1124,10 @@ public:
         {
             super(idx, kind, bit);
         }
-
         this(Tmm t)
         {
             super(cast(Reg)t);
         }
-        
         static Tmm opCall(int idx)
         {
             return new Tmm(idx);
@@ -1190,17 +1142,14 @@ class Opmask : Reg
     {
         super(idx, Kind.OPMASK, 64);
     }
-
     this(Opmask opmask)
     {
         super(cast(Reg)opmask);
     }
-    
     static Opmask opCall(int idx)
     {
         return new Opmask(idx);
     }
-    
     T opBinaryRight(string op:"|", T)(T x)
     {
         T r = new T(x);
@@ -1215,12 +1164,10 @@ class BoundsReg : Reg
     {
         super(idx, Kind.BNDREG, 128);
     }
-
     this(BoundsReg b)
     {
         super(cast(Reg)b);
     }
-    
     static BoundsReg opCall(int idx)
     {
         return new BoundsReg(idx);
@@ -1235,12 +1182,10 @@ public:
     {
         super(idx, Kind.FPU, 32);
     }
-
     this(Fpu f)
     {
         super(cast(Reg)f);
     }
-    
     static Fpu opCall(int idx)
     {
         return new Fpu(idx);
@@ -1254,12 +1199,10 @@ public class Reg32e : Reg
     {
         super(idx, Kind.REG, bit);
     }
-    
     this(Reg32e r)
     {
         super(cast(Reg)r);
     }
-    
     static Reg32e opCall(int idx, int bit)
     {
         return new Reg32e(idx, bit);
@@ -1273,12 +1216,10 @@ public class Reg32 : Reg32e
     {
         super(idx, bit);
     }
-
     this(Reg32 reg32)
     {
         super(cast(Reg32e)reg32);
     }
-
     static Reg32 opCall(int idx)
     {
         return new Reg32(idx);
@@ -1293,12 +1234,10 @@ public class Reg32 : Reg32e
         {
             super(idx, bit);
         }
-
         this(Reg64 reg64)
         {
             super(cast(Reg32e)reg64);
         }
-        
         static Reg64 opCall(int idx)
         {
             return new Reg64(idx);
@@ -1317,7 +1256,6 @@ public class Reg32 : Reg32e
             label_ = label;
             isAddr_ = isAddr;
         }
-
         RegRip opBinary(string op:"+") (int disp)
         {
             return RegRip(this.disp_ + disp, this.label_, this.isAddr_);
@@ -1363,7 +1301,7 @@ public class Reg32 : Reg32e
         int getIdx() const { return idx_; }
         string toString() const
         {
-            string[6] tbl = [
+            string[] tbl = [
                 "es", "cs", "ss", "ds", "fs", "gs"
             ];
             return tbl[idx_];
@@ -1402,7 +1340,6 @@ public:
             base_ = r;
         }
     }
-    
     bool isVsib(int bit = 128 | 256 | 512) const { return index_.isBit(bit); }
     
     RegExp optimize()
@@ -1415,7 +1352,6 @@ public:
         }
         return exp;
     }
-    
     bool opEquals(const ref RegExp rhs) const
     {    
         bool Base_ = this.base_ == rhs.base_;
@@ -1465,19 +1401,16 @@ public:
     {
         return this + RegExp(b);
     }
-
     RegExp opBinaryRight(string op:"+") (Reg a)
     {
         return RegExp(a) + this;
     }
-
     RegExp opBinary(string op:"+") (int disp)
     {
         RegExp ret = this;
         ret.disp_ += disp;
         return ret;
     }
-
     RegExp opBinary(string op:"-") (int disp)
     {
         RegExp ret = this;
@@ -1624,15 +1557,12 @@ public:
     }
     bool setProtectModeRE(bool throwException = true) { return setProtectMode(ProtectMode.PROTECT_RE, throwException); }
     bool setProtectModeRW(bool throwException = true) { return setProtectMode(ProtectMode.PROTECT_RW, throwException); }
-
-
     void resetSize()
     {
         size_ = 0;
         addrInfoList_.length = 0;
         isCalledCalcJmpAddress_ = false;
     }
-
     void db(int code)
     {
         if (size_ >= maxSize_) {
@@ -1644,18 +1574,15 @@ public:
         }
         top_[size_++] = cast(uint8_t)code;
     }
-
     void db(uint8_t* code, size_t codeSize)
     {
         for (size_t i = 0; i < codeSize; i++) db(code[i]);
     }
-
     void db(uint64_t code, size_t codeSize)
     {
         if (codeSize > 8) mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
         for (size_t i = 0; i < codeSize; i++) db( cast(uint8_t)(code >> (i * 8)));
     }
-
     void dw(uint32_t code) { db(code, 2); } 
     void dd(uint32_t code) { db(code, 4); }
     void dq(uint64_t code) { db(code, 8); }
@@ -1669,7 +1596,6 @@ public:
         if (size > maxSize_) mixin(XBYAK_THROW(ERR.OFFSET_IS_TOO_BIG));
         size_ = size;
     }
-
     void dump(bool doClear = false) 
     {
         uint8_t* p     = getCode();
@@ -1789,7 +1715,6 @@ public:
         M_rip,
         M_ripAddr
     }
-    
     this(Address a)
     {
         super(0, Kind.MEM, a.getBit());
@@ -1802,7 +1727,6 @@ public:
         this.broadcast_ = a.broadcast_;
         this.optimize_ = a.optimize_;
     }
-    
     this(uint32_t sizeBit, bool broadcast, RegExp e)
     {
         super(0, Kind.MEM, sizeBit);
@@ -1831,8 +1755,7 @@ public:
         permitVsib = false;
         broadcast_ = false;
         optimize_ = true;
-    }
-    
+    }    
     this(uint32_t sizeBit, bool broadcast, RegRip addr)
     {
         super(0, Kind.MEM, sizeBit);
@@ -1851,7 +1774,6 @@ public:
     {
         return optimize ? e_.optimize() : e_;
     }
-
     Address cloneNoOptimize() { Address addr = new Address(this); addr.optimize_ = false; return addr; }
     Mode getMode() const { return mode_; }
     bool is32bit() const { return e_.getBase().getBit() == 32 || e_.getIndex().getBit() == 32; }
@@ -1864,7 +1786,6 @@ public:
     override bool opEquals(Object o) const
     {
         Address rhs = cast(Address) o;
-
         bool Bit_ = this.getBit() == rhs.getBit();
         bool E_ = this.e_ == rhs.e_;
         bool Label_ = this.label_ == rhs.label_;
@@ -1902,45 +1823,35 @@ public:
         bit_ = bit;
         broadcast_ = broadcast;
     }
-    
     Address opIndex(RegExp e) const
     {
         return new Address(bit_, broadcast_, e);
     }
-    
     Address opIndex(void* disp) const
     {
         return new Address(bit_, broadcast_, RegExp(cast(size_t)disp));
     }
-
     Address opIndex(int disp) const
     {
         return new Address(bit_, broadcast_, RegExp(cast(size_t)disp));
     }
-
-    Address opIndex(int64_t disp) const
-    {
-        return new Address(bit_, broadcast_, RegExp(cast(size_t)disp));
-    }
-
     Address opIndex(Reg reg) const
     {
         RegExp ret = RegExp(reg);
         return opIndex(ret);
     }
 
-    version (XBYAK64)
-    {
+  version (XBYAK64)
+  {
         Address opIndex(uint64_t disp) const
         {
             return new Address(disp);
-        }
-        
+        }        
         Address opIndex(RegRip addr) const
         {
             return new Address(bit_, broadcast_, addr);
         }
-    }
+  }
 }
 
 struct JmpLabel
@@ -1970,7 +1881,6 @@ public:
         this.mgr = rhs.mgr;
         if (this.mgr) mgr.incRefCount(id, &this);
     }
-
     ~this()
     {
         if(id && mgr) mgr.decRefCount(id, &this);
@@ -1984,7 +1894,6 @@ public:
         if (mgr) mgr.incRefCount(id, &this);
         return this;
     }
-
     uint8_t* getAddress()
     {
         if (mgr is null) return null;
@@ -1993,15 +1902,13 @@ public:
         if (!mgr.getOffset(&offset, &this)) return null;
         return mgr.getCode() + offset;
     }
-    
     void clear()
     {
         mgr = null;
         id = 0;
     }
-    
     int getId() const { return id; }
-
+    
     static string toStr(int num)
     {
         return format(".%08x", num);
@@ -2020,7 +1927,6 @@ struct LabelManager
             this.offset = offset;
         }
     }
-
     alias SlabelDefList = SlabelVal[string];
     alias SlabelUndefList = JmpLabel[][string];
 
@@ -2029,7 +1935,6 @@ struct LabelManager
         SlabelDefList defList;
         SlabelUndefList undefList;
     }
-
     alias StateList = SlabelState[];
 
 // for Label class
@@ -2043,11 +1948,9 @@ struct LabelManager
             this.refCount = 1;
         }
     }
-
     alias ClabelDefList = ClabelVal[int];
     alias ClabelUndefList = JmpLabel[][int];
     alias LabelPtrList = Label*[];
-
     CodeArray base_;
 
 // global : stateList_[0], local : stateList_[$-1]
@@ -2062,7 +1965,6 @@ struct LabelManager
         if (label.id == 0) label.id = labelId_++;
         return label.id;
     }
-
     void define_inner(DefList, UndefList, T)(ref DefList deflist, ref UndefList undeflist, T labelId, size_t addrOffset)
     {
         // add label
@@ -2101,17 +2003,14 @@ struct LabelManager
         {
             return false;
         }
-
         *offset = defList[label].offset;
         return true;
     }
-
     void incRefCount(int id, Label* label)
     {
         clabelDefList_[id].refCount++;
         labelPtrList_ ~= label;
     }
-
     void decRefCount(int id, Label* label)
     {
         foreach(i, labelptr; labelPtrList_)
@@ -2123,13 +2022,9 @@ struct LabelManager
         if (null == (id in clabelDefList_)) {
             return;
         }
-
-        if (clabelDefList_[id].refCount == 1)
-        {
+        if (clabelDefList_[id].refCount == 1) {
             clabelDefList_.remove(id);
-        }
-        else
-        {
+        } else {
             clabelDefList_[id].refCount -= 1;
         }
     }
@@ -2144,7 +2039,6 @@ struct LabelManager
   }
         return !list.empty();
     }
-    
     // detach all labels linked to LabelManager
     void resetLabelPtrList()
     {
@@ -2184,7 +2078,6 @@ public:
         {
             mixin(XBYAK_THROW(ERR.UNDER_LOCAL_LABEL));
         }
-
         if (hasUndefinedLabel_inner(stateList_[$-1].undefList))
         {
             mixin(XBYAK_THROW(ERR.LABEL_IS_NOT_FOUND));
@@ -2196,7 +2089,6 @@ public:
     {
         base_ = base;
     }
-
     void defineSlabel(ref string label)
     {
         if ("@b" == label || "@f" == label) mixin(XBYAK_THROW(ERR.BAD_LABEL_STR));
@@ -2214,14 +2106,12 @@ public:
         SlabelState* st = label[0] == '.' ? &stateList_[$-1] : &stateList_[0];
         define_inner(st.defList, st.undefList, label, base_.getSize());
     }
-
     void defineClabel(Label* label)
     {
         define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize);
         label.mgr = &this;
         labelPtrList_ ~= label;
     }
-
     void assign(ref Label dst, ref Label src)
     {
         if(null == (src.id in clabelDefList_)) {
@@ -2232,7 +2122,6 @@ public:
         Label* dst_ptr = &dst;
         labelPtrList_ ~= dst_ptr;
     }
-
     bool getOffset(size_t* offset, ref string label)
     {
         SlabelDefList df = stateList_[0].defList;
@@ -2248,23 +2137,19 @@ public:
         SlabelState* st = label[0] == '.' ? &stateList_[$-1] : &stateList_[0];
         return getOffset_inner(st.defList, offset, label);
     }
-
     bool getOffset(size_t* offset, Label* label)
     {
         return getOffset_inner(clabelDefList_, offset, getId(label));
     }
-
     void addUndefinedLabel(ref string label, ref JmpLabel jmp)
     {
         SlabelState* st = label[0] == '.' ? &stateList_[$-1] : &stateList_[0];
         st.undefList[label] ~= jmp;
     }
-
     void addUndefinedLabel(Label* label, ref JmpLabel jmp)
     {
         clabelUndefList_[label.id] ~= jmp;
     }
-
     bool hasUndefSlabel() const
     {
         foreach (st; stateList_) {
@@ -2272,7 +2157,6 @@ public:
         }
         return false;
     }
-
     bool hasUndefClabel() const
     {
         return hasUndefinedLabel_inner(clabelUndefList_);
@@ -2390,9 +2274,15 @@ private:
         if (p1.isMEM()) mixin(XBYAK_THROW_RET(ERR.BAD_COMBINATION, "false"));
         // except movsx(16bit, 32/64bit)
         bool p66 = (op1.isBit(16) && !op2.isBit(i32e)) || (op2.isBit(16) && !op1.isBit(i32e));
-        if ((type & T_66) || p66) db(0x66);
-        if (type & T_F2) db(0xF2);
-        if (type & T_F3) db(0xF3);
+        if ((type & T_66) || p66){
+            db(0x66);
+        }
+        if (type & T_F2) {
+            db(0xF2);
+        }
+        if (type & T_F3) {
+            db(0xF3);
+        }
         bool is0F = cast(bool)(type & T_0F);
         if (p2.isMEM()) {
             Reg r = cast(Reg)(p1);
@@ -2400,7 +2290,9 @@ private:
             RegExp e = addr.getRegExp();
             Reg base = e.getBase();
             Reg idx = e.getIndex();
-            if (BIT == 64 && addr.is32bit()) db(0x67);
+            if (BIT == 64 && addr.is32bit()) {
+                db(0x67);
+            }
             rex = rexRXB(3, r.isREG(64), r, base, idx);
             if (r.hasRex2() || addr.hasRex2()) {
                 if (type & (T_0F38|T_0F3A)) mixin(XBYAK_THROW_RET(ERR.CANT_USE_REX2, "false"));
@@ -2501,16 +2393,11 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     // Allow YMM embedded rounding for AVX10.2 to minimize flag modifications
     bool verifySAE(Reg r, Reg b, uint64_t type) const
     {
-        if (((type & T_SAE_X) && (r.isYMM() && b.isXMM())) ||
-            ((type & T_SAE_Y) && b.isXMM()) ||
-            ((type & T_SAE_Z) && b.isYMM()))
+        if (((type & T_SAE_X) && (r.isYMM() && b.isXMM())) || ((type & T_SAE_Y) && b.isXMM()) || ((type & T_SAE_Z) && b.isYMM()))
         {
             return true;
         }
-
-        if (((type & T_SAE_X) && b.isXMM()) ||
-            ((type & T_SAE_Y) && b.isYMM()) ||
-            ((type & T_SAE_Z) && b.isZMM()))
+        if (((type & T_SAE_X) && b.isXMM()) || ((type & T_SAE_Y) && b.isYMM()) || ((type & T_SAE_Z) && b.isZMM()))
         {
             return false;
         }
@@ -2519,15 +2406,11 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     bool verifyER(Reg r, Reg b, uint64_t type) const
     {
         if ((type & T_ER_R) && b.isREG(32|64)) return false;
-        if (((type & T_ER_X) && (r.isYMM() && b.isXMM())) ||
-            ((type & T_ER_Y) && b.isXMM()) ||
-            ((type & T_ER_Z) && b.isYMM()))
+        if (((type & T_ER_X) && (r.isYMM() && b.isXMM())) || ((type & T_ER_Y) && b.isXMM()) || ((type & T_ER_Z) && b.isYMM()))
         {
             return true;
         }
-        if (((type & T_ER_X) && b.isXMM()) ||
-            ((type & T_ER_Y) && b.isYMM()) ||
-            ((type & T_ER_Z) && b.isZMM()))
+        if (((type & T_ER_X) && b.isXMM()) || ((type & T_ER_Y) && b.isYMM()) || ((type & T_ER_Z) && b.isZMM()))
         {
             return false;
         }
@@ -3277,9 +3160,9 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     // (x, x, x/m), (x, y, y/m), (y, z, z/m)
     void opCvt6(Xmm x1, Xmm x2, Operand op, uint64_t type, int code)
     {
-        int b1 = x1.getBit();
-        int b2 = x2.getBit();
-        int b3 = op.getBit();
+        const int b1 = x1.getBit();
+        const int b2 = x2.getBit();
+        const int b3 = op.getBit();
         if ((b1 == 128 && (b2 == 128 || b2 == 256) && (b2 == b3 || op.isMEM())) || (b1 == 256 && b2 == 512 && (b3 == b2 || op.isMEM())))
         {
             opVex(x1, x2, op, type, code);
@@ -3554,13 +3437,10 @@ public:
     {
         mm0 = Mmx(0), mm1 = Mmx(1), mm2 = Mmx(2), mm3 = Mmx(3),
         mm4 = Mmx(4), mm5 = Mmx(5), mm6 = Mmx(6), mm7 = Mmx(7),
-        
         xmm0 = Xmm(0), xmm1 = Xmm(1), xmm2 = Xmm(2), xmm3 = Xmm(3),
         xmm4 = Xmm(4), xmm5 = Xmm(5), xmm6 = Xmm(6), xmm7 = Xmm(7),
-        
         ymm0 = Ymm(0), ymm1 = Ymm(1), ymm2 = Ymm(2), ymm3 = Ymm(3),
         ymm4 = Ymm(4), ymm5 = Ymm(5), ymm6 = Ymm(6), ymm7 = Ymm(7),
-        
         zmm0 = Zmm(0), zmm1 = Zmm(1), zmm2 = Zmm(2), zmm3 = Zmm(3),
         zmm4 = Zmm(4), zmm5 = Zmm(5), zmm6 = Zmm(6), zmm7 = Zmm(7),
         // for my convenience
@@ -3573,7 +3453,6 @@ public:
         
         ax = Reg16(Operand.EAX), cx = Reg16(Operand.ECX), dx = Reg16(Operand.EDX), bx = Reg16(Operand.EBX),
         sp = Reg16(Operand.ESP), bp = Reg16(Operand.EBP), si = Reg16(Operand.ESI), di = Reg16(Operand.EDI),
-        
         al = Reg8(Operand.AL), cl = Reg8(Operand.CL), dl = Reg8(Operand.DL), bl = Reg8(Operand.BL),
         ah = Reg8(Operand.AH), ch = Reg8(Operand.CH), dh = Reg8(Operand.DH), bh = Reg8(Operand.BH),
         
@@ -3754,14 +3633,12 @@ public:
         call(CastTo(opJmpAbs(&func)));
     }
   }
-    
     void call(void* addr) { opJmpAbs(addr, T_NEAR, 0, 0xE8); }
 
     void test(Operand op, Reg reg)
     {
         opRO(reg, op, 0, 0x84, op.getKind() == reg.getKind());
     }
-
     void test(Operand op, uint32_t imm)
     {
         verifyMemHasSize(op);
@@ -3774,7 +3651,6 @@ public:
         }
         db(imm, immSize);
     }
-
     void imul(Reg reg, Operand op, int imm)
     {
         int s = inner.IsInDisp8(imm) ? 1 : 0;
@@ -3807,6 +3683,9 @@ public:
         }
     }
 
+  
+  version (XBYAK64)
+  {    
     void mov(Operand op1, Operand op2)
     {
         Reg reg = null;
@@ -3825,8 +3704,6 @@ public:
             code = 0xA2;
         }
 
-  version (XBYAK64)
-  {
         if (addr && addr.is64bitDisp())
         {
             if (code) {
@@ -3841,10 +3718,28 @@ public:
         {
             opRO_MR(op1, op2, 0x88);
         }
-        return;
+    }
   }
   else
   {
+    void mov(Operand op1, Operand op2)
+    {
+        Reg reg = null;
+        Address addr = null;
+        uint8_t code = 0;
+        if (op1.isREG() && op1.getIdx() == 0 && op2.isMEM())   // mov eax|ax|al, [disp]
+        {
+            reg  = op1.getReg();
+            addr = op2.getAddress();
+            code = 0xA0;
+        } else
+        if (op1.isMEM() && op2.isREG() && op2.getIdx() == 0)     // mov [disp], eax|ax|al
+        {
+            reg  = op2.getReg();
+            addr = op1.getAddress();
+            code = 0xA2;
+        }
+
         if (code && addr.isOnlyDisp())
         {
             rex(reg, addr);
@@ -3855,9 +3750,9 @@ public:
         {
             opRO_MR(op1, op2, 0x88);
         }
-        return;
-  }
     }
+  }
+
 
     void mov(Operand op, uint64_t imm)
     {
@@ -3937,7 +3832,6 @@ public:
             assert(0);
         }
     }
-    
     void pop(Segment seg)
     {
         switch (seg.getIdx()) {
@@ -3951,7 +3845,6 @@ public:
             assert(0);
         }
     }
-    
     void putSeg(Segment seg)
     {
         switch (seg.getIdx()) {
@@ -3986,7 +3879,6 @@ public:
         labelMgr_.reset();
         labelMgr_.set(this);
     }
-
     void reset()
     {
         ClearError();
@@ -3994,7 +3886,6 @@ public:
         labelMgr_.reset();
         labelMgr_.set(this);
     }
-
     bool hasUndefinedLabel() const
     {
         return labelMgr_.hasUndefSlabel() || labelMgr_.hasUndefClabel();
@@ -4148,7 +4039,8 @@ void adox(Reg32e d, Reg32e reg, Operand op) { opROO(d, op, reg, T_F3, 0x66); }
 void adox(Reg32e reg, Operand op)
 {
     if (!reg.isREG(16|i32e) && reg.getBit() == op.getBit()) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
-    if (opROO(Reg(), op, reg, T_F3, 0x66)) return; opRO(reg, op, T_F3 | T_0F38, 0xF6);
+    if (opROO(Reg(), op, reg, T_F3, 0x66)) return;
+    opRO(reg, op, T_F3 | T_0F38, 0xF6);
 }
 void aesdec(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38|T_YMM|T_EVEX, 0xDE, &isXMM_XMMorMEM); }
 void aesdeclast(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38|T_YMM|T_EVEX, 0xDF, &isXMM_XMMorMEM); }
