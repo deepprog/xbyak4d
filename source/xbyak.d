@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7242
- * Date: 2025/04/20
+ * Date: 2025/04/27
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -2210,22 +2210,22 @@ private:
   }
 
     // (XMM, XMM|MEM)
-    bool isXMM_XMMorMEM  (Operand op1, Operand op2)
+    bool isXMM_XMMorMEM(Operand op1, Operand op2)
     {
         return op1.isXMM() && (op2.isXMM() || op2.isMEM());
     }
     // (MMX, MMX|MEM) or (XMM, XMM|MEM)
-    bool isXMMorMMX_MEM  (Operand op1, Operand op2)
+    bool isXMMorMMX_MEM(Operand op1, Operand op2)
     {
         return (op1.isMMX() && (op2.isMMX() || op2.isMEM())) || isXMM_XMMorMEM(op1, op2);
     } 
     // (XMM, MMX|MEM)
-    bool isXMM_MMXorMEM  (Operand op1, Operand op2)
+    bool isXMM_MMXorMEM(Operand op1, Operand op2)
     {
         return op1.isXMM() && (op2.isMMX() || op2.isMEM());
     }
     // (MMX, XMM|MEM)
-    bool isMMX_XMMorMEM  (Operand op1, Operand op2)
+    bool isMMX_XMMorMEM(Operand op1, Operand op2)
     {
         return op1.isMMX() && (op2.isXMM() || op2.isMEM());
     }
@@ -2240,7 +2240,7 @@ private:
         return op1.isREG(i32e) && (op2.isXMM() || op2.isMEM());
     }
     // (REG32, REG32|MEM)
-    bool isREG32_REG32orMEM(Operand op1 = Operand(), Operand op2 = Operand())
+    bool isREG32_REG32orMEM(Operand op1, Operand op2)
     {
         return op1.isREG(i32e) && ((op2.isREG(i32e) && op1.getBit() == op2.getBit()) || op2.isMEM());
     }
@@ -3450,7 +3450,6 @@ public:
         
         eax = Reg32(Operand.EAX), ecx = Reg32(Operand.ECX), edx = Reg32(Operand.EDX), ebx = Reg32(Operand.EBX),
         esp = Reg32(Operand.ESP), ebp = Reg32(Operand.EBP), esi = Reg32(Operand.ESI), edi = Reg32(Operand.EDI),
-        
         ax = Reg16(Operand.EAX), cx = Reg16(Operand.ECX), dx = Reg16(Operand.EDX), bx = Reg16(Operand.EBX),
         sp = Reg16(Operand.ESP), bp = Reg16(Operand.EBP), si = Reg16(Operand.ESI), di = Reg16(Operand.EDI),
         al = Reg8(Operand.AL), cl = Reg8(Operand.CL), dl = Reg8(Operand.DL), bl = Reg8(Operand.BL),
@@ -3682,7 +3681,6 @@ public:
             push(dword, imm);
         }
     }
-
   
   version (XBYAK64)
   {    

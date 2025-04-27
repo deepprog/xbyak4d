@@ -23,7 +23,7 @@ sillyを使いスレッド１でないとエラーになっていました。
 dub test -- -t1
 
 v0.7242 Label, LabelManagerをclassからstructに変更した後からは
-dub test　
+dub test
 で動作しました。
 
 テストプログラム移植とバグ修正を少しずつします
