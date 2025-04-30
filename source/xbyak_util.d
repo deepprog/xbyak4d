@@ -1,3 +1,13 @@
+/**
+ * xbyak for the D programming language
+ * Version: 0.7242
+ * Date: 2025/04/30
+ * See_Also:
+ * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright (c) 2019 deepprog
+ * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
+ * Authors: herumi, deepprog
+ */
+
 module xbayk_util;
 
 import core.stdc.stdlib;
@@ -8,20 +18,24 @@ import std.string;
 
 import xbyak;
 
-version = XBYAK64;
-version = XBYAK64_WIN;
+  version(X86)
+  {
+    version = XBYAK32;
+  }
 
   version(X86_64)
   {
+    version = XBYAK64;
     version = XBYAK_INTEL_CPU_SPECIFIC;
   }
 
-struct local
-{
-    static T max_(T)(T x, T y) { return x >= y ? x : y; }
-    static T min_(T)(T x, T y) { return x < y ? x : y; }
-}
+  version(Win64)
+  {
+    version = XBYAK64_WIN;
+  }
 
+T max_(T)(T x, T y) { return x >= y ? x : y; }
+T min_(T)(T x, T y) { return x < y ? x : y; }
 
 struct Clock
 {
@@ -251,7 +265,7 @@ public:
         const int allRegNum = pNum + tNum_ + (useRcx_ ? 1 : 0) + (useRdx_ ? 1 : 0);
         if (tNum_ < 0 || allRegNum > maxRegNum) mixin(XBYAK_THROW(ERR.BAD_TNUM));
         Reg64 _rsp = code.rsp;
-        saveNum_ = local.max_(0, allRegNum - noSaveNum);
+        saveNum_ = xbayk_util.max_(0, allRegNum - noSaveNum);
         int[] tbl = getOrderTbl(noSaveNum);
         for (int i = 0; i < saveNum_; i++) {
             code.push(new Reg64(tbl[i]));

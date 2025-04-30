@@ -1,9 +1,9 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7242
- * Date: 2025/04/27
+ * Date: 2025/04/30
  * See_Also:
- * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright deepprog 2019
+ * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright (c) 2019 deepprog
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
  * Authors: herumi, deepprog
  */
@@ -21,20 +21,17 @@ module xbyak;
   }
 
 version = XBYAK_ENABLE_OMITTED_OPERAND;
+//version = XBYAK_NO_EXCEPTION;
+
 //version = XBYAK_OLD_DISP_CHECK;
 //version = XBYAK_NO_OP_NAMES;
 //version = XBYAK_USE_MMAP_ALLOCATOR;
 //version = XBYAK_USE_MEMFD;
 //version = XBYAK_GNUC_PREREQ;
-//version = XBYAK_TLS;
-
-//version = XBYAK_NO_EXCEPTION;
-
 //version = XBYAK_DISABLE_SEGMENT;
 //version = XBYAK_DISABLE_AVX512;
 //version = XBYAK_TEST;
 //version = XBYAK_DONT_READ_LIST;
-
 //version = MIE_INTEGER_TYPE_DEFINED;
 //version = XBYAK_VARIADIC_TEMPLATE;
 
@@ -213,10 +210,11 @@ string ConvertErrorToString(ERR err)
 
   version(XBYAK_NO_EXCEPTION)
   {
+    int err = 0;
     struct local
     {
         static ref int GetErrorRef() {
-            static int err = 0;
+        //    static int err = 0;
             return err;
         }
         static void SetError(int err) {
@@ -1888,7 +1886,7 @@ public:
 
     Label opAssign(ref Label rhs)
     {
-        if (id) mixin(XBYAK_THROW_RET(ERR.LABEL_IS_ALREADY_SET_BY_L, "*this"));
+        if (id) mixin(XBYAK_THROW_RET(ERR.LABEL_IS_ALREADY_SET_BY_L, "this"));
         id = rhs.id;
         mgr = rhs.mgr;
         if (mgr) mgr.incRefCount(id, &this);
