@@ -1,5 +1,5 @@
-module 
-import std.stdio;xed_bf16;
+module xed_bf16;
+import std.stdio;
 
 import std.string;
 import std.algorithm;
