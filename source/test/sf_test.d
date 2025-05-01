@@ -405,7 +405,7 @@ unittest
     {
         int pos;
         int num;
-        int[10] tbl;
+        int[] tbl;
 
         this(int p, int n, int[] t)
         {
