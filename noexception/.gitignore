@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/noexception
+noexception.so
+noexception.dylib
+noexception.dll
+noexception.a
+noexception.lib
+noexception-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst

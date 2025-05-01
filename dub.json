@@ -6,5 +6,8 @@
 	"description": "A minimal D application.",
 	"license": "BSD 3",
 	"name": "xbyak",
-	"targetType": "library"
+	"targetType": "library",
+	"subPackages": [
+		"./noexception/"
+	],
 }

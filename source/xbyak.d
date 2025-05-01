@@ -210,11 +210,11 @@ string ConvertErrorToString(ERR err)
 
   version(XBYAK_NO_EXCEPTION)
   {
-    int err = 0;
     struct local
     {
-        static ref int GetErrorRef() {
-        //    static int err = 0;
+        static ref int GetErrorRef()
+        {
+            static int err = 0;
             return err;
         }
         static void SetError(int err) {

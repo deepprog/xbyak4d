@@ -1,0 +1,15 @@
+{
+	"authors": [
+		"herumi / deepprog"
+	],
+	"copyright": "Copyright (c) 2007 MITSUNARI Shigeo",
+	"description": "A minimal D application.",
+	"license": "BSD-3-Clause",
+	"name": "noexception",
+	"targetType": "executable",
+
+	"mainSourceFile": "source/noexception.d",
+	"sourceFiles": ["../source/xbyak.d", "../source/xbyak_util.d" ],
+	"versions": ["XBYAK_NO_EXCEPTION"],
+	"dflags-ldc": [""]
+}
