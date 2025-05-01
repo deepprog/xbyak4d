@@ -11,5 +11,5 @@
 	"mainSourceFile": "source/noexception.d",
 	"sourceFiles": ["../source/xbyak.d", "../source/xbyak_util.d" ],
 	"versions": ["XBYAK_NO_EXCEPTION"],
-	"dflags-ldc": [""]
+	"dflags-dmd": ["-vtls"]
 }
