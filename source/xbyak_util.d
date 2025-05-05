@@ -8,7 +8,7 @@
  * Authors: herumi, deepprog
  */
 
-module xbayk_util;
+module xbyak_util;
 
 import core.stdc.stdlib;
 import core.stdc.stdio : stderr, fprintf;

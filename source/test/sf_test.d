@@ -7,7 +7,7 @@ import std.stdio;
 import std.string;
 
 import xbyak;
-import xbayk_util;
+import xbyak_util;
 
  version(X86)
   {
