@@ -3,11 +3,15 @@
 		"herumi / deepprog"
 	],
 	"copyright": "Copyright (c) 2007 MITSUNARI Shigeo",
+	"dependencies": {
+		"silly": "~>1.1.1"
+	},
 	"description": "A minimal D application.",
 	"license": "BSD 3",
 	"name": "xbyak",
-	"targetType": "library",
 	"subPackages": [
-		"./noexception/", "./test_util/"
+        "./noexception/", "./test_util/"
 	],
+	"targetType": "library"
 }
+
