@@ -1,6 +1,6 @@
 {
 	"dependencies": {
-		"xbyak": "~>4.87.0"
+		"xbyak": "~>0.0.6"
 	},
 	"name": "simple"
 }

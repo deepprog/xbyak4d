@@ -18,6 +18,20 @@ version(X86_64)
 	version = XBYAK64;
 }
 
+version(X86)
+  {
+    version = XBYAK32;
+  }
+
+  version(X86_64)
+  {
+    version = XBYAK64;
+  }
+
+version(XBYAK64)
+{
+
+
 @("setSize")
 unittest{
 	setSize();
@@ -2865,6 +2879,8 @@ void vmovw()
 	{
 		assert(ctbl[i] == tbl[i]);
 	}
+}
+
 }
 
 }

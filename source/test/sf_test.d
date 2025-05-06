@@ -9,7 +9,7 @@ import std.string;
 import xbyak;
 import xbyak_util;
 
- version(X86)
+  version(X86)
   {
     version = XBYAK32;
   }
@@ -22,6 +22,7 @@ import xbyak_util;
 
 version(XBYAK64)
 {
+
 
 class Code : CodeGenerator
 {
@@ -379,9 +380,9 @@ unittest
 void put(Pack p)
 {
     for (size_t i = 0, n = p.size(); i < n; i++) {
-        writef("%s ", p[i]);
+        printf("%s ", p[i].toString().ptr);
     }
-    writeln();
+    printf("\n");
 }
 
 void verifyPack(Pack p, int[] tbl, size_t tblNum)
@@ -487,5 +488,6 @@ unittest
     }
 }
 
-}
 
+
+}
