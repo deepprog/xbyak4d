@@ -5592,7 +5592,7 @@ unittest
                 vgatherdpd(ymm7, ptr[xmm3 * 8 + edi + 123], ymm4);
                 vgatherdpd(ymm7, ptr[xmm2 * 2 + 5], ymm4);
                 vgatherdpd(ymm7, ptr[eax + xmm0], ymm4);
-                vgatherdpd(ymm7, ptr[esp + xmm4], ymm4);
+                vgatherdpd(ymm7, ptr[esp + xmm2], ymm4);
 
                 vgatherqpd(ymm7, ptr[ymm0], ymm4);
                 vgatherqpd(ymm7, ptr[ymm0 * 1], ymm4);
@@ -5602,7 +5602,7 @@ unittest
                 vgatherqpd(ymm7, ptr[ymm3 * 8 + edi + 123], ymm4);
                 vgatherqpd(ymm7, ptr[ymm2 * 2 + 5], ymm4);
                 vgatherqpd(ymm7, ptr[eax + ymm0], ymm4);
-                vgatherqpd(ymm7, ptr[esp + ymm4], ymm4);
+                vgatherqpd(ymm7, ptr[esp + ymm2], ymm4);
                 vgatherdpd(ymm7, ptr[xmm0 + r11], ymm4);
                 vgatherdpd(ymm7, ptr[r13 + xmm15], ymm4);
                 vgatherdpd(ymm7, ptr[123 + rsi + xmm2 * 4], ymm4);
