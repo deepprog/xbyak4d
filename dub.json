@@ -8,6 +8,6 @@
 	"name": "xbyak",
 	"targetType": "library",
 	"subPackages": [
-		"./noexception/"
+		"./noexception/", "./test_util/"
 	],
 }

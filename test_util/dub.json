@@ -1,0 +1,10 @@
+{
+	"description": "A minimal D application.",
+	"name": "test_util",
+	"targetType": "executable",
+
+	"mainSourceFile": "source/test_util.d",
+	"sourceFiles": ["../source/xbyak.d", "../source/xbyak_util.d"],
+	"versions": ["XBYAK64"],
+	"dflags-dmd": ["-vasm"]
+}
