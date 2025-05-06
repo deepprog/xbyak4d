@@ -1,41 +1,82 @@
 module bad_address;
 
-  version(X86)
-  {
-    version = XBYAK32;
-  }
+version(X86)    version = XBYAK32;
+version(X86_64) version = XBYAK64;
 
-  version(X86_64)
+import std.exception;
+import std.stdio;
+import xbyak;
+
+class Code : CodeGenerator
+{
+  this()
   {
-    version = XBYAK64;
+      testException!({ mov(eax, ptr [esp + esp]); }, Exception);
+      testException!({ mov(eax, ptr [ax]); }, Exception); // not support
+      testException!({ mov(eax, ptr [esp * 4]); }, Exception);
+      testException!({ mov(eax, ptr [eax * 16]); }, Exception);
+      testException!({ mov(eax, ptr [eax + eax + eax]); }, Exception);
+      testException!({ mov(eax, ptr [eax * 2 + ecx * 4]); }, Exception);
+      testException!({ mov(eax, ptr [eax * 2 + ecx * 4]); }, Exception);
+      testException!({ vgatherdpd(xmm0, ptr [eax * 2], ymm3); }, Exception);
+      testException!({ vgatherdpd(xmm0, ptr [xmm0 + xmm1], ymm3); }, Exception);
+    version(XBYAK64)
+    {
+      testException!({ mov(eax, ptr [rax + eax]); }, Exception);
+      testException!({ mov(eax, ptr [xmm0 + ymm0]); }, Exception);
+    }
   }
+}
+
 
 @("bad_address")
 unittest
 {
-    import std.stdio;
-    import xbyak;
-    import std.exception;
+  auto c = new Code();
+  
+  write("bad_address test:", okCount_ + ngCount_);
+  write(" ok:", okCount_);
+  writeln(" ng:", ngCount_);
 
-    class Code : CodeGenerator
-    {
-        this()
-        {
-            assertThrown(mov(eax, ptr [esp + esp]));
-            assertThrown(mov(eax, ptr [ax]));   // not support
-            assertThrown(mov(eax, ptr [esp * 4]));
-            assertThrown(mov(eax, ptr [eax * 16]));
-            assertThrown(mov(eax, ptr [eax + eax + eax]));
-            assertThrown(mov(eax, ptr [eax * 2 + ecx * 4]));
-            assertThrown(mov(eax, ptr [eax * 2 + ecx * 4]));
-            assertThrown(vgatherdpd(xmm0, ptr [eax * 2], ymm3));
-            assertThrown(vgatherdpd(xmm0, ptr [xmm0 + xmm1], ymm3));
-            version(XBYAK64)
-            {
-                assertThrown(mov(eax, ptr [rax + eax]));
-                assertThrown(mov(eax, ptr [xmm0 + ymm0]));
-            }
-        }
+  if(ngCount_ != 0) {
+     assert(0, "test error is bad_address");
+  }
+}
+
+static okCount_ = 0;
+static ngCount_ = 0;
+
+void set(bool isOK)
+{
+    if (isOK) {
+        okCount_++;
+    } else {
+        ngCount_++;
     }
-    auto c = new Code();
+}
+
+void testException(alias statement, exception)(string file = __FILE__, size_t line = __LINE__)
+{
+    int ret_ = -1;
+    try {
+        statement();
+        ret_ = 1;
+    } catch (exception ex) {
+        ret_ = 0;
+    } catch (Throwable t) {
+        ret_ = 2;
+    }
+
+    if (ret_ != 0) {
+        writeln("testEXCEPTION: Failure in ", file, " line ", line);
+        if (ret_ == 1) {
+            writeln("test: no exception");
+            set(false);
+        } else {
+            writeln("test: unexpected exception");
+            set(false);
+        }
+    } else {
+        set(true);
+    }
 }
