@@ -11,20 +11,20 @@ class Code : CodeGenerator
 {
     this()
     {
-      testException!({ mov(eax, ptr [esp + esp]); }, Exception);
-      testException!({ mov(eax, ptr [ax]); }, Exception); // not support
-      testException!({ mov(eax, ptr [esp * 4]); }, Exception);
-      testException!({ mov(eax, ptr [eax * 16]); }, Exception);
-      testException!({ mov(eax, ptr [eax + eax + eax]); }, Exception);
-      testException!({ mov(eax, ptr [eax * 2 + ecx * 4]); }, Exception);
-      testException!({ mov(eax, ptr [eax * 2 + ecx * 4]); }, Exception);
-      testException!({ vgatherdpd(xmm0, ptr [eax * 2], ymm3); }, Exception);
-      testException!({ vgatherdpd(xmm0, ptr [xmm0 + xmm1], ymm3); }, Exception);
-  version(XBYAK64)
-  {
-      testException!({ mov(eax, ptr [rax + eax]); }, Exception);
-      testException!({ mov(eax, ptr [xmm0 + ymm0]); }, Exception);
-  }
+        testException!({ mov(eax, ptr [esp + esp]); }, Exception);
+        testException!({ mov(eax, ptr [ax]); }, Exception); // not support
+        testException!({ mov(eax, ptr [esp * 4]); }, Exception);
+        testException!({ mov(eax, ptr [eax * 16]); }, Exception);
+        testException!({ mov(eax, ptr [eax + eax + eax]); }, Exception);
+        testException!({ mov(eax, ptr [eax * 2 + ecx * 4]); }, Exception);
+        testException!({ mov(eax, ptr [eax * 2 + ecx * 4]); }, Exception);
+        testException!({ vgatherdpd(xmm0, ptr [eax * 2], ymm3); }, Exception);
+        testException!({ vgatherdpd(xmm0, ptr [xmm0 + xmm1], ymm3); }, Exception);
+version(XBYAK64)
+{
+        testException!({ mov(eax, ptr [rax + eax]); }, Exception);
+        testException!({ mov(eax, ptr [xmm0 + ymm0]); }, Exception);
+}
     }
 }
 
