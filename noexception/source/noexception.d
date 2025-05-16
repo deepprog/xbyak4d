@@ -2,16 +2,8 @@ module noexception;
 
 version(XBYAK_NO_EXCEPTION)
 {
-  version(X86)
-  {
-    version = XBYAK32;
-  }
-
-  version(X86_64)
-  {
-    version = XBYAK64;
-  }
-
+    version(X86)    version = XBYAK32;
+    version(X86_64) version = XBYAK64;
 
 import core.stdc.stdio;
 import std.stdint;
