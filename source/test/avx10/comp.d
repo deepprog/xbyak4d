@@ -14,24 +14,23 @@ class Code : CodeGenerator
     {
         super(4096*8);
         setDefaultEncodingAVX10(AVX10v2Encoding);
-vcomxsd(xm1, xm2|T_sae);  dump();
-vcomxsd(xm1, ptr[rax+128]);  dump();
+        vcomxsd(xm1, xm2|T_sae);  dump(); size_ = 0;
+        vcomxsd(xm1, ptr[rax+128]);  dump(); size_ = 0;
 
-vcomxsh(xm1, xm2|T_sae);  dump();
-vcomxsh(xm1, ptr[rax+128]);  dump();
+        vcomxsh(xm1, xm2|T_sae);  dump(); size_ = 0;
+        vcomxsh(xm1, ptr[rax+128]);  dump(); size_ = 0;
 
-vcomxss(xm1, xm2|T_sae);  dump();
-vcomxss(xm1, ptr[rax+128]);  dump();
+        vcomxss(xm1, xm2|T_sae);  dump(); size_ = 0;
+        vcomxss(xm1, ptr[rax+128]);  dump(); size_ = 0;
 
-vucomxsd(xm1, xm2|T_sae);  dump();
-vucomxsd(xm1, ptr[rax+128]);  dump();
+        vucomxsd(xm1, xm2|T_sae);  dump(); size_ = 0;
+        vucomxsd(xm1, ptr[rax+128]);  dump(); size_ = 0;
 
-vucomxsh(xm1, xm2|T_sae);  dump();
-vucomxsh(xm1, ptr[rax+128]);  dump();
+        vucomxsh(xm1, xm2|T_sae);  dump(); size_ = 0;
+        vucomxsh(xm1, ptr[rax+128]);  dump(); size_ = 0;
 
-vucomxss(xm1, xm2|T_sae);  dump();
-vucomxss(xm1, ptr[rax+128]);  dump();
-
+        vucomxss(xm1, xm2|T_sae);  dump(); size_ = 0;
+        vucomxss(xm1, ptr[rax+128]);  dump(); size_ = 0;
     }
 }
 
@@ -66,14 +65,14 @@ void xed_comp()
 {
     //try
     //{
-        writeln("comp");
+    //    writeln("comp");
         Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());    
         //Xdump(tbl, c.getSize());
 
-        writeln("end comp");
+    //    writeln("end comp");
     //    FILE *fp = fopen("bin", "wb");
     //    if (fp) {
     //        fwrite(c.getCode(), 1, c.getSize(), fp);

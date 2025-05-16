@@ -15,187 +15,185 @@ class Code : CodeGenerator
         super(4096*8);
         setDefaultEncodingAVX10(AVX10v2Encoding);
 
-// AVX10 integer and FP16 VNNI, media and zero-extending
-vdpphps(xm1, xm2, xm3);  dump();
-vdpphps(xm1, xm2, ptr[rax+128]);  dump();
-vdpphps(xm1, xm2, ptr_b[rax+128]);  dump();
+        // AVX10 integer and FP16 VNNI, media and zero-extending
+        vdpphps(xm1, xm2, xm3);  dump(); size_ = 0;
+        vdpphps(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vdpphps(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vdpphps(ym1, ym2, ym3);  dump();
-vdpphps(ym1, ym2, ptr[rax+128]);  dump();
-vdpphps(ym1, ym2, ptr_b[rax+128]);  dump();
+        vdpphps(ym1, ym2, ym3);  dump(); size_ = 0;
+        vdpphps(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vdpphps(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vdpphps(zm1, zm2, zm3);  dump();
-vdpphps(zm1, zm2, ptr[rax+128]);  dump();
-vdpphps(zm1, zm2, ptr_b[rax+128]);  dump();
-//
-vmpsadbw(xm1, xm3, xm15, 3);  dump();
-vmpsadbw(xm1|T_z, xm4, ptr[rax+128], 5);  dump();
+        vdpphps(zm1, zm2, zm3);  dump(); size_ = 0;
+        vdpphps(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vdpphps(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
+        //
+        vmpsadbw(xm1, xm3, xm15, 3);  dump(); size_ = 0;
+        vmpsadbw(xm1|T_z, xm4, ptr[rax+128], 5);  dump(); size_ = 0;
 
-vmpsadbw(ym1|k4, ym3, ym15, 3);  dump();
-vmpsadbw(ym1, ym4, ptr[rax+128], 5);  dump();
+        vmpsadbw(ym1|k4, ym3, ym15, 3);  dump(); size_ = 0;
+        vmpsadbw(ym1, ym4, ptr[rax+128], 5);  dump(); size_ = 0;
 
-vmpsadbw(zm1|k4, zm3, zm15, 3);  dump();
-vmpsadbw(zm1, zm4, ptr[rax+128], 5);  dump();
-//
-vpdpbssd(xm1, xm2, xm3);  dump();
-vpdpbssd(xm1, xm2, ptr[rax+128]);  dump();
-vpdpbssd(xm1, xm2, ptr_b[rax+128]);  dump();
+        vmpsadbw(zm1|k4, zm3, zm15, 3);  dump(); size_ = 0;
+        vmpsadbw(zm1, zm4, ptr[rax+128], 5);  dump(); size_ = 0;
+        //
+        vpdpbssd(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpbssd(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbssd(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbssd(ym1, ym2, ym3);  dump();
-vpdpbssd(ym1, ym2, ptr[rax+128]);  dump();
-vpdpbssd(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpbssd(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpbssd(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbssd(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbssd(zm1, zm2, zm3);  dump();
-vpdpbssd(zm1, zm2, ptr[rax+128]);  dump();
-vpdpbssd(zm1, zm2, ptr_b[rax+128]);  dump();
-//
-vpdpbssds(xm1, xm2, xm3);  dump();
-vpdpbssds(xm1, xm2, ptr[rax+128]);  dump();
-vpdpbssds(xm1, xm2, ptr_b[rax+128]);  dump();
+        vpdpbssd(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpbssd(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbssd(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
+        //
+        vpdpbssds(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpbssds(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbssds(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbssds(ym1, ym2, ym3);  dump();
-vpdpbssds(ym1, ym2, ptr[rax+128]);  dump();
-vpdpbssds(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpbssds(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpbssds(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbssds(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbssds(zm1, zm2, zm3);  dump();
-vpdpbssds(zm1, zm2, ptr[rax+128]);  dump();
-vpdpbssds(zm1, zm2, ptr_b[rax+128]);  dump();
-//
-vpdpbsud(xm1, xm2, xm3);  dump();
-vpdpbsud(xm1, xm2, ptr[rax+128]);  dump();
-vpdpbsud(xm1, xm2, ptr_b[rax+128]);  dump();
+        vpdpbssds(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpbssds(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbssds(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
+        //
+        vpdpbsud(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpbsud(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbsud(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbsud(ym1, ym2, ym3);  dump();
-vpdpbsud(ym1, ym2, ptr[rax+128]);  dump();
-vpdpbsud(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpbsud(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpbsud(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbsud(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbsud(zm1, zm2, zm3);  dump();
-vpdpbsud(zm1, zm2, ptr[rax+128]);  dump();
-vpdpbsud(zm1, zm2, ptr_b[rax+128]);  dump();
-//
-vpdpbsuds(xm1, xm2, xm3);  dump();
-vpdpbsuds(xm1, xm2, ptr[rax+128]);  dump();
-vpdpbsuds(xm1, xm2, ptr_b[rax+128]);  dump();
+        vpdpbsud(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpbsud(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbsud(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
+        //
+        vpdpbsuds(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpbsuds(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbsuds(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbsuds(ym1, ym2, ym3);  dump();
-vpdpbsuds(ym1, ym2, ptr[rax+128]);  dump();
-vpdpbsuds(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpbsuds(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpbsuds(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbsuds(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbsuds(zm1, zm2, zm3);  dump();
-vpdpbsuds(zm1, zm2, ptr[rax+128]);  dump();
-vpdpbsuds(zm1, zm2, ptr_b[rax+128]);  dump();
+        vpdpbsuds(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpbsuds(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbsuds(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-//
-vpdpbuud(xm1, xm2, xm3);  dump();
-vpdpbuud(xm1, xm2, ptr[rax+128]);  dump();
-vpdpbuud(xm1, xm2, ptr_b[rax+128]);  dump();
+        //
+        vpdpbuud(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpbuud(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbuud(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbuud(ym1, ym2, ym3);  dump();
-vpdpbuud(ym1, ym2, ptr[rax+128]);  dump();
-vpdpbuud(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpbuud(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpbuud(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbuud(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbuud(zm1, zm2, zm3);  dump();
-vpdpbuud(zm1, zm2, ptr[rax+128]);  dump();
-vpdpbuud(zm1, zm2, ptr_b[rax+128]);  dump();
-//
-vpdpbuuds(xm1, xm2, xm3);  dump();
-vpdpbuuds(xm1, xm2, ptr[rax+128]);  dump();
-vpdpbuuds(xm1, xm2, ptr_b[rax+128]);  dump();
+        vpdpbuud(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpbuud(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbuud(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
+        //
+        vpdpbuuds(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpbuuds(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbuuds(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbuuds(ym1, ym2, ym3);  dump();
-vpdpbuuds(ym1, ym2, ptr[rax+128]);  dump();
-vpdpbuuds(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpbuuds(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpbuuds(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbuuds(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpbuuds(zm1, zm2, zm3);  dump();
-vpdpbuuds(zm1, zm2, ptr[rax+128]);  dump();
-vpdpbuuds(zm1, zm2, ptr_b[rax+128]);  dump();
+        vpdpbuuds(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpbuuds(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpbuuds(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-//
-vpdpwsud(xm1, xm2, xm3);  dump();
-vpdpwsud(xm1, xm2, ptr[rax+128]);  dump();
-vpdpwsud(xm1, xm2, ptr_b[rax+128]);  dump();
+        //
+        vpdpwsud(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpwsud(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsud(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwsud(ym1, ym2, ym3);  dump();
-vpdpwsud(ym1, ym2, ptr[rax+128]);  dump();
-vpdpwsud(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpwsud(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpwsud(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsud(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwsud(zm1, zm2, zm3);  dump();
-vpdpwsud(zm1, zm2, ptr[rax+128]);  dump();
-vpdpwsud(zm1, zm2, ptr_b[rax+128]);  dump();
-//
-vpdpwsuds(xm1, xm2, xm3);  dump();
-vpdpwsuds(xm1, xm2, ptr[rax+128]);  dump();
-vpdpwsuds(xm1, xm2, ptr_b[rax+128]);  dump();
+        vpdpwsud(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpwsud(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsud(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
+        //
+        vpdpwsuds(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpwsuds(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsuds(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwsuds(ym1, ym2, ym3);  dump();
-vpdpwsuds(ym1, ym2, ptr[rax+128]);  dump();
-vpdpwsuds(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpwsuds(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpwsuds(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsuds(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwsuds(zm1, zm2, zm3);  dump();
-vpdpwsuds(zm1, zm2, ptr[rax+128]);  dump();
-vpdpwsuds(zm1, zm2, ptr_b[rax+128]);  dump();
-//
-vpdpwsud(xm1, xm2, xm3);  dump();
-vpdpwsud(xm1, xm2, ptr[rax+128]);  dump();
-vpdpwsud(xm1, xm2, ptr_b[rax+128]);  dump();
+        vpdpwsuds(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpwsuds(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsuds(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
+        //
+        vpdpwsud(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpwsud(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsud(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwsud(ym1, ym2, ym3);  dump();
-vpdpwsud(ym1, ym2, ptr[rax+128]);  dump();
-vpdpwsud(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpwsud(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpwsud(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsud(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwsud(zm1, zm2, zm3);  dump();
-vpdpwsud(zm1, zm2, ptr[rax+128]);  dump();
-vpdpwsud(zm1, zm2, ptr_b[rax+128]);  dump();
-//
-vpdpwsuds(xm1, xm2, xm3);  dump();
-vpdpwsuds(xm1, xm2, ptr[rax+128]);  dump();
-vpdpwsuds(xm1, xm2, ptr_b[rax+128]);  dump();
+        vpdpwsud(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpwsud(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsud(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
+        //
+        vpdpwsuds(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpwsuds(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsuds(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwsuds(ym1, ym2, ym3);  dump();
-vpdpwsuds(ym1, ym2, ptr[rax+128]);  dump();
-vpdpwsuds(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpwsuds(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpwsuds(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsuds(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwsuds(zm1, zm2, zm3);  dump();
-vpdpwsuds(zm1, zm2, ptr[rax+128]);  dump();
-vpdpwsuds(zm1, zm2, ptr_b[rax+128]);  dump();
+        vpdpwsuds(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpwsuds(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwsuds(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-//
-vpdpwuud(xm1, xm2, xm3);  dump();
-vpdpwuud(xm1, xm2, ptr[rax+128]);  dump();
-vpdpwuud(xm1, xm2, ptr_b[rax+128]);  dump();
+        //
+        vpdpwuud(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpwuud(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwuud(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwuud(ym1, ym2, ym3);  dump();
-vpdpwuud(ym1, ym2, ptr[rax+128]);  dump();
-vpdpwuud(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpwuud(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpwuud(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwuud(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwuud(zm1, zm2, zm3);  dump();
-vpdpwuud(zm1, zm2, ptr[rax+128]);  dump();
-vpdpwuud(zm1, zm2, ptr_b[rax+128]);  dump();
-//
-vpdpwuuds(xm1, xm2, xm3);  dump();
-vpdpwuuds(xm1, xm2, ptr[rax+128]);  dump();
-vpdpwuuds(xm1, xm2, ptr_b[rax+128]);  dump();
+        vpdpwuud(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpwuud(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwuud(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
+        //
+        vpdpwuuds(xm1, xm2, xm3);  dump(); size_ = 0;
+        vpdpwuuds(xm1, xm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwuuds(xm1, xm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwuuds(ym1, ym2, ym3);  dump();
-vpdpwuuds(ym1, ym2, ptr[rax+128]);  dump();
-vpdpwuuds(ym1, ym2, ptr_b[rax+128]);  dump();
+        vpdpwuuds(ym1, ym2, ym3);  dump(); size_ = 0;
+        vpdpwuuds(ym1, ym2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwuuds(ym1, ym2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-vpdpwuuds(zm1, zm2, zm3);  dump();
-vpdpwuuds(zm1, zm2, ptr[rax+128]);  dump();
-vpdpwuuds(zm1, zm2, ptr_b[rax+128]);  dump();
+        vpdpwuuds(zm1, zm2, zm3);  dump(); size_ = 0;
+        vpdpwuuds(zm1, zm2, ptr[rax+128]);  dump(); size_ = 0;
+        vpdpwuuds(zm1, zm2, ptr_b[rax+128]);  dump(); size_ = 0;
 
-//
-vmovd(xm10, xm20);  dump();
-vmovd(xm1, xm2);  dump();
-vmovd(xm10, ptr[rax+128]);  dump();
-vmovd(ptr[rax+128], xm30);  dump();
-//
-vmovw(xm1, xm20);  dump();
-vmovw(xm1, xm2);  dump();
-vmovw(xm3, ptr [rax+0x40]);  dump();
-vmovw(ptr [rax+0x40], xm7);  dump();
-
-
+        //
+        vmovd(xm10, xm20);  dump(); size_ = 0;
+        vmovd(xm1, xm2);  dump(); size_ = 0;
+        vmovd(xm10, ptr[rax+128]);  dump(); size_ = 0;
+        vmovd(ptr[rax+128], xm30);  dump(); size_ = 0;
+        //
+        vmovw(xm1, xm20);  dump(); size_ = 0;
+        vmovw(xm1, xm2);  dump(); size_ = 0;
+        vmovw(xm3, ptr [rax+0x40]);  dump(); size_ = 0;
+        vmovw(ptr [rax+0x40], xm7);  dump(); size_ = 0;
     }
 }
 
@@ -230,14 +228,14 @@ void xed_misc()
 {
     //try
     //{
-        writeln("comp");
+    //    writeln("xed_misc");
         Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());    
         //Xdump(tbl, c.getSize());
 
-        writeln("end comp");
+    //    writeln("end xed_misc");
     //    FILE *fp = fopen("bin", "wb");
     //    if (fp) {
     //        fwrite(c.getCode(), 1, c.getSize(), fp);

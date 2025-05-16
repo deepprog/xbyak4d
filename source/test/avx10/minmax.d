@@ -15,74 +15,72 @@ class Code : CodeGenerator
         super(4096*8);
         setDefaultEncodingAVX10(AVX10v2Encoding);
 
-vminmaxnepbf16(xm1|k3|T_z, xm2, xm3, 5);  dump();
-vminmaxnepbf16(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump();
-vminmaxnepbf16(xm1|k3|T_z, xm2, ptr_b[rax+128], 5);  dump();
+        vminmaxnepbf16(xm1|k3|T_z, xm2, xm3, 5);  dump(); size_ = 0;
+        vminmaxnepbf16(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxnepbf16(xm1|k3|T_z, xm2, ptr_b[rax+128], 5);  dump(); size_ = 0;
 
-vminmaxnepbf16(ym1|k3|T_z, ym2, ym3, 5);  dump();
-vminmaxnepbf16(ym1|k3|T_z, ym2, ptr[rax+128], 5);  dump();
-vminmaxnepbf16(ym1|k3|T_z, ym2, ptr_b[rax+128], 5);  dump();
+        vminmaxnepbf16(ym1|k3|T_z, ym2, ym3, 5);  dump(); size_ = 0;
+        vminmaxnepbf16(ym1|k3|T_z, ym2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxnepbf16(ym1|k3|T_z, ym2, ptr_b[rax+128], 5);  dump(); size_ = 0;
 
-vminmaxnepbf16(zm1|k3|T_z, zm2, zm3, 5);  dump();
-vminmaxnepbf16(zm1|k3|T_z, zm2, ptr[rax+128], 5);  dump();
-vminmaxnepbf16(zm1|k3|T_z, zm2, ptr_b[rax+128], 5);  dump();
-//
-vminmaxpd(xm1|k3|T_z, xm2, xm3, 5);  dump();
-vminmaxpd(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump();
-vminmaxpd(xm1|k3|T_z, xm2, ptr_b[rax+128], 5);  dump();
+        vminmaxnepbf16(zm1|k3|T_z, zm2, zm3, 5);  dump(); size_ = 0;
+        vminmaxnepbf16(zm1|k3|T_z, zm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxnepbf16(zm1|k3|T_z, zm2, ptr_b[rax+128], 5);  dump(); size_ = 0;
+        //
+        vminmaxpd(xm1|k3|T_z, xm2, xm3, 5);  dump(); size_ = 0;
+        vminmaxpd(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxpd(xm1|k3|T_z, xm2, ptr_b[rax+128], 5);  dump(); size_ = 0;
 
-vminmaxpd(ym1|k3|T_z, ym2, ym3, 5);  dump();
-vminmaxpd(ym1|k3|T_z, ym2, ym3|T_sae, 5);  dump();
-vminmaxpd(ym1|k3|T_z, ym2, ptr[rax+128], 5);  dump();
-vminmaxpd(ym1|k3|T_z, ym2, ptr_b[rax+128], 5);  dump();
+        vminmaxpd(ym1|k3|T_z, ym2, ym3, 5);  dump(); size_ = 0;
+        vminmaxpd(ym1|k3|T_z, ym2, ym3|T_sae, 5);  dump(); size_ = 0;
+        vminmaxpd(ym1|k3|T_z, ym2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxpd(ym1|k3|T_z, ym2, ptr_b[rax+128], 5);  dump(); size_ = 0;
 
-vminmaxpd(zm1|k3|T_z, zm2, zm3, 5);  dump();
-vminmaxpd(zm1|k3|T_z, zm2, zm3|T_sae, 5);  dump();
-vminmaxpd(zm1|k3|T_z, zm2, ptr[rax+128], 5);  dump();
-vminmaxpd(zm1|k3|T_z, zm2, ptr_b[rax+128], 5);  dump();
-//
-vminmaxph(xm1|k3|T_z, xm2, xm3, 5);  dump();
-vminmaxph(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump();
-vminmaxph(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump();
-vminmaxph(xm1|k3|T_z, xm2, ptr_b[rax+128], 5);  dump();
+        vminmaxpd(zm1|k3|T_z, zm2, zm3, 5);  dump(); size_ = 0;
+        vminmaxpd(zm1|k3|T_z, zm2, zm3|T_sae, 5);  dump(); size_ = 0;
+        vminmaxpd(zm1|k3|T_z, zm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxpd(zm1|k3|T_z, zm2, ptr_b[rax+128], 5);  dump(); size_ = 0;
+        //
+        vminmaxph(xm1|k3|T_z, xm2, xm3, 5);  dump(); size_ = 0;
+        vminmaxph(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxph(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxph(xm1|k3|T_z, xm2, ptr_b[rax+128], 5);  dump(); size_ = 0;
 
-vminmaxph(ym1|k3|T_z, ym2, ym3, 5);  dump();
-vminmaxph(ym1|k3|T_z, ym2, ym3|T_sae, 5);  dump();
-vminmaxph(ym1|k3|T_z, ym2, ptr[rax+128], 5);  dump();
-vminmaxph(ym1|k3|T_z, ym2, ptr_b[rax+128], 5);  dump();
+        vminmaxph(ym1|k3|T_z, ym2, ym3, 5);  dump(); size_ = 0;
+        vminmaxph(ym1|k3|T_z, ym2, ym3|T_sae, 5);  dump(); size_ = 0;
+        vminmaxph(ym1|k3|T_z, ym2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxph(ym1|k3|T_z, ym2, ptr_b[rax+128], 5);  dump(); size_ = 0;
 
-vminmaxph(zm1|k3|T_z, zm2, zm3, 5);  dump();
-vminmaxph(zm1|k3|T_z, zm2, zm3|T_sae, 5);  dump();
-vminmaxph(zm1|k3|T_z, zm2, ptr[rax+128], 5);  dump();
-vminmaxph(zm1|k3|T_z, zm2, ptr_b[rax+128], 5);  dump();
-//
-vminmaxps(xm1|k3|T_z, xm2, xm3, 5);  dump();
-vminmaxps(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump();
-vminmaxps(xm1|k3|T_z, xm2, ptr_b[rax+128], 5);  dump();
+        vminmaxph(zm1|k3|T_z, zm2, zm3, 5);  dump(); size_ = 0;
+        vminmaxph(zm1|k3|T_z, zm2, zm3|T_sae, 5);  dump(); size_ = 0;
+        vminmaxph(zm1|k3|T_z, zm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxph(zm1|k3|T_z, zm2, ptr_b[rax+128], 5);  dump(); size_ = 0;
+        //
+        vminmaxps(xm1|k3|T_z, xm2, xm3, 5);  dump(); size_ = 0;
+        vminmaxps(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxps(xm1|k3|T_z, xm2, ptr_b[rax+128], 5);  dump(); size_ = 0;
 
-vminmaxps(ym1|k3|T_z, ym2, ym3, 5);  dump();
-vminmaxps(ym1|k3|T_z, ym2, ym3|T_sae, 5);  dump();
-vminmaxps(ym1|k3|T_z, ym2, ptr[rax+128], 5);  dump();
-vminmaxps(ym1|k3|T_z, ym2, ptr_b[rax+128], 5);  dump();
+        vminmaxps(ym1|k3|T_z, ym2, ym3, 5);  dump(); size_ = 0;
+        vminmaxps(ym1|k3|T_z, ym2, ym3|T_sae, 5);  dump(); size_ = 0;
+        vminmaxps(ym1|k3|T_z, ym2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxps(ym1|k3|T_z, ym2, ptr_b[rax+128], 5);  dump(); size_ = 0;
 
-vminmaxps(zm1|k3|T_z, zm2, zm3, 5);  dump();
-vminmaxps(zm1|k3|T_z, zm2, zm3|T_sae, 5);  dump();
-vminmaxps(zm1|k3|T_z, zm2, ptr[rax+128], 5);  dump();
-vminmaxps(zm1|k3|T_z, zm2, ptr_b[rax+128], 5);  dump();
-//
-vminmaxsd(xm1|k3|T_z, xm2, xm3, 5);  dump();
-vminmaxsd(xm1|k3|T_z, xm2, xm3|T_sae, 5);  dump();
-vminmaxsd(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump();
-//
-vminmaxsh(xm1|k3|T_z, xm2, xm3, 5);  dump();
-vminmaxsh(xm1|k3|T_z, xm2, xm3|T_sae, 5);  dump();
-vminmaxsh(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump();
-//
-vminmaxss(xm1|k3|T_z, xm2, xm3, 5);  dump();
-vminmaxss(xm1|k3|T_z, xm2, xm3|T_sae, 5);  dump();
-vminmaxss(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump();
-
-
+        vminmaxps(zm1|k3|T_z, zm2, zm3, 5);  dump(); size_ = 0;
+        vminmaxps(zm1|k3|T_z, zm2, zm3|T_sae, 5);  dump(); size_ = 0;
+        vminmaxps(zm1|k3|T_z, zm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        vminmaxps(zm1|k3|T_z, zm2, ptr_b[rax+128], 5);  dump(); size_ = 0;
+        //
+        vminmaxsd(xm1|k3|T_z, xm2, xm3, 5);  dump(); size_ = 0;
+        vminmaxsd(xm1|k3|T_z, xm2, xm3|T_sae, 5);  dump(); size_ = 0;
+        vminmaxsd(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        //
+        vminmaxsh(xm1|k3|T_z, xm2, xm3, 5);  dump(); size_ = 0;
+        vminmaxsh(xm1|k3|T_z, xm2, xm3|T_sae, 5);  dump(); size_ = 0;
+        vminmaxsh(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump(); size_ = 0;
+        //
+        vminmaxss(xm1|k3|T_z, xm2, xm3, 5);  dump(); size_ = 0;
+        vminmaxss(xm1|k3|T_z, xm2, xm3|T_sae, 5);  dump(); size_ = 0;
+        vminmaxss(xm1|k3|T_z, xm2, ptr[rax+128], 5);  dump(); size_ = 0;
     }
 }
 
@@ -117,14 +115,14 @@ void xed_minmax()
 {
     //try
     //{
-        writeln("comp");
+    //    writeln("xed_minmax");
         Code c = new Code();
         auto tbl = c.getCode();
     
-        //writeln(c.getSize());    
+        //writeln(c.getSize());
         //Xdump(tbl, c.getSize());
 
-        writeln("end comp");
+    //    writeln("end xed_minmax");
     //    FILE *fp = fopen("bin", "wb");
     //    if (fp) {
     //        fwrite(c.getCode(), 1, c.getSize(), fp);
