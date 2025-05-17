@@ -2,17 +2,22 @@ module test_util;
 
 import std.stdio;
 import core.stdc.string;
-import xbyak;
 import xbyak_util;
 
-class PopCountTest : CodeGenerator
+version(XBYAK_ONLY_CLASS_CPU)
+{}
+else
 {
-	this(const int n)
+	import xbyak;
+	class PopCountTest : CodeGenerator
 	{
-		super(4096, DontSetProtectRWE);
-		mov(eax, n);
-		popcnt(eax, eax);
-		ret();
+		this(const int n)
+		{
+			super(4096, DontSetProtectRWE);
+			mov(eax, n);
+			popcnt(eax, eax);
+			ret();
+		}
 	}
 }
 
@@ -128,6 +133,11 @@ void putCPUinfo(bool onlyCpuidFeature)
 	if (cpu.has(Cpu.tAVX10)) {
 		printf("AVX10 version %d\n", cpu.getAVX10version());
 	}
+
+version(XBYAK_ONLY_CLASS_CPU)
+{}
+else
+{
 	if (cpu.has(Cpu.tPOPCNT)) {
 		const int n = 0x12345678; // bitcount = 13
 		const int ok = 13;
@@ -142,6 +152,8 @@ void putCPUinfo(bool onlyCpuidFeature)
 		}
 		code.setProtectModeRW();
 	}
+}
+
 	/*
 		                displayFamily displayModel
 		Opteron 2376        10            4

@@ -7,11 +7,20 @@
 		"silly": "~>1.1.1"
 	},
 	"description": "A minimal D application.",
-	"license": "BSD 3",
+	"license": "BSD-3-Clause",
 	"name": "xbyak",
 	"subPackages": [
 		"./noexception/",
 		"./test_util/"
 	],
-	"targetType": "library"
+	"configurations": [
+        {
+            "name": "xbyak",
+            "targetType": "library"
+        },
+        {
+            "name": "unittest",
+            "targetType": "library"
+        }
+	]
 }

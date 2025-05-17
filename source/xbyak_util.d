@@ -14,8 +14,6 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import std.stdint;
 
-import xbyak;
-
 version(X86)
 {
     version = XBYAK32;
@@ -29,13 +27,88 @@ version(X86_64)
 }
 
 version(Win64) version = XBYAK64_WIN;
-
-
+version(XBYAK_ONLY_CLASS_CPU)
+{
+    enum ERR
+{
+    NONE = 0,
+    BAD_ADDRESSING,
+    CODE_IS_TOO_BIG,
+    BAD_SCALE,
+    ESP_CANT_BE_INDEX,
+    BAD_COMBINATION,
+    BAD_SIZE_OF_REGISTER,
+    IMM_IS_TOO_BIG,
+    BAD_ALIGN,
+    LABEL_IS_REDEFINED,
+    LABEL_IS_TOO_FAR,
+    LABEL_IS_NOT_FOUND,
+    CODE_ISNOT_COPYABLE,
+    BAD_PARAMETER,
+    CANT_PROTECT,
+    CANT_USE_64BIT_DISP,
+    OFFSET_IS_TOO_BIG,
+    MEM_SIZE_IS_NOT_SPECIFIED,
+    BAD_MEM_SIZE,
+    BAD_ST_COMBINATION,
+    OVER_LOCAL_LABEL, // not used
+    UNDER_LOCAL_LABEL,
+    CANT_ALLOC,
+    ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW,
+    BAD_PROTECT_MODE,
+    BAD_PNUM,
+    BAD_TNUM,
+    BAD_VSIB_ADDRESSING,
+    CANT_CONVERT,
+    LABEL_ISNOT_SET_BY_L,
+    LABEL_IS_ALREADY_SET_BY_L,
+    BAD_LABEL_STR,
+    MUNMAP,
+    OPMASK_IS_ALREADY_SET,
+    ROUNDING_IS_ALREADY_SET,
+    K0_IS_INVALID,
+    EVEX_IS_INVALID,
+    SAE_IS_INVALID,
+    ER_IS_INVALID,
+    INVALID_BROADCAST,
+    INVALID_OPMASK_WITH_MEMORY,
+    INVALID_ZERO,
+    INVALID_RIP_IN_AUTO_GROW,
+    INVALID_MIB_ADDRESS,
+    X2APIC_IS_NOT_SUPPORTED,
+    NOT_SUPPORTED,
+    SAME_REGS_ARE_INVALID,
+    INVALID_NF,
+    INVALID_ZU,
+    CANT_USE_REX2,
+    INVALID_DFV,
+    INVALID_REG_IDX,
+    BAD_ENCODING_MODE,
+    CANT_USE_ABCDH,
+    INTERNAL // Put it at last.
+}
+    
+    string XBYAK_THROW(ERR err)
+    {
+        return "return;";
+    }
+    string XBYAK_THROW_RET(ERR err, string r)
+    {
+        return "return " ~ r ~ ";";
+    }
+    string XBYAK_THROW_RET(string err, string r)
+    {
+        return "return " ~ r ~ ";";
+    }
+} else {
 /**
     utility class and functions for Xbyak
     xbyak_util.Clock ; rdtsc timer
     xbyak_util.Cpu ; detect CPU
 */
+import xbyak;
+} // XBYAK_ONLY_CLASS_CPU
+
 T local_max_(T)(T x, T y) { return x >= y ? x : y; }
 T local_min_(T)(T x, T y) { return x < y ? x : y; }
 
@@ -689,7 +762,10 @@ else
     int getAVX10version() const { return avx10version_; }
 }
 
-
+version(XBYAK_ONLY_CLASS_CPU)
+{}
+else
+{
     struct Clock
     {
         public:
@@ -1106,5 +1182,6 @@ version(XBYAK64_WIN)
             return r;
         }
     }
+} // XBYAK_ONLY_CLASS_CPU
 
 }

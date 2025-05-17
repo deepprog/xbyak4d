@@ -3,8 +3,21 @@
 	"name": "test_util",
 	"targetType": "executable",
 
-	"mainSourceFile": "source/test_util.d",
-	"sourceFiles": ["../source/xbyak.d", "../source/xbyak_util.d"],
-	"versions": ["XBYAK64"],
+	"configurations": [
+        {
+            "name": "test_util",
+            "targetType": "executable",
+			"mainSourceFile": "source/test_util.d",
+			"sourceFiles": ["../source/xbyak.d", "../source/xbyak_util.d"],
+			"versions": ["XBYAK64"]
+        },
+        {
+            "name": "only_cpu",
+			"mainSourceFile": "source/test_util.d",
+			"sourceFiles": ["../source/xbyak.d", "../source/xbyak_util.d"],
+			"versions": ["XBYAK64", "XBYAK_ONLY_CLASS_CPU"]
+        }
+    ]
+
 }
 
