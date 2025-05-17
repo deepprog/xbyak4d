@@ -1,0 +1,12 @@
+{
+	"authors": [
+		"deepprog"
+	],
+	"copyright": "Copyright © 2025, deepprog",
+	"description": "A minimal D application.",
+	"license": "BSD-3-Clause",
+	"name": "calc",
+
+	"targetType": "executable",
+	"mainSourceFile": "source/calc.d",
+}

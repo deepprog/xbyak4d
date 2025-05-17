@@ -1,0 +1,10 @@
+{
+	"description": "A minimal D application.",
+	"name": "protect_re",
+	"targetType": "executable",
+	
+	"mainSourceFile": "source/protect_re.d",
+	"dependencies": {
+		"xbyak": "~>0.0.7"
+	}
+}

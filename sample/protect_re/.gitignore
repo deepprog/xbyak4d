@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/protect-re
+protect-re.so
+protect-re.dylib
+protect-re.dll
+protect-re.a
+protect-re.lib
+protect-re-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst

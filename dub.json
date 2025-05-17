@@ -10,8 +10,8 @@
 	"license": "BSD 3",
 	"name": "xbyak",
 	"subPackages": [
-        "./noexception/", "./test_util/"
+		"./noexception/",
+		"./test_util/"
 	],
 	"targetType": "library"
 }
-
