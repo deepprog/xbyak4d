@@ -4,7 +4,6 @@
 	"targetType": "executable",
 	
 	"mainSourceFile": "source/protect_re.d",
-	"dependencies": {
-		"xbyak": "~>0.0.7"
-	}
+	"sourceFiles": ["../../source/xbyak.d", "../../source/xbyak_util.d"]
+
 }

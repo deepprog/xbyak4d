@@ -14,3 +14,4 @@ libxbyak.a
 *.o
 *.obj
 *.lst
+/test_util
