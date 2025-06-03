@@ -30,63 +30,63 @@ version(Win64) version = XBYAK64_WIN;
 version(XBYAK_ONLY_CLASS_CPU)
 {
     enum ERR
-{
-    NONE = 0,
-    BAD_ADDRESSING,
-    CODE_IS_TOO_BIG,
-    BAD_SCALE,
-    ESP_CANT_BE_INDEX,
-    BAD_COMBINATION,
-    BAD_SIZE_OF_REGISTER,
-    IMM_IS_TOO_BIG,
-    BAD_ALIGN,
-    LABEL_IS_REDEFINED,
-    LABEL_IS_TOO_FAR,
-    LABEL_IS_NOT_FOUND,
-    CODE_ISNOT_COPYABLE,
-    BAD_PARAMETER,
-    CANT_PROTECT,
-    CANT_USE_64BIT_DISP,
-    OFFSET_IS_TOO_BIG,
-    MEM_SIZE_IS_NOT_SPECIFIED,
-    BAD_MEM_SIZE,
-    BAD_ST_COMBINATION,
-    OVER_LOCAL_LABEL, // not used
-    UNDER_LOCAL_LABEL,
-    CANT_ALLOC,
-    ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW,
-    BAD_PROTECT_MODE,
-    BAD_PNUM,
-    BAD_TNUM,
-    BAD_VSIB_ADDRESSING,
-    CANT_CONVERT,
-    LABEL_ISNOT_SET_BY_L,
-    LABEL_IS_ALREADY_SET_BY_L,
-    BAD_LABEL_STR,
-    MUNMAP,
-    OPMASK_IS_ALREADY_SET,
-    ROUNDING_IS_ALREADY_SET,
-    K0_IS_INVALID,
-    EVEX_IS_INVALID,
-    SAE_IS_INVALID,
-    ER_IS_INVALID,
-    INVALID_BROADCAST,
-    INVALID_OPMASK_WITH_MEMORY,
-    INVALID_ZERO,
-    INVALID_RIP_IN_AUTO_GROW,
-    INVALID_MIB_ADDRESS,
-    X2APIC_IS_NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    SAME_REGS_ARE_INVALID,
-    INVALID_NF,
-    INVALID_ZU,
-    CANT_USE_REX2,
-    INVALID_DFV,
-    INVALID_REG_IDX,
-    BAD_ENCODING_MODE,
-    CANT_USE_ABCDH,
-    INTERNAL // Put it at last.
-}
+    {
+        NONE = 0,
+        BAD_ADDRESSING,
+        CODE_IS_TOO_BIG,
+        BAD_SCALE,
+        ESP_CANT_BE_INDEX,
+        BAD_COMBINATION,
+        BAD_SIZE_OF_REGISTER,
+        IMM_IS_TOO_BIG,
+        BAD_ALIGN,
+        LABEL_IS_REDEFINED,
+        LABEL_IS_TOO_FAR,
+        LABEL_IS_NOT_FOUND,
+        CODE_ISNOT_COPYABLE,
+        BAD_PARAMETER,
+        CANT_PROTECT,
+        CANT_USE_64BIT_DISP,
+        OFFSET_IS_TOO_BIG,
+        MEM_SIZE_IS_NOT_SPECIFIED,
+        BAD_MEM_SIZE,
+        BAD_ST_COMBINATION,
+        OVER_LOCAL_LABEL, // not used
+        UNDER_LOCAL_LABEL,
+        CANT_ALLOC,
+        ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW,
+        BAD_PROTECT_MODE,
+        BAD_PNUM,
+        BAD_TNUM,
+        BAD_VSIB_ADDRESSING,
+        CANT_CONVERT,
+        LABEL_ISNOT_SET_BY_L,
+        LABEL_IS_ALREADY_SET_BY_L,
+        BAD_LABEL_STR,
+        MUNMAP,
+        OPMASK_IS_ALREADY_SET,
+        ROUNDING_IS_ALREADY_SET,
+        K0_IS_INVALID,
+        EVEX_IS_INVALID,
+        SAE_IS_INVALID,
+        ER_IS_INVALID,
+        INVALID_BROADCAST,
+        INVALID_OPMASK_WITH_MEMORY,
+        INVALID_ZERO,
+        INVALID_RIP_IN_AUTO_GROW,
+        INVALID_MIB_ADDRESS,
+        X2APIC_IS_NOT_SUPPORTED,
+        NOT_SUPPORTED,
+        SAME_REGS_ARE_INVALID,
+        INVALID_NF,
+        INVALID_ZU,
+        CANT_USE_REX2,
+        INVALID_DFV,
+        INVALID_REG_IDX,
+        BAD_ENCODING_MODE,
+        CANT_USE_ABCDH,
+        INTERNAL // Put it at last.
+    }
     
     string XBYAK_THROW(ERR err)
     {
@@ -483,100 +483,100 @@ public:
         return (cast(uint64_t) d << 32 | a);
     }
 
-    enum tMMX         = Type(1uL << 0, 0);
-    enum tMMX2         = Type(1uL << 1, 0);
-    enum tCMOV         = Type(1uL << 2, 0);
-    enum tSSE         = Type(1uL << 3, 0);
-    enum tSSE2         = Type(1uL << 4, 0);
-    enum tSSE3         = Type(1uL << 5, 0);
-    enum tSSSE3     = Type(1uL << 6, 0);
-    enum tSSE41     = Type(1uL << 7, 0);
-    enum tSSE42     = Type(1uL << 8, 0);
-    enum tPOPCNT     = Type(1uL << 9, 0);
-    enum tAESNI         = Type(1uL << 10, 0);
-    enum tAVX512_FP16     = Type(1uL << 11, 0);
-    enum tOSXSAVE         = Type(1uL << 12, 0);
-    enum tPCLMULQDQ     = Type(1uL << 13, 0);
-    enum tAVX             = Type(1uL << 14, 0);
-    enum tFMA             = Type(1uL << 15, 0);
-    enum t3DN             = Type(1uL << 16, 0);
-    enum tE3DN             = Type(1uL << 17, 0);
-    enum tWAITPKG         = Type(1uL << 18, 0);
-    enum tRDTSCP         = Type(1uL << 19, 0);
-    enum tAVX2             = Type(1uL << 20, 0);
-    enum tBMI1             = Type(1uL << 21, 0);    // andn, bextr, blsi, blsmsk, blsr, tzcnt
-    enum tBMI2            = Type(1uL << 22, 0);    // bzhi, mulx, pdep, pext, rorx, sarx, shlx, shrx
-    enum tLZCNT         = Type(1uL << 23, 0);
-    enum tINTEL         = Type(1uL << 24, 0);
-    enum tAMD             = Type(1uL << 25, 0);
-    enum tENHANCED_REP     = Type(1uL << 26, 0);    // enhanced rep movsb/stosb
-    enum tRDRAND         = Type(1uL << 27, 0);
-    enum tADX             = Type(1uL << 28, 0);    // adcx, adox
-    enum tRDSEED         = Type(1uL << 29, 0);    // rdseed
-    enum tSMAP             = Type(1uL << 30, 0);    // stac
-    enum tHLE             = Type(1uL << 31, 0);    // xacquire, xrelease, xtest
-    enum tRTM             = Type(1uL << 32, 0);    // xbegin, xend, xabort
-    enum tF16C             = Type(1uL << 33, 0);    // vcvtph2ps, vcvtps2ph
-    enum tMOVBE         = Type(1uL << 34, 0);    // mobve
-    enum tAVX512F         = Type(1uL << 35, 0);
-    enum tAVX512DQ         = Type(1uL << 36, 0);
-    enum tAVX512_IFMA     = Type(1uL << 37, 0);
-        enum tAVX512IFMA     = Type(1uL << 37, 0);    // = tAVX512_IFMA;
-    enum tAVX512PF         = Type(1uL << 38, 0);
-    enum tAVX512ER         = Type(1uL << 39, 0);
-    enum tAVX512CD         = Type(1uL << 40, 0);
-    enum tAVX512BW         = Type(1uL << 41, 0);
-    enum tAVX512VL         = Type(1uL << 42, 0);
-    enum tAVX512_VBMI     = Type(1uL << 43, 0);
-        enum tAVX512VBMI     = Type(1uL << 43, 0);    // = tAVX512_VBMI; // changed by Intel's manual
-    enum tAVX512_4VNNIW = Type(1uL << 44, 0);
-    enum tAVX512_4FMAPS = Type(1uL << 45, 0);
-    enum tPREFETCHWT1     = Type(1uL << 46, 0);
-    enum tPREFETCHW     = Type(1uL << 47, 0);
-    enum tSHA             = Type(1uL << 48, 0);
-    enum tMPX             = Type(1uL << 49, 0);
-    enum tAVX512_VBMI2             = Type(1uL << 50, 0);
-    enum tGFNI                     = Type(1uL << 51, 0);
-    enum tVAES                     = Type(1uL << 52, 0);
-    enum tVPCLMULQDQ             = Type(1uL << 53, 0);
-    enum tAVX512_VNNI             = Type(1uL << 54, 0);
+    enum tMMX                   = Type(1uL << 0, 0);
+    enum tMMX2                  = Type(1uL << 1, 0);
+    enum tCMOV                  = Type(1uL << 2, 0);
+    enum tSSE                   = Type(1uL << 3, 0);
+    enum tSSE2                  = Type(1uL << 4, 0);
+    enum tSSE3                  = Type(1uL << 5, 0);
+    enum tSSSE3                 = Type(1uL << 6, 0);
+    enum tSSE41                 = Type(1uL << 7, 0);
+    enum tSSE42                 = Type(1uL << 8, 0);
+    enum tPOPCNT                = Type(1uL << 9, 0);
+    enum tAESNI                 = Type(1uL << 10, 0);
+    enum tAVX512_FP16           = Type(1uL << 11, 0);
+    enum tOSXSAVE               = Type(1uL << 12, 0);
+    enum tPCLMULQDQ             = Type(1uL << 13, 0);
+    enum tAVX                   = Type(1uL << 14, 0);
+    enum tFMA                   = Type(1uL << 15, 0);
+    enum t3DN                   = Type(1uL << 16, 0);
+    enum tE3DN                  = Type(1uL << 17, 0);
+    enum tWAITPKG               = Type(1uL << 18, 0);
+    enum tRDTSCP                = Type(1uL << 19, 0);
+    enum tAVX2                  = Type(1uL << 20, 0);
+    enum tBMI1                  = Type(1uL << 21, 0); // andn, bextr, blsi, blsmsk, blsr, tzcnt
+    enum tBMI2                  = Type(1uL << 22, 0); // bzhi, mulx, pdep, pext, rorx, sarx, shlx, shrx
+    enum tLZCNT                 = Type(1uL << 23, 0);
+    enum tINTEL                 = Type(1uL << 24, 0);
+    enum tAMD                   = Type(1uL << 25, 0);
+    enum tENHANCED_REP          = Type(1uL << 26, 0); // enhanced rep movsb/stosb
+    enum tRDRAND                = Type(1uL << 27, 0);
+    enum tADX                   = Type(1uL << 28, 0); // adcx, adox
+    enum tRDSEED                = Type(1uL << 29, 0); // rdseed
+    enum tSMAP                  = Type(1uL << 30, 0); // stac
+    enum tHLE                   = Type(1uL << 31, 0); // xacquire, xrelease, xtest
+    enum tRTM                   = Type(1uL << 32, 0); // xbegin, xend, xabort
+    enum tF16C                  = Type(1uL << 33, 0); // vcvtph2ps, vcvtps2ph
+    enum tMOVBE                 = Type(1uL << 34, 0); // mobve
+    enum tAVX512F               = Type(1uL << 35, 0);
+    enum tAVX512DQ              = Type(1uL << 36, 0);
+    enum tAVX512_IFMA           = Type(1uL << 37, 0);
+    enum tAVX512IFMA            = Type(1uL << 37, 0); // = tAVX512_IFMA;
+    enum tAVX512PF              = Type(1uL << 38, 0);
+    enum tAVX512ER              = Type(1uL << 39, 0);
+    enum tAVX512CD              = Type(1uL << 40, 0);
+    enum tAVX512BW              = Type(1uL << 41, 0);
+    enum tAVX512VL              = Type(1uL << 42, 0);
+    enum tAVX512_VBMI           = Type(1uL << 43, 0);
+    enum tAVX512VBMI            = Type(1uL << 43, 0); // = tAVX512_VBMI; // changed by Intel's manual
+    enum tAVX512_4VNNIW         = Type(1uL << 44, 0);
+    enum tAVX512_4FMAPS         = Type(1uL << 45, 0);
+    enum tPREFETCHWT1           = Type(1uL << 46, 0);
+    enum tPREFETCHW             = Type(1uL << 47, 0);
+    enum tSHA                   = Type(1uL << 48, 0);
+    enum tMPX                   = Type(1uL << 49, 0);
+    enum tAVX512_VBMI2          = Type(1uL << 50, 0);
+    enum tGFNI                  = Type(1uL << 51, 0);
+    enum tVAES                  = Type(1uL << 52, 0);
+    enum tVPCLMULQDQ            = Type(1uL << 53, 0);
+    enum tAVX512_VNNI           = Type(1uL << 54, 0);
     enum tAVX512_BITALG         = Type(1uL << 55, 0);
-    enum tAVX512_VPOPCNTDQ         = Type(1uL << 56, 0);
-    enum tAVX512_BF16             = Type(1uL << 57, 0);
-    enum tAVX512_VP2INTERSECT     = Type(1uL << 58, 0);
-    enum tAMX_TILE                 = Type(1uL << 59, 0);
+    enum tAVX512_VPOPCNTDQ      = Type(1uL << 56, 0);
+    enum tAVX512_BF16           = Type(1uL << 57, 0);
+    enum tAVX512_VP2INTERSECT   = Type(1uL << 58, 0);
+    enum tAMX_TILE              = Type(1uL << 59, 0);
+    enum tAMX_INT8              = Type(1uL << 60, 0);
+    enum tAMX_BF16              = Type(1uL << 61, 0);
+    enum tAVX_VNNI              = Type(1uL << 62, 0);
+    enum tCLFLUSHOPT            = Type(1uL << 63, 0);
 
-    enum tAMX_INT8             = Type(1uL << 60, 0);
-    enum tAMX_BF16             = Type(1uL << 61, 0);
-    enum tAVX_VNNI             = Type(1uL << 62, 0);
-    enum tCLFLUSHOPT         = Type(1uL << 63, 0);
-    enum tCLDEMOTE             = Type(0, 1uL << (64 % 64));
-    enum tMOVDIRI             = Type(0, 1uL << (65 % 64));
-    enum tMOVDIR64B         = Type(0, 1uL << (66 % 64));
-    enum tCLZERO             = Type(0, 1uL << (67 % 64));    // AMD Zen
-    enum tAMX_FP16             = Type(0, 1uL << (68 % 64));
-    enum tAVX_VNNI_INT8        = Type(0, 1uL << (69 % 64));
-    enum tAVX_NE_CONVERT    = Type(0, 1uL << (70 % 64));
-    enum tAVX_IFMA             = Type(0, 1uL << (71 % 64));
-    enum tRAO_INT             = Type(0, 1uL << (72 % 64));
-    enum tCMPCCXADD         = Type(0, 1uL << (73 % 64));
-    enum tPREFETCHITI         = Type(0, 1uL << (74 % 64));
-    enum tSERIALIZE         = Type(0, 1uL << (75 % 64));
-    enum tUINTR             = Type(0, 1uL << (76 % 64));
-    enum tXSAVE             = Type(0, 1uL << (77 % 64));
-    enum tSHA512             = Type(0, 1uL << (78 % 64));
-    enum tSM3                 = Type(0, 1uL << (79 % 64));
-    enum tSM4                 = Type(0, 1uL << (80 % 64));
-    enum tAVX_VNNI_INT16     = Type(0, 1uL << (81 % 64));
-    enum tAPX_F             = Type(0, 1uL << (82 % 64));
-    enum tAVX10             = Type(0, 1uL << (83 % 64));
-    enum tAESKLE             = Type(0, 1uL << (84 % 64));
-    enum tWIDE_KL             = Type(0, 1uL << (85 % 64));
-    enum tKEYLOCKER         = Type(0, 1uL << (86 % 64));
-    enum tKEYLOCKER_WIDE     = Type(0, 1uL << (87 % 64));
-    enum tSSE4a             = Type(0, 1uL << (88 % 64));
-    enum tCLWB                 = Type(0, 1uL << (89 % 64));
-    enum tTSXLDTRK             = Type(0, 1uL << (90 % 64));
+    enum tCLDEMOTE              = Type(0, 1uL << (64 % 64));
+    enum tMOVDIRI               = Type(0, 1uL << (65 % 64));
+    enum tMOVDIR64B             = Type(0, 1uL << (66 % 64));
+    enum tCLZERO                = Type(0, 1uL << (67 % 64)); // AMD Zen
+    enum tAMX_FP16              = Type(0, 1uL << (68 % 64));
+    enum tAVX_VNNI_INT8         = Type(0, 1uL << (69 % 64));
+    enum tAVX_NE_CONVERT        = Type(0, 1uL << (70 % 64));
+    enum tAVX_IFMA              = Type(0, 1uL << (71 % 64));
+    enum tRAO_INT               = Type(0, 1uL << (72 % 64));
+    enum tCMPCCXADD             = Type(0, 1uL << (73 % 64));
+    enum tPREFETCHITI           = Type(0, 1uL << (74 % 64));
+    enum tSERIALIZE             = Type(0, 1uL << (75 % 64));
+    enum tUINTR                 = Type(0, 1uL << (76 % 64));
+    enum tXSAVE                 = Type(0, 1uL << (77 % 64));
+    enum tSHA512                = Type(0, 1uL << (78 % 64));
+    enum tSM3                   = Type(0, 1uL << (79 % 64));
+    enum tSM4                   = Type(0, 1uL << (80 % 64));
+    enum tAVX_VNNI_INT16        = Type(0, 1uL << (81 % 64));
+    enum tAPX_F                 = Type(0, 1uL << (82 % 64));
+    enum tAVX10                 = Type(0, 1uL << (83 % 64));
+    enum tAESKLE                = Type(0, 1uL << (84 % 64));
+    enum tWIDE_KL               = Type(0, 1uL << (85 % 64));
+    enum tKEYLOCKER             = Type(0, 1uL << (86 % 64));
+    enum tKEYLOCKER_WIDE        = Type(0, 1uL << (87 % 64));
+    enum tSSE4a                 = Type(0, 1uL << (88 % 64));
+    enum tCLWB                  = Type(0, 1uL << (89 % 64));
+    enum tTSXLDTRK              = Type(0, 1uL << (90 % 64));
 
     this()
     {
