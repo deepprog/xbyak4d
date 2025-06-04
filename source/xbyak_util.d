@@ -577,6 +577,11 @@ public:
     enum tSSE4a                 = Type(0, 1uL << (88 % 64));
     enum tCLWB                  = Type(0, 1uL << (89 % 64));
     enum tTSXLDTRK              = Type(0, 1uL << (90 % 64));
+    enum tAMX_TRANSPOSE         = Type(0, 1uL << (91 % 64));
+    enum tAMX_TF32              = Type(0, 1uL << (92 % 64));
+    enum tAMX_AVX512            = Type(0, 1uL << (93 % 64));
+    enum tAMX_MOVRS             = Type(0, 1uL << (94 % 64));
+    enum tAMX_FP8               = Type(0, 1uL << (95 % 64));
 
     this()
     {
@@ -726,6 +731,13 @@ public:
                 if (*EDX & (1U << 14)) type_ |= tPREFETCHITI;
                 if (*EDX & (1U << 19)) type_ |= tAVX10;
                 if (*EDX & (1U << 21)) type_ |= tAPX_F;
+
+                getCpuidEx(0x1e, 1, data);
+                if (*EAX & (1U << 4)) type_ |= tAMX_FP8;
+                if (*EAX & (1U << 5)) type_ |= tAMX_TRANSPOSE;
+                if (*EAX & (1U << 6)) type_ |= tAMX_TF32;
+                if (*EAX & (1U << 7)) type_ |= tAMX_AVX512;
+                if (*EAX & (1U << 8)) type_ |= tAMX_MOVRS;
             }
         }
         if (maxNum >= 0x19) {

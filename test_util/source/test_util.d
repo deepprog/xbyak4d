@@ -123,6 +123,11 @@ void putCPUinfo(bool onlyCpuidFeature)
 		Tbl(Cpu.tKEYLOCKER, "keylocker" ),
 		Tbl(Cpu.tKEYLOCKER_WIDE, "keylocker_wide" ),
 		Tbl(Cpu.tTSXLDTRK, "tsxldtrk" ),
+		Tbl(Cpu.tAMX_FP8, "amx_fp8" ),
+		Tbl(Cpu.tAMX_TRANSPOSE, "amx_transpose" ),
+		Tbl(Cpu.tAMX_TF32, "amx_tf32" ),
+		Tbl(Cpu.tAMX_AVX512, "amx_avx512" ),
+		Tbl(Cpu.tAMX_MOVRS, "amx_movrs" ),
 	];
 
 	for (size_t i = 0; i < tbl.length; i++) {
