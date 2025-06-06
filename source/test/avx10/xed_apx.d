@@ -69,7 +69,7 @@ void xed_apx()
     //try
     //{
     //    writeln("xed_apx");
-        Code c = new Code();
+        scope Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());    
