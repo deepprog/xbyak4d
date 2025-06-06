@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.7250
- * Date: 2025/06/04
+ * Version: 0.7242
+ * Date: 2025/04/30
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright (c) 2019 deepprog
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.

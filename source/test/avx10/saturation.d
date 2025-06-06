@@ -16,53 +16,53 @@ class Code : CodeGenerator
         setDefaultEncodingAVX10(AVX10v2Encoding);
 
         //
-        vcvtbf162ibs(xm1, xm2);  dump(); size_ = 0;
-        vcvtbf162ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162ibs(xm1, xm2);  dump(); size_ = 0;
+        vcvtnebf162ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
 
-        vcvtbf162ibs(ym1, ym2);  dump(); size_ = 0;
-        vcvtbf162ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162ibs(ym1, ym2);  dump(); size_ = 0;
+        vcvtnebf162ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
 
-        vcvtbf162ibs(zm1, zm2);  dump(); size_ = 0;
-        vcvtbf162ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162ibs(zm1, zm2);  dump(); size_ = 0;
+        vcvtnebf162ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
         //
-        vcvtbf162iubs(xm1, xm2);  dump(); size_ = 0;
-        vcvtbf162iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162iubs(xm1, xm2);  dump(); size_ = 0;
+        vcvtnebf162iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
 
-        vcvtbf162iubs(ym1, ym2);  dump(); size_ = 0;
-        vcvtbf162iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162iubs(ym1, ym2);  dump(); size_ = 0;
+        vcvtnebf162iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
 
-        vcvtbf162iubs(zm1, zm2);  dump(); size_ = 0;
-        vcvtbf162iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162iubs(zm1, zm2);  dump(); size_ = 0;
+        vcvtnebf162iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvtnebf162iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
         //
-        vcvttbf162ibs(xm1, xm2);  dump(); size_ = 0;
-        vcvttbf162ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162ibs(xm1, xm2);  dump(); size_ = 0;
+        vcvttnebf162ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
 
-        vcvttbf162ibs(ym1, ym2);  dump(); size_ = 0;
-        vcvttbf162ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162ibs(ym1, ym2);  dump(); size_ = 0;
+        vcvttnebf162ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
 
-        vcvttbf162ibs(zm1, zm2);  dump(); size_ = 0;
-        vcvttbf162ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162ibs(zm1, zm2);  dump(); size_ = 0;
+        vcvttnebf162ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
         //
-        vcvttbf162iubs(xm1, xm2);  dump(); size_ = 0;
-        vcvttbf162iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162iubs(xm1, xm2);  dump(); size_ = 0;
+        vcvttnebf162iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
 
-        vcvttbf162iubs(ym1, ym2);  dump(); size_ = 0;
-        vcvttbf162iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162iubs(ym1, ym2);  dump(); size_ = 0;
+        vcvttnebf162iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
 
-        vcvttbf162iubs(zm1, zm2);  dump(); size_ = 0;
-        vcvttbf162iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162iubs(zm1, zm2);  dump(); size_ = 0;
+        vcvttnebf162iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
+        vcvttnebf162iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
         //
         vcvttpd2qqs(xm1, xm2);  dump(); size_ = 0;
         vcvttpd2qqs(xm1, ptr[rax+128]);  dump(); size_ = 0;
