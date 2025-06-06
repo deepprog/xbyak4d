@@ -199,7 +199,7 @@ void xed_new_ymm()
     //try
     //{
     //    writeln("xed_new_ymm");
-        Code c = new Code();
+        scope Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());    

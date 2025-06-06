@@ -116,7 +116,7 @@ void xed_minmax()
     //try
     //{
     //    writeln("xed_minmax");
-        Code c = new Code();
+        scope Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());

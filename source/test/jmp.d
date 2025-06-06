@@ -194,7 +194,7 @@ void test1()
 	for(int i = 0; i < tbl.length; i++) {
 		Tbl p = tbl[i];
 		for(int k = 0; k < 2; k++) {
-			TestJmp testjmp = new TestJmp(p.offset, p.isBack, p.isShort, k == 0);
+			scope TestJmp testjmp = new TestJmp(p.offset, p.isBack, p.isShort, k == 0);
 			uint8_t* q = cast(uint8_t*)testjmp.getCode();
 			if (p.isBack) q += p.offset; /* skip nop */
 			for (int j = 0; j < p.size; j++) {
@@ -283,7 +283,7 @@ version(XBYAK64) {
 	
 	for(int j = 0; j < 2; j++) {
 		char[16] buf;
-		TestJmpCx code = new TestJmpCx(&buf, (j == 0));
+		scope TestJmpCx code = new TestJmpCx(&buf, (j == 0));
 		for(size_t i = 0; i < tbl.len; i++)
 		{
 			assert(buf[i] == tbl.p[i]);
@@ -325,7 +325,7 @@ void testloop()
 		}
 	}
 	
-	Code code1 = new Code(false);
+	scope Code code1 = new Code(false);
 	auto bufSize = code1.getSize();
 	if(bufSize != ok.length)
 	{
@@ -341,7 +341,7 @@ void testloop()
 		}
 	}
 
-	Code code2 = new Code(true);
+	scope Code code2 = new Code(true);
 	bufSize = code2.getSize();
 	if(bufSize != ok.length)
 	{
@@ -451,7 +451,7 @@ void test2()
 	ok[0x18a] = 0x00;
 	ok[0x18b] = 0x00;
 	
-	TestJmp2 c;
+	scope TestJmp2 c;
 	c = new TestJmp2(null, true);
 	c.ready();
 	auto code = c.getCode();
@@ -539,7 +539,7 @@ unittest{
 
 		for (size_t dummySize = 0; dummySize < maxSize; dummySize += incSize) {
 			printf("dummySize=%d\n", dummySize);
-			Grow g = new Grow(dummySize);
+			scope Grow g = new Grow(dummySize);
 			g.ready();
 			
 			auto f = cast(int function())g.getCode();
@@ -616,8 +616,8 @@ void test4()
 	for (int i = 0; i < 2; i++) {
 		bool useNewLabel = i == 0;
 	
-		Test4 fc = new Test4(1024, null, useNewLabel, myAlloc);
-		Test4 gc = new Test4(5, AutoGrow, !useNewLabel, myAlloc);
+		scope Test4 fc = new Test4(1024, null, useNewLabel, myAlloc);
+		scope Test4 gc = new Test4(5, AutoGrow, !useNewLabel, myAlloc);
 		gc.ready();
 
 		auto fcode = fc.getCode();
@@ -686,7 +686,7 @@ void test5()
 
 	int count = 50;
 	int ret;
-	Test5 fc = new Test5(1024 * 64, count, null);
+	scope Test5 fc = new Test5(1024 * 64, count, null);
 	fc.readyRE();
 	auto fcode = fc.getCode();
 	auto ffun = cast(int function())fcode;
@@ -696,7 +696,7 @@ void test5()
 	fc.readyRE();
 	auto fm = fc.getCode();
 	
-	Test5 gc=  new Test5(10, count, AutoGrow);
+	scope Test5 gc=  new Test5(10, count, AutoGrow);
 	gc.readyRE();
 	auto gcode = gc.getCode();
 	auto gfun = cast(int function())gcode;
@@ -834,7 +834,7 @@ version(XBYAK64)
 		bool grow = j == 0;
 		for (int k = 0; k < 2; k++) {
 			bool useNewLabel = k == 0;
-			MovLabelCode code = new MovLabelCode(grow, useNewLabel);
+			scope MovLabelCode code = new MovLabelCode(grow, useNewLabel);
 			if (grow) code.ready();
 			auto p = code.getCode();
 			for (size_t i = 0; i < pk.length; i++) {
@@ -898,7 +898,7 @@ version(XBYAK64){
 		}
 	}
 
-	MovLabel2Code code = new MovLabel2Code();
+	scope MovLabel2Code code = new MovLabel2Code();
 	code.ready();
 	auto fn = cast(int function())code.getCode();
 	
@@ -1020,7 +1020,7 @@ void testF_B()
 	];
 
 	for (size_t i = 0; i < expectedTbl.length; i++) {
-		Code code = new Code(cast(int)i);
+		scope Code code = new Code(cast(int)i);
 		auto fn  = cast(int function())code.getCode();
 		int ret = fn();
 		bool bl = ret == expectedTbl[i];
@@ -1105,7 +1105,7 @@ void test6()
 	for (int i = 0; i < 2; i++) {
 		bool grow = i == 1;
 		printf("test6 grow=%d\n", i);
-		TestLocal code = new TestLocal(grow);
+		scope TestLocal code = new TestLocal(grow);
 		if (grow) code.ready();
 		auto f = cast(int function())code.getCode();
 		int a = f();
@@ -1139,13 +1139,13 @@ void test_jcc()
 			jnz(p);
 		}
 	}
-	A a = new A();
+	scope A a = new A();
 	void* p = cast(void*)a.getCode();
 	
 	for (int i = 0; i < 2; i++)
 	{
 		bool grow = i == 1;
-		B b = new B(grow, p);
+		scope B b = new B(grow, p);
 		if (grow) {
 			b.readyRE();
 		}
@@ -1242,7 +1242,7 @@ void testNewLabel()
 	for (int i = 0; i < 2; i++) {
 		bool grow = (i == 0 ? true : false);
 		writeln("testNewLabel grow=", grow);
-		Code code = new Code(grow);
+		scope Code code = new Code(grow);
 		if (grow) code.ready();
 		auto f = cast(int function())code.getCode();
 		int r;
@@ -1281,7 +1281,7 @@ void returnLabel()
 		}
 	}
 
-	Code code = new Code();
+	scope Code code = new Code();
 	auto f = cast(int function())code.getCode();
 	int r = f();
 	assert(r == 3);
@@ -1327,7 +1327,7 @@ void testAssige()
 	for (int i = 0; i < 2; i++) {
 		bool grow = (i == 0 ? true : false);
 		writeln("testAssign grow=", grow);
-		Code code = new Code(grow);
+		scope Code code = new Code(grow);
 		if (grow) {
 			writeln("grow:", grow);
 			code.ready();
@@ -1402,13 +1402,13 @@ void doubleDefine()
 		}
 	}
 
-	Code1 code1 = new Code1();
+	scope Code1 code1 = new Code1();
 	auto f1 = code1.getCode();
-	Code2 code2 = new Code2();
+	scope Code2 code2 = new Code2();
 	auto f2 = code2.getCode();
-	Code3 code3 = new Code3();
+	scope Code3 code3 = new Code3();
 	auto f3 = code3.getCode();
-	Code4 code4 = new Code4();
+	scope Code4 code4 = new Code4();
 	auto f4 = code4.getCode();
 }
 
@@ -1511,7 +1511,7 @@ unittest{
 }
 void LabelTable()
 {
-	auto c = new CodeLabelTable();
+	scope c = new CodeLabelTable();
 	auto fn = cast(int function(int))c.getCode();
 	c.dump();
 	assert(fn(0) == c.ret0);
@@ -1575,7 +1575,7 @@ void testGetAddressCode2()
 
 	foreach (int size; sizeTbl) {
 	//	int size = sizeTbl[i];
-		auto c = new GetAddressCode2(size);
+		scope c = new GetAddressCode2(size);
 		c.readyRE();
 		uint8_t* p = c.getCode();
 
@@ -1629,7 +1629,7 @@ void testrip()
 		}
 	}
 	
-	auto code = new Code(a, b);
+	scope code = new Code(a, b);
 	code.dump;
 	auto fn = cast(int function())code.getCode();
 	int ret = fn();
@@ -1674,7 +1674,7 @@ void rip_jmp()
 		}
 	}
 
-	auto code = new Code();
+	scope code = new Code();
 	auto fn = cast(int function())code.getCode();
 	int ret = fn();
 	int sum = ret1234() + ret9999();
@@ -1705,7 +1705,7 @@ void rip_addr()
 		}
 	}
 
-	auto code = new Code();
+	scope code = new Code();
 	auto fn = cast(void function())code.getCode();
 	writeln(x);
 	fn();
@@ -1742,7 +1742,7 @@ void rip_addr_with_fixed_buf()
 		}
 	}
 	
-	auto code = new Code();
+	scope code = new Code();
 	code.setProtectModeRE();
 	auto fn = cast(void function())code.getCode();
 	fn();
@@ -1781,7 +1781,7 @@ void release_label_after_code()
 	{
 		Label L1, L2, L3, L4, L5;
 		//{
-			auto code = new ReleaseTestCode(L1, L2, L3);
+			scope code = new ReleaseTestCode(L1, L2, L3);
 			auto L1_getId = L1.getId();
 			assert(L1.getId > 0);
 			auto L1_getAddress = L1.getAddress();
@@ -1945,7 +1945,7 @@ version(XBYAK32){
 }
 	} 
 	
-	auto code = new Code();
+	scope code = new Code();
 	assertThrown!Exception(code.genJmp());
 	assertThrown!Exception(code.genCall());
 }

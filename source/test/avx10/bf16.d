@@ -260,7 +260,7 @@ void xed_bf16()
     //try
     //{
         writeln("bf16");
-        Code c = new Code();
+        scope Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());    

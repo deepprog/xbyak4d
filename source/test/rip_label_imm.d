@@ -95,7 +95,7 @@ unittest
 
 void rip_label_imm()
 {
-    Code code = new Code();
+    scope Code code = new Code();
     auto f = code.getCode!(void function());
 //    dump(code.getCode(), code.getSize());
 //    f();

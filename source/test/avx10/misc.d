@@ -229,7 +229,7 @@ void xed_misc()
     //try
     //{
     //    writeln("xed_misc");
-        Code c = new Code();
+        scope Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());    

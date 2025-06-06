@@ -35,7 +35,7 @@ void setSize()
 			assertThrown!XError(db(1));
 		}
 	}
-	auto code = new Code();
+	scope code = new Code();
 }
 
 
@@ -95,7 +95,7 @@ void badSSE()
 			assertThrown!XError( pmovmskb(eax, xm16) );
 		}
 	}
-	auto code = new Code();
+	scope code = new Code();
 }
 }
 
@@ -219,7 +219,7 @@ version(XBYAK64)
 }
 		}
 	}
-	auto code = new Code();
+	scope code = new Code();
 }
 
 @("test_align")
@@ -250,7 +250,7 @@ void test_align()
 			assert(p == getCurr());
 		}
 	}
-	auto code = new Code();
+	scope code = new Code();
 }
 
 
@@ -296,7 +296,7 @@ version(XBYAK64)
 			}
 		}
 	}
-	auto code = new Code();
+	scope code = new Code();
 }
 
 @("test_gather")
@@ -326,7 +326,7 @@ void test_gather()
 			assertThrown!Exception(vpscatterdd(ptr[eax+xmm2], xmm1) );
 		}
 	}
-	auto code = new Code();
+	scope code = new Code();
 }
 
 version(XBYAK64)
@@ -361,7 +361,7 @@ void vfmaddps()
 		0x62, 0x72, 0x67, 0x4c, 0x53, 0x54, 0x84, 0x04,
 	];
 
-	auto c = new Code();
+	scope c = new Code();
 	assert(c.getSize() == tbl.length);
 	auto ctbl = c.getCode();
 	for(int i=0; i < tbl.length; i++)
@@ -419,7 +419,7 @@ void vaes()
 		0x62, 0xE2, 0x0D, 0x40, 0xDD, 0x60, 0x01,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -459,7 +459,7 @@ void vpclmulqdq()
 		0x62, 0xe3, 0x65, 0x48, 0x44, 0x60, 0x01, 0x03,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -512,7 +512,7 @@ void vpcompressb_w()
 		0x62, 0x92, 0xfd, 0xca, 0x63, 0xce,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -584,7 +584,7 @@ void shld()
 		0x62, 0xf2, 0xed, 0xab, 0x71, 0x68, 0x02,
 		0x62, 0xf2, 0xed, 0xcb, 0x71, 0x68, 0x01,
 	];
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -688,7 +688,7 @@ void shrd()
 		0x62, 0xf2, 0xed, 0xbb, 0x73, 0x68, 0x08,
 		0x62, 0xf2, 0xed, 0xdb, 0x73, 0x68, 0x08,
 	];
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -760,7 +760,7 @@ void vpopcnt()
 		0x62, 0xf2, 0xfd, 0xbb, 0x55, 0x68, 0x08,
 		0x62, 0xf2, 0xfd, 0xdb, 0x55, 0x68, 0x08,
 	];
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -848,7 +848,7 @@ void vpdpbus()
 		0x62, 0xf2, 0x5d, 0xb3, 0x53, 0x68, 0x10,
 		0x62, 0xf2, 0x5d, 0xd3, 0x53, 0x68, 0x10,
 	];
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -1035,7 +1035,7 @@ void gf2()
 		0x62, 0x62, 0x55, 0xa9, 0xcf, 0x70, 0x02,
 		0x62, 0x62, 0x55, 0xc9, 0xcf, 0x70, 0x01,
 	];
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -1085,7 +1085,7 @@ void bf16()
 		0x62, 0xf2, 0x76, 0x29, 0x52, 0x40, 0x02,
 		0x62, 0xf2, 0x76, 0x49, 0x52, 0x40, 0x01,
 	];
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -1129,7 +1129,7 @@ void AMX()
 		0xc4, 0xe2, 0x63, 0x5e, 0xca, 0xc4, 0xe2, 0x5a, 0x5e, 0xd3, 0xc4, 0xe2, 0x51, 0x5e, 0xdc, 0xc4,
 		0xe2, 0x48, 0x5e, 0xe5, 0xc4, 0xe2, 0x42, 0x5c, 0xee,
 	];
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -1169,7 +1169,7 @@ void tileloadd()
 		0xC4, 0xE2, 0x7B, 0x4B, 0x0C, 0x88,
 		0xC4, 0x82, 0x7B, 0x4B, 0x4C, 0x08, 0x40,
 	];
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -1233,7 +1233,7 @@ void vnni()
 		0x62, 0xF2, 0x75, 0x08, 0x50, 0xC2,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2245,7 +2245,7 @@ void vaddph()
 		0x62, 0xf5, 0xee, 0x08, 0x7b, 0x48, 0x08,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2293,7 +2293,7 @@ version(XBYAK32)
 		0xf2, 0x0f, 0xae, 0xf3,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2377,7 +2377,7 @@ else
 	];
 }
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2462,7 +2462,7 @@ else
 	];
 }
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2563,7 +2563,7 @@ void CMPccXADD()
 		0xc4, 0xa2, 0xe9, 0xe4, 0x0c, 0x90,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2595,7 +2595,7 @@ void prefetchiti()
 		0x0f, 0x18, 0x30
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2655,7 +2655,7 @@ void crypto()
 		0xc4, 0xe2, 0x4b, 0xda, 0x2c, 0x81,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2731,7 +2731,7 @@ void avx_vnni_int()
 		0xc4, 0xe2, 0x6c, 0xd3, 0x08,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2792,7 +2792,7 @@ void vmovd()
 		0x62, 0x61, 0x7e, 0x08, 0x7e, 0x70, 0x20, // avx10.2
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -2853,7 +2853,7 @@ void vmovw()
 		0x62, 0x65, 0x7e, 0x08, 0x6e, 0x70, 0x40,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();

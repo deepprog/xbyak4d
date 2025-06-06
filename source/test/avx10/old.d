@@ -703,7 +703,7 @@ void xed_old()
     //try
     //{
     //    writeln("xed_old");
-        Code c = new Code();
+        scope Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());    

@@ -360,7 +360,7 @@ void xed_saturation()
     //try
     //{
     //    writeln("xed_saturation");
-        Code c = new Code();
+        scope Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());    

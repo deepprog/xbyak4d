@@ -249,7 +249,7 @@ void xed_convert()
     //try
     //{
     //    writeln("xed_convert");
-        Code c = new Code();
+        scope Code c = new Code();
         auto tbl = c.getCode();
     
         //writeln(c.getSize());    

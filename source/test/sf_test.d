@@ -320,7 +320,7 @@ unittest
     autoRun.reset();
     scope(exit) autoRun.end("param");
     
-    Code2 code = new Code2;
+    scope Code2 code = new Code2;
     for (int stackSize = 0; stackSize < 32; stackSize += 7) {
         for (int pNum = 0; pNum < 4; pNum++) {
             for (int mode = 0; mode < 4; mode++) {
@@ -347,7 +347,7 @@ unittest
                         check rsp is 16-byte aligned if stackSize > 0
                     */
                     if (stackSize > 0) {
-                        Code2 c2 = new Code2();
+                        scope Code2 c2 = new Code2();
                         c2.gen2(pNum, tNum | opt, stackSize);
                         uint64_t addr = cast(uint64_t) c2.getCode!(uint64_t* function())();
                         autoRun.TEST_EQUAL(addr % 16, 0);
@@ -365,7 +365,7 @@ unittest
     autoRun.reset();
     scope(exit) autoRun.end("args");
 
-    Code code = new Code();
+    scope Code code = new Code();
     auto f1 = code.getCurr!(int function(int))();
     code.gen1();
     autoRun.TEST_EQUAL(5, f1(5));
@@ -545,7 +545,7 @@ unittest
         1, 1, 2,
     ];
     for (size_t i = 0; i < expectedTbl.length; i++) {
-        CloseCode c = new CloseCode(i);
+        scope CloseCode c = new CloseCode(i);
         autoRun.TEST_EQUAL(c.getSize(), expectedTbl[i]);
     }
 }

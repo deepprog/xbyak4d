@@ -32,7 +32,7 @@ version(XBYAK64)
 @("bad_address")
 unittest
 {
-    auto c = new Code();
+    scope Code c = new Code();
   
     write("bad_address test:", testCount_);
     write(" ok:", okCount_);

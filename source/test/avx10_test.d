@@ -362,7 +362,7 @@ void ymm_with_sae()
 		0x62, 0xf1, 0x68, 0x18, 0x5c, 0xcb,
 	];
 	
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
@@ -400,7 +400,7 @@ void vmpsadbw()
 		0x62, 0xf3, 0x66, 0x28, 0x42, 0x48, 0x04, 0x03,
 	];
 
-	Code c = new Code();
+	scope Code c = new Code();
 	const size_t n = tbl.length;
 	assert(c.getSize() == n);
 	auto ctbl = c.getCode();
