@@ -3,35 +3,31 @@ xbyak
 xbyak for the D programming language
 -----------------------------------------------------
 
-It has only been compiled.
-The instability of unittest seems to have been resolved.
-
-When using silly, an error occurred unless thread 1 was used.
-dub test -- -t1
-
-v0.7242 After changing Label and LabelManager from class to struct,
-dub test
-worked.
-
 I will port the test program and fix bugs little by little.
+v0.7250 scope added unittest 10% shorter
+v0.7242 
+    When using silly, an error occurred unless thread 1 was used.
+    dub test -- -t1
+    
+    After changing Label and LabelManager from class to struct,
+    dub test
+    worked.
 
-
-コンパイルができただけの状態です。
-unittestの不安定さは解消されたようです。
-
-sillyを使いスレッド１でないとエラーになっていました。
-dub test -- -t1
-
-v0.7242 Label, LabelManagerをclassからstructに変更した後からは
-dub test
-で動作しました。
 
 テストプログラム移植とバグ修正を少しずつします
+v0.7250 scope 追加　unittest 10%短縮
+v0.7242 
+    sillyを使いスレッド１でないとエラーになっていました。
+    dub test -- -t1
+    
+    Label, LabelManagerをclassからstructに変更した後からは
+    dub test
+    で動作しました。
 
 詳細
 ----
- xbyak Xbyak 7.242（相当）のＤ言語版。
- Version: 0.7242 以降
+ xbyak Xbyak 7.250（相当）のＤ言語版。
+ Version: 0.7250 以降
 
 動作環境
 --------
