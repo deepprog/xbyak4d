@@ -713,12 +713,12 @@ public:
     }
     void setOpmaskIdx(int idx, bool /*ignore_idx0*/ = true)
     {
-        if (mask_) mixin(XBYAK_THROW(ERR.OPMASK_IS_ALREADY_SET));
+        if (mask_ && (mask_ != idx)) mixin(XBYAK_THROW(ERR.OPMASK_IS_ALREADY_SET));
         mask_ = idx;
     }
     void setRounding(int idx)
     {
-        if (rounding_) mixin(XBYAK_THROW(ERR.ROUNDING_IS_ALREADY_SET));
+        if (rounding_ && (rounding_ != idx)) mixin(XBYAK_THROW(ERR.ROUNDING_IS_ALREADY_SET));
         rounding_ = idx;
     }
     void setZero() { zero_ = true; }
@@ -827,7 +827,7 @@ public:
     }
     override bool opEquals(Object o) const
     {
-        Operand rhs = cast(Operand) o;
+        scope Operand rhs = cast(Operand) o;
         if (this.isMEM() && rhs.isMEM()) return this.getAddress() == rhs.getAddress();
         return isEqualIfNotInherited(rhs);
     }
@@ -1776,7 +1776,7 @@ public:
     Label* getLabel() { return label_; }
     override bool opEquals(Object o) const
     {
-        Address rhs = cast(Address) o;
+        scope Address rhs = cast(Address) o;
         bool Bit_ = this.getBit() == rhs.getBit();
         bool E_ = this.e_ == rhs.e_;
         bool Label_ = this.label_ == rhs.label_;
@@ -2259,8 +2259,8 @@ private:
         if (op1.getNF() | op2.getNF()) mixin(XBYAK_THROW_RET(ERR.INVALID_NF, "false"));
         if (op1.getZU() | op2.getZU()) mixin(XBYAK_THROW_RET(ERR.INVALID_ZU, "false"));
         uint8_t rex = 0;
-        Operand p1 = op1;
-        Operand p2 = op2;
+        scope Operand p1 = op1;
+        scope Operand p2 = op2;
         if (p1.isMEM()) swap(p1, p2);
         if (p1.isMEM()) mixin(XBYAK_THROW_RET(ERR.BAD_COMBINATION, "false"));
         // except movsx(16bit, 32/64bit)
@@ -2276,11 +2276,11 @@ private:
         }
         bool is0F = cast(bool)(type & T_0F);
         if (p2.isMEM()) {
-            Reg r = cast(Reg)(p1);
-            Address addr = p2.getAddress();
+            scope Reg r = cast(Reg)(p1);
+            scope Address addr = p2.getAddress();
             RegExp e = addr.getRegExp();
-            Reg base = e.getBase();
-            Reg idx = e.getIndex();
+            scope Reg base = e.getBase();
+            scope Reg idx = e.getIndex();
             if (BIT == 64 && addr.is32bit()) {
                 db(0x67);
             }
@@ -2292,8 +2292,8 @@ private:
             }
             if (rex || r.isExt8bit()) rex |= 0x40;
         } else {
-            Reg r1 = cast(Reg)(op1);
-            Reg r2 = cast(Reg)(op2);
+            scope Reg r1 = cast(Reg)(op1);
+            scope Reg r2 = cast(Reg)(op2);
             // ModRM(reg, base);
             rex = rexRXB(3, r1.isREG(64) || r2.isREG(64), r2, r1);
             if (r1.hasRex2() || r2.hasRex2()) {
@@ -2788,12 +2788,12 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     bool opROO(Reg d, Operand op1, Operand op2, uint64_t type, int code, int immSize = 0, int sc = NONE)
     {
         if (!(type & T_MUST_EVEX) && !d.isREG() && !(d.hasRex2NFZU() || op1.hasRex2NFZU() || op2.hasRex2NFZU())) return false;
-        Operand p1 = op1, p2 = op2;
+        scope Operand p1 = op1, p2 = op2;
         if (p1.isMEM()) { swap(p1, p2); } else { if (p2.isMEM()) code |= 2; }
         if (p1.isMEM()) mixin(XBYAK_THROW_RET(ERR.BAD_COMBINATION, "false"));
         if (p2.isMEM()) {
-            Reg r = cast(Reg)(p1);
-            Address addr = p2.getAddress();
+            scope Reg r = cast(Reg)(p1);
+            scope Address addr = p2.getAddress();
             RegExp e = addr.getRegExp();
             evexLeg(r, e.getBase(), e.getIndex(), d, type, sc);
             writeCode(type, d, code);
@@ -3038,10 +3038,10 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     void opVex(Reg r, Operand p1, Operand op2, in uint64_t type, int code, int imm8 = NONE)
     {
         if (op2.isMEM()) {
-            Address addr = op2.getAddress();
+            scope Address addr = op2.getAddress();
             RegExp regExp = addr.getRegExp();
-            Reg base = regExp.getBase();
-            Reg index = regExp.getIndex();
+            scope Reg base = regExp.getBase();
+            scope Reg index = regExp.getIndex();
             if (BIT == 64 && addr.is32bit()) db(0x67);
             int disp8N = 0;
             if ((type & (T_MUST_EVEX|T_MEM_EVEX)) || r.hasEvex() || (p1 && p1.hasEvex()) || addr.isBroadcast() || addr.getOpmaskIdx() || addr.hasRex2()) {
@@ -3062,7 +3062,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             if (imm8 != NONE) addr.immSize = 1;
             opAddr(addr, r.getIdx());
         } else {
-            Reg base = op2.getReg();
+            scope Reg base = op2.getReg();
             if ((type & T_MUST_EVEX) || r.hasEvex() || (p1 && p1.hasEvex()) || base.hasEvex()) {
                 evex(r, base, p1, type, code);
             } else {
@@ -3088,8 +3088,8 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     }
     void opAVX_X_X_XM(Xmm x1, Operand op1, Operand op2, uint64_t type, int code0, int imm8 = NONE)
     {
-        Xmm x2 = cast(Xmm)op1;
-        Operand op = op2;
+        scope Xmm x2 = cast(Xmm)op1;
+        scope Operand op = op2;
         if (op2.isNone()) { // (x1, op1) -> (x1, x1, op1)
             x2 = x1;
             op = op1;
@@ -3132,8 +3132,8 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     void opCvt3(Xmm x1, Xmm x2, Operand op, uint64_t type, uint64_t type64, uint64_t type32, uint8_t code)
     {
         if (!(x1.isXMM() && x2.isXMM() && (op.isREG(i32e) || op.isMEM()))) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
-        Xmm x = Xmm(op.getIdx());
-        Operand p = op.isREG() ? x : op;
+        scope Xmm x = Xmm(op.getIdx());
+        scope Operand p = op.isREG() ? x : op;
         opVex(x1, x2, p, (type | (op.isBit(64) ? type64 : type32)), code);
     }
     // (x, x/y/xword/yword), (y, z/m)
@@ -3351,7 +3351,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     void opAMX(Tmm t1, Address addr, uint64_t type, int code)
     {
         // require both base and index
-        Address addr2 = addr.cloneNoOptimize();
+        scope Address addr2 = addr.cloneNoOptimize();
         RegExp exp = addr2.getRegExp();
         if (exp.getBase().getBit() == 0 || exp.getIndex().getBit() == 0) mixin(XBYAK_THROW(ERR.NOT_SUPPORTED));
         if (opROO(Reg(), addr2, t1, T_APX|type, code)) return;
@@ -3378,8 +3378,8 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             case 64: type |= isReg ? T_W1|T_F2 : T_W1; break;
             default: assert(0);
         }
-        Operand p1 = k;
-        Operand p2 = op;
+        scope Operand p1 = k;
+        scope Operand p2 = op;
         if (code == 0x93) { swap(p1, p2); }
         if (opROO(Reg(), p2, p1, T_APX|type, code)) return;
         opVex(cast(Reg)p1, null, p2, type, code);
@@ -3403,8 +3403,8 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     // AVX10 zero-extending for vmovd, vmovw
     void opAVX10ZeroExt(Operand op1, Operand op2, uint64_t[4] typeTbl, int[4] codeTbl, PreferredEncoding enc, int bit)
     {
-        Operand p1 = op1;
-        Operand p2 = op2;
+        scope Operand p1 = op1;
+        scope Operand p2 = op2;
         bool rev = false;
         if (p1.isMEM()) {
             swap(p1, p2);
@@ -3680,8 +3680,8 @@ public:
   {    
     void mov(Operand op1, Operand op2)
     {
-        Reg reg = null;
-        Address addr = null;
+        scope Reg reg = null;
+        scope Address addr = null;
         uint8_t code = 0;
         if (op1.isREG() && op1.getIdx() == 0 && op2.isMEM())   // mov eax|ax|al, [disp]
         {
@@ -3716,8 +3716,8 @@ public:
   {
     void mov(Operand op1, Operand op2)
     {
-        Reg reg = null;
-        Address addr = null;
+        scope Reg reg = null;
+        scope Address addr = null;
         uint8_t code = 0;
         if (op1.isREG() && op1.getIdx() == 0 && op2.isMEM())   // mov eax|ax|al, [disp]
         {
@@ -3785,8 +3785,8 @@ public:
     }
     void xchg(Operand op1, Operand op2)
     {
-        Operand p1 = op1;
-        Operand p2 = op2;
+        scope Operand p1 = op1;
+        scope Operand p2 = op2;
         if (p1.isMEM() || (p2.isREG(16 | i32e) && p2.getIdx() == 0))
         {
             p1 = op2; p2 = op1;
