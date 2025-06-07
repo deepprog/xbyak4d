@@ -1143,39 +1143,42 @@ public:
         else if (isZMM())
         {
             string[32] tbl = [
-                "zmm0", "zmm1", "zmm2", "zmm3", "zmm4", "zmm5", "zmm6", "zmm7",
-                "zmm8", "zmm9", "zmm10", "zmm11", "zmm12", "zmm13", "zmm14",
-                "zmm15",
-                "zmm16", "zmm17", "zmm18", "zmm19", "zmm20", "zmm21", "zmm22",
-                "zmm23",
-                "zmm24", "zmm25", "zmm26", "zmm27", "zmm28", "zmm29", "zmm30",
-                "zmm31"
+                "zmm0", "zmm1", "zmm2", "zmm3",
+                "zmm4", "zmm5", "zmm6", "zmm7",
+                "zmm8", "zmm9", "zmm10", "zmm11",
+                "zmm12", "zmm13", "zmm14", "zmm15",
+                "zmm16", "zmm17", "zmm18", "zmm19",
+                "zmm20", "zmm21", "zmm22", "zmm23",
+                "zmm24", "zmm25", "zmm26", "zmm27",
+                "zmm28", "zmm29", "zmm30", "zmm31"
             ];
             return tbl[idx];
         }
         else if (isYMM())
         {
             string[32] tbl = [
-                "ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5", "ymm6", "ymm7",
-                "ymm8", "ymm9", "ymm10", "ymm11", "ymm12", "ymm13", "ymm14",
-                "ymm15",
-                "ymm16", "ymm17", "ymm18", "ymm19", "ymm20", "ymm21", "ymm22",
-                "ymm23",
-                "ymm24", "ymm25", "ymm26", "ymm27", "ymm28", "ymm29", "ymm30",
-                "ymm31"
+                "ymm0", "ymm1", "ymm2", "ymm3",
+                "ymm4", "ymm5", "ymm6", "ymm7",
+                "ymm8", "ymm9", "ymm10", "ymm11",
+                "ymm12", "ymm13", "ymm14", "ymm15",
+                "ymm16", "ymm17", "ymm18", "ymm19",
+                "ymm20", "ymm21", "ymm22", "ymm23",
+                "ymm24", "ymm25", "ymm26", "ymm27",
+                "ymm28", "ymm29", "ymm30", "ymm31"
             ];
             return tbl[idx];
         }
         else if (isXMM())
         {
             string[32] tbl = [
-                "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7",
-                "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14",
-                "xmm15",
-                "xmm16", "xmm17", "xmm18", "xmm19", "xmm20", "xmm21", "xmm22",
-                "xmm23",
-                "xmm24", "xmm25", "xmm26", "xmm27", "xmm28", "xmm29", "xmm30",
-                "xmm31"
+                "xmm0", "xmm1", "xmm2", "xmm3",
+                "xmm4", "xmm5", "xmm6", "xmm7",
+                "xmm8", "xmm9", "xmm10", "xmm11",
+                "xmm12", "xmm13", "xmm14", "xmm15",
+                "xmm16", "xmm17", "xmm18", "xmm19",
+                "xmm20", "xmm21", "xmm22", "xmm23",
+                "xmm24", "xmm25", "xmm26", "xmm27",
+                "xmm28", "xmm29", "xmm30", "xmm31"
             ];
             return tbl[idx];
         }
@@ -2031,7 +2034,7 @@ protected:
         maxSize_ = newSize;
     }
 
-    //    calc jmp address for AutoGrow mode
+    // calc jmp address for AutoGrow mode
     void calcJmpAddress()
     {
         if (isCalledCalcJmpAddress_)
@@ -3909,9 +3912,14 @@ private:
         if (
             (type & T_APX) &&
             (d !is null || op.hasRex2NFZU()) &&
-            opROO(d ? d
-                : Reg(0, Kind.REG, opBit), op, r, type, code)
+            opROO(
+                d ? d : Reg(0, Kind.REG, opBit),
+                op,
+                r,
+                type,
+                code
             )
+        )
         {
             return;
         }
@@ -4207,8 +4215,9 @@ private:
             JmpLabel(
                 size_,
                 jmpSize,
-                (relative ? inner.LabelMode.LasIs
-                    : isAutoGrow() ? inner.LabelMode.LaddTop : inner.LabelMode.Labs),
+                (relative ?
+                    inner.LabelMode.LasIs : isAutoGrow() ?
+                        inner.LabelMode.LaddTop: inner.LabelMode.Labs),
                 disp
             );
         labelMgr_.addUndefinedLabel(label, jmp);
@@ -4359,8 +4368,11 @@ private:
             op = op1;
         }
         // (x1, x2, op)
-        if (!((x1.isXMM && x2.isXMM) || ((type & T_YMM) && ((x1.isYMM && x2.isYMM) || (x1.isZMM && x2
-                .isZMM)))))
+        if (
+            !((x1.isXMM && x2.isXMM) ||
+            ((type & T_YMM) && ((x1.isYMM && x2.isYMM) ||
+            (x1.isZMM && x2.isZMM))))
+        )
         {
             mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
         }
@@ -4386,8 +4398,10 @@ private:
     // (x, x/m), (x, y/m256), (y, z/m)
     void checkCvt2(Xmm x, Operand op)
     {
-        if (!(x.isXMM() && op.isKind(Kind.XMM | Kind.YMM | Kind.MEM)) && !(x.isYMM() && op.isKind(
-                Kind.ZMM | Kind.MEM)))
+        if (
+            !(x.isXMM() && op.isKind(Kind.XMM | Kind.YMM | Kind.MEM)) &&
+            !(x.isYMM() && op.isKind(Kind.ZMM | Kind.MEM))
+        )
         {
             mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
         }
@@ -4418,11 +4432,12 @@ private:
     // (x, x/y/xword/yword), (y, z/m)
     void checkCvt4(Xmm x, Operand op) const
     {
-        if (!(x.isXMM() &&
-                op.isKind(Kind.XMM | Kind.YMM | Kind.MEM) &&
-                op.isBit(128 | 256)) &&
-            !(x.isYMM() &&
-                op.isKind(Kind.ZMM | Kind.MEM)))
+        if (
+            !(x.isXMM() &&
+            op.isKind(Kind.XMM | Kind.YMM | Kind.MEM) &&
+            op.isBit(128 | 256)) &&
+            !(x.isYMM() && op.isKind(Kind.ZMM | Kind.MEM))
+        )
         {
             mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
         }
@@ -4574,7 +4589,11 @@ private:
     {
         if (mode)
         {
-            if (!op.isMEM() && !((op.isXMM() && x.isXMM()) || (op.isXMM() && x.isYMM()) || (op.isYMM() && x.isZMM())))
+            if (
+                !op.isMEM() && !((op.isXMM() && x.isXMM()) ||
+                (op.isXMM() && x.isYMM()) ||
+                (op.isYMM() && x.isZMM()))
+            )
             {
                 mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
             }
@@ -4641,8 +4660,10 @@ private:
     uint64_t orEvexIf(PreferredEncoding enc, uint64_t typeVex, uint64_t typeEvex, int sel)
     {
         enc = getEncoding(enc, sel);
-        return ((sel == 0 && enc == VexEncoding) || (sel == 1 && enc != AVX10v2Encoding)) ?
-    typeVex : (T_MUST_EVEX | typeEvex);
+        return
+            ((sel == 0 && enc == VexEncoding) ||
+            (sel == 1 && enc != AVX10v2Encoding)) ?
+                typeVex : (T_MUST_EVEX | typeEvex);
     }
 
     void opInOut(Reg a, Reg d, uint8_t code)
