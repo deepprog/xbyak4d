@@ -105,7 +105,7 @@ version (XBYAK_ONLY_CLASS_CPU)
 }
 else
 {
-/**
+    /**
     utility class and functions for Xbyak
     xbyak_util.Clock ; rdtsc timer
     xbyak_util.Cpu ; detect CPU
@@ -376,10 +376,9 @@ private:
                 // For modern AMD CPUs.
                 dataCacheLevels_ = 0;
                 for (
-                    uint32_t subLeaf = 0;
-                    dataCacheLevels_ < maxNumberCacheLevels;
+                    uint32_t subLeaf = 0; dataCacheLevels_ < maxNumberCacheLevels;
                     subLeaf++
-                )
+                    )
                 {
                     getCpuidEx(0x8000001D, subLeaf, data);
                     int cacheType = extractBit(data[0], 0, 4);
@@ -996,7 +995,7 @@ else
     struct Clock
     {
     public:
-        static uint64_t getRdtsc()
+    static uint64_t getRdtsc()
         {
             version (XBYAK_INTEL_CPU_SPECIFIC)
             {
@@ -1042,12 +1041,11 @@ else
         }
 
     private:
-        uint64_t clock_ = 0;
+    uint64_t clock_ = 0;
         int count_ = 0;
     }
 
-    @("clock")
-    unittest
+    @("clock") unittest
     {
         import std.stdio;
 
@@ -1076,8 +1074,8 @@ else
 
     version (XBYAK64)
     {
-        const int UseRCX = 1 << 6;
-        const int UseRDX = 1 << 7;
+        enum UseRCX = 1 << 6;
+        enum UseRDX = 1 << 7;
 
         struct Pack
         {
@@ -1290,7 +1288,7 @@ else
             {
                 return n_;
             }
-        /*
+            /*
             get tbl[pos, pos + num)
         */
             Pack sub(size_t pos, size_t num = cast(size_t)(-1))
@@ -1350,7 +1348,7 @@ else
             Pack p; //= Pack();
             Pack t; //= Pack();
 
-        /*
+            /*
             make stack frame
             @param sf [in] this
             @param pNum [in] num of function parameter(0 <= pNum <= 4)
@@ -1417,7 +1415,7 @@ else
                 p.init_(pTbl_, pNum);
                 t.init_(tTbl_, tNum_);
             }
-        /*
+            /*
             make epilog manually
             @param callRet [in] call ret() if true
         */

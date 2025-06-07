@@ -2070,7 +2070,7 @@ public:
         if (
             (type_ == Type.ALLOC_BUF && userPtr != DontSetProtectRWE && alloc_.useProtect()) &&
             !setProtectMode(ProtectMode.PROTECT_RWE, false)
-        )
+            )
         {
             alloc_.free(top_);
             mixin(XBYAK_THROW(ERR.CANT_PROTECT));
@@ -13883,7 +13883,12 @@ public:
         void vpslld(Xmm x, Operand op, uint8_t imm)
         {
             opAVX_X_X_XM(
-                Xmm(x.getKind(), 6), x, op, T_66 | T_0F | T_EW0 | T_YMM | T_EVEX | T_B32 | T_MEM_EVEX, 0x72, imm
+                Xmm(x.getKind(), 6),
+                x,
+                op,
+                T_66 | T_0F | T_EW0 | T_YMM | T_EVEX | T_B32 | T_MEM_EVEX,
+                0x72,
+                imm
             );
         }
 
@@ -13894,13 +13899,25 @@ public:
 
         void vpslldq(Xmm x, Operand op, uint8_t imm)
         {
-            opAVX_X_X_XM(Xmm(x.getKind(), 7), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x73, imm);
+            opAVX_X_X_XM(
+                Xmm(x.getKind(), 7),
+                x,
+                op,
+                T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX,
+                0x73,
+                imm
+            );
         }
 
         void vpsllq(Xmm x, Operand op, uint8_t imm)
         {
             opAVX_X_X_XM(
-                Xmm(x.getKind(), 6), x, op, T_66 | T_0F | T_EW1 | T_YMM | T_EVEX | T_B64 | T_MEM_EVEX, 0x73, imm
+                Xmm(x.getKind(), 6),
+                x,
+                op,
+                T_66 | T_0F | T_EW1 | T_YMM | T_EVEX | T_B64 | T_MEM_EVEX,
+                0x73,
+                imm
             );
         }
 
@@ -13921,7 +13938,14 @@ public:
 
         void vpsllw(Xmm x, Operand op, uint8_t imm)
         {
-            opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x71, imm);
+            opAVX_X_X_XM(
+                Xmm(x.getKind(), 6),
+                x,
+                op,
+                T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX,
+                0x71,
+                imm
+            );
         }
 
         void vpsllw(Xmm x1, Xmm x2, Operand op)
@@ -13932,7 +13956,12 @@ public:
         void vpsrad(Xmm x, Operand op, uint8_t imm)
         {
             opAVX_X_X_XM(
-                Xmm(x.getKind(), 4), x, op, T_66 | T_0F | T_EW0 | T_YMM | T_EVEX | T_B32 | T_MEM_EVEX, 0x72, imm
+                Xmm(x.getKind(), 4),
+                x,
+                op,
+                T_66 | T_0F | T_EW0 | T_YMM | T_EVEX | T_B32 | T_MEM_EVEX,
+                0x72,
+                imm
             );
         }
 
@@ -13948,7 +13977,14 @@ public:
 
         void vpsraw(Xmm x, Operand op, uint8_t imm)
         {
-            opAVX_X_X_XM(Xmm(x.getKind(), 4), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x71, imm);
+            opAVX_X_X_XM(
+                Xmm(x.getKind(), 4),
+                x,
+                op,
+                T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX,
+                0x71,
+                imm
+            );
         }
 
         void vpsraw(Xmm x1, Xmm x2, Operand op)
@@ -13959,7 +13995,12 @@ public:
         void vpsrld(Xmm x, Operand op, uint8_t imm)
         {
             opAVX_X_X_XM(
-                Xmm(x.getKind(), 2), x, op, T_66 | T_0F | T_EW0 | T_YMM | T_EVEX | T_B32 | T_MEM_EVEX, 0x72, imm
+                Xmm(x.getKind(), 2),
+                x,
+                op,
+                T_66 | T_0F | T_EW0 | T_YMM | T_EVEX | T_B32 | T_MEM_EVEX,
+                0x72,
+                imm
             );
         }
 
@@ -13970,7 +14011,14 @@ public:
 
         void vpsrldq(Xmm x, Operand op, uint8_t imm)
         {
-            opAVX_X_X_XM(Xmm(x.getKind(), 3), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x73, imm);
+            opAVX_X_X_XM(
+                Xmm(x.getKind(), 3),
+                x,
+                op,
+                T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX,
+                0x73,
+                imm
+            );
         }
 
         void vpsrlq(Xmm x, Operand op, uint8_t imm)
@@ -14002,7 +14050,14 @@ public:
 
         void vpsrlw(Xmm x, Operand op, uint8_t imm)
         {
-            opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x71, imm);
+            opAVX_X_X_XM(
+                Xmm(x.getKind(), 2),
+                x,
+                op,
+                T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX,
+                0x71,
+                imm
+            );
         }
 
         void vpsrlw(Xmm x1, Xmm x2, Operand op)
@@ -14337,7 +14392,12 @@ public:
 
         void xadd(Operand op, Reg reg)
         {
-            opRO(reg, op, T_0F, 0xC0 | (reg.isBit(8) ? 0 : 1), op.getBit() == reg.getBit());
+            opRO(
+                reg,
+                op,
+                T_0F, 0xC0 | (reg.isBit(8) ? 0 : 1),
+                op.getBit() == reg.getBit()
+            );
         }
 
         void xbegin(uint32_t rel)
@@ -17709,8 +17769,9 @@ public:
 
             void vcvtsd2usi(Reg32e r, Operand op)
             {
-                uint64_t type = (T_N8 | T_F2 | T_0F | T_ER_X | T_MUST_EVEX) | (r.isREG(64) ? T_EW1
-                        : T_EW0);
+                uint64_t type =
+                    (T_N8 | T_F2 | T_0F | T_ER_X | T_MUST_EVEX) |
+                    (r.isREG(64) ? T_EW1 : T_EW0);
                 opVex(r, xm0, op, type, 0x79);
             }
 
@@ -17721,8 +17782,9 @@ public:
 
             void vcvtsh2si(Reg32e r, Operand op)
             {
-                uint64_t type = (T_N2 | T_F3 | T_MAP5 | T_ER_X | T_MUST_EVEX) | (r.isREG(64) ? T_EW1
-                        : T_EW0);
+                uint64_t type =
+                    (T_N2 | T_F3 | T_MAP5 | T_ER_X | T_MUST_EVEX) |
+                    (r.isREG(64) ? T_EW1 : T_EW0);
                 opVex(r, xm0, op, type, 0x2D);
             }
 
@@ -17733,8 +17795,9 @@ public:
 
             void vcvtsh2usi(Reg32e r, Operand op)
             {
-                uint64_t type = (T_N2 | T_F3 | T_MAP5 | T_ER_X | T_MUST_EVEX) | (r.isREG(64) ? T_EW1
-                        : T_EW0);
+                uint64_t type =
+                    (T_N2 | T_F3 | T_MAP5 | T_ER_X | T_MUST_EVEX) |
+                    (r.isREG(64) ? T_EW1 : T_EW0);
                 opVex(r, xm0, op, type, 0x79);
             }
 
@@ -17744,8 +17807,9 @@ public:
                 {
                     mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
                 }
-                uint64_t type = (T_F3 | T_MAP5 | T_ER_R | T_MUST_EVEX | T_M_K) | (op.isBit(32) ? (
-                        T_EW0 | T_N4) : (T_EW1 | T_N8));
+                uint64_t type =
+                    (T_F3 | T_MAP5 | T_ER_R | T_MUST_EVEX | T_M_K) |
+                    (op.isBit(32) ? (T_EW0 | T_N4) : (T_EW1 | T_N8));
                 opVex(x1, x2, op, type, 0x2A);
             }
 
@@ -17756,8 +17820,9 @@ public:
 
             void vcvtss2usi(Reg32e r, Operand op)
             {
-                uint64_t type = (T_N4 | T_F3 | T_0F | T_ER_X | T_MUST_EVEX) | (r.isREG(64) ? T_EW1
-                        : T_EW0);
+                uint64_t type =
+                    (T_N4 | T_F3 | T_0F | T_ER_X | T_MUST_EVEX) |
+                    (r.isREG(64) ? T_EW1 : T_EW0);
                 opVex(r, xm0, op, type, 0x79);
             }
 
@@ -17919,8 +17984,8 @@ public:
 
             void vcvttsd2sis(Reg32e r, Operand op)
             {
-                uint64_t type = 
-                    (T_N8 | T_F2 | T_MAP5 | T_EW0 | T_SAE_X | T_MUST_EVEX) | 
+                uint64_t type =
+                    (T_N8 | T_F2 | T_MAP5 | T_EW0 | T_SAE_X | T_MUST_EVEX) |
                     (r.isREG(64) ? T_EW1 : T_EW0);
                 opVex(r, xm0, op, type, 0x6D);
             }
@@ -17935,7 +18000,7 @@ public:
 
             void vcvttsd2usis(Reg32e r, Operand op)
             {
-                uint64_t type = 
+                uint64_t type =
                     (T_N8 | T_F2 | T_MAP5 | T_EW0 | T_SAE_X | T_MUST_EVEX) |
                     (r.isREG(64) ? T_EW1 : T_EW0);
                 opVex(r, xm0, op, type, 0x6C);
@@ -17943,7 +18008,7 @@ public:
 
             void vcvttsh2si(Reg32e r, Operand op)
             {
-                uint64_t type = 
+                uint64_t type =
                     (T_N2 | T_F3 | T_MAP5 | T_EW0 | T_SAE_X | T_MUST_EVEX) |
                     (r.isREG(64) ? T_EW1 : T_EW0);
                 opVex(r, xm0, op, type, 0x2C);
@@ -17951,7 +18016,7 @@ public:
 
             void vcvttsh2usi(Reg32e r, Operand op)
             {
-                uint64_t type = 
+                uint64_t type =
                     (T_N2 | T_F3 | T_MAP5 | T_EW0 | T_SAE_X | T_MUST_EVEX) |
                     (r.isREG(64) ? T_EW1 : T_EW0);
                 opVex(r, xm0, op, type, 0x78);
@@ -17959,7 +18024,7 @@ public:
 
             void vcvttss2sis(Reg32e r, Operand op)
             {
-                uint64_t type = 
+                uint64_t type =
                     (T_N4 | T_F3 | T_MAP5 | T_EW0 | T_SAE_X | T_MUST_EVEX) |
                     (r.isREG(64) ? T_EW1 : T_EW0);
                 opVex(r, xm0, op, type, 0x6D);
@@ -18024,8 +18089,9 @@ public:
                 {
                     mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
                 }
-                uint64_t type = (T_F3 | T_MAP5 | T_ER_R | T_MUST_EVEX | T_M_K) | (op.isBit(32) ? (
-                        T_EW0 | T_N4) : (T_EW1 | T_N8));
+                uint64_t type =
+                    (T_F3 | T_MAP5 | T_ER_R | T_MUST_EVEX | T_M_K) |
+                    (op.isBit(32) ? (T_EW0 | T_N4) : (T_EW1 | T_N8));
                 opVex(x1, x2, op, type, 0x7B);
             }
 
@@ -18419,7 +18485,12 @@ public:
             void vfpclassbf16(Opmask k, Operand op, uint8_t imm)
             {
                 opVex(
-                    k.changeBit(op.getBit()), null, op, T_MUST_EVEX | T_F2 | T_0F3A | T_EW0 | T_YMM | T_B16, 0x66, imm
+                    k.changeBit(op.getBit()),
+                    null,
+                    op,
+                    T_MUST_EVEX | T_F2 | T_0F3A | T_EW0 | T_YMM | T_B16,
+                    0x66,
+                    imm
                 );
             }
 
@@ -18431,7 +18502,7 @@ public:
                 }
                 opVex(
                     k.changeBit(op.getBit()),
-                    null, 
+                    null,
                     op,
                     T_66 | T_0F3A | T_MUST_EVEX | T_YMM | T_EW1 | T_B64,
                     0x66,
@@ -18455,8 +18526,8 @@ public:
                     mixin(XBYAK_THROW(ERR.BAD_MEM_SIZE));
                 }
                 opVex(
-                    k.changeBit(op.getBit()), 
-                    null, 
+                    k.changeBit(op.getBit()),
+                    null,
                     op,
                     T_66 | T_0F3A | T_MUST_EVEX | T_YMM | T_EW0 | T_B32,
                     0x66,
@@ -18503,50 +18574,90 @@ public:
 
             void vgatherpf0dpd(Address addr)
             {
-                opGatherFetch(addr, zm1, T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC6, Kind
-                        .YMM);
+                opGatherFetch(
+                    addr,
+                    zm1,
+                    T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC6,
+                    Kind.YMM
+                );
             }
 
             void vgatherpf0dps(Address addr)
             {
-                opGatherFetch(addr, zm1, T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC6, Kind
-                        .ZMM);
+                opGatherFetch(
+                    addr,
+                    zm1,
+                    T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC6,
+                    Kind.ZMM
+                );
             }
 
             void vgatherpf0qpd(Address addr)
             {
-                opGatherFetch(addr, zm1, T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC7, Kind
-                        .ZMM);
+                opGatherFetch(
+                    addr,
+                    zm1,
+                    T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC7,
+                    Kind.ZMM
+                );
             }
 
             void vgatherpf0qps(Address addr)
             {
-                opGatherFetch(addr, zm1, T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC7, Kind
-                        .ZMM);
+                opGatherFetch(
+                    addr,
+                    zm1,
+                    T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC7,
+                    Kind.ZMM
+                );
             }
 
             void vgatherpf1dpd(Address addr)
             {
-                opGatherFetch(addr, zm2, T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC6, Kind
-                        .YMM);
+                opGatherFetch(
+                    addr,
+                    zm2,
+                    T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC6,
+                    Kind.YMM
+                );
             }
 
             void vgatherpf1dps(Address addr)
             {
-                opGatherFetch(addr, zm2, T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC6, Kind
-                        .ZMM);
+                opGatherFetch(
+                    addr,
+                    zm2,
+                    T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC6,
+                    Kind.ZMM
+                );
             }
 
             void vgatherpf1qpd(Address addr)
             {
-                opGatherFetch(addr, zm2, T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC7, Kind
-                        .ZMM);
+                opGatherFetch(
+                    addr,
+                    zm2,
+                    T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC7,
+                    Kind.ZMM
+                );
             }
 
             void vgatherpf1qps(Address addr)
             {
-                opGatherFetch(addr, zm2, T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC7, Kind
-                        .ZMM);
+                opGatherFetch(
+                    addr,
+                    zm2,
+                    T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC7,
+                    Kind.ZMM
+                );
             }
 
             void vgatherqpd(Xmm x, Address addr)
@@ -19486,12 +19597,26 @@ public:
 
             void vprold(Xmm x, Operand op, uint8_t imm)
             {
-                opAVX_X_X_XM(Xmm(x.getKind(), 1), x, op, T_66 | T_0F | T_EW0 | T_YMM | T_MUST_EVEX | T_B32, 0x72, imm);
+                opAVX_X_X_XM(
+                    Xmm(x.getKind(), 1),
+                    x,
+                    op,
+                    T_66 | T_0F | T_EW0 | T_YMM | T_MUST_EVEX | T_B32,
+                    0x72,
+                    imm
+                );
             }
 
             void vprolq(Xmm x, Operand op, uint8_t imm)
             {
-                opAVX_X_X_XM(Xmm(x.getKind(), 1), x, op, T_66 | T_0F | T_EW1 | T_YMM | T_MUST_EVEX | T_B64, 0x72, imm);
+                opAVX_X_X_XM(
+                    Xmm(x.getKind(), 1),
+                    x,
+                    op,
+                    T_66 | T_0F | T_EW1 | T_YMM | T_MUST_EVEX | T_B64,
+                    0x72,
+                    imm
+                );
             }
 
             void vprolvd(Xmm x1, Xmm x2, Operand op)
@@ -19506,12 +19631,25 @@ public:
 
             void vprord(Xmm x, Operand op, uint8_t imm)
             {
-                opAVX_X_X_XM(Xmm(x.getKind(), 0), x, op, T_66 | T_0F | T_EW0 | T_YMM | T_MUST_EVEX | T_B32, 0x72, imm);
+                opAVX_X_X_XM(
+                    Xmm(x.getKind(), 0),
+                    x,
+                    op,
+                    T_66 | T_0F | T_EW0 | T_YMM | T_MUST_EVEX | T_B32,
+                    0x72,
+                    imm
+                );
             }
 
             void vprorq(Xmm x, Operand op, uint8_t imm)
             {
-                opAVX_X_X_XM(Xmm(x.getKind(), 0), x, op, T_66 | T_0F | T_EW1 | T_YMM | T_MUST_EVEX | T_B64, 0x72, imm);
+                opAVX_X_X_XM(
+                    Xmm(x.getKind(), 0),
+                    x,
+                    op, T_66 | T_0F | T_EW1 | T_YMM | T_MUST_EVEX | T_B64,
+                    0x72,
+                    imm
+                );
             }
 
             void vprorvd(Xmm x1, Xmm x2, Operand op)
@@ -19616,7 +19754,13 @@ public:
 
             void vpsraq(Xmm x, Operand op, uint8_t imm)
             {
-                opAVX_X_X_XM(Xmm(x.getKind(), 4), x, op, T_66 | T_0F | T_EW1 | T_YMM | T_MUST_EVEX | T_B64, 0x72, imm);
+                opAVX_X_X_XM(
+                    Xmm(x.getKind(), 4),
+                    x,
+                    op, T_66 | T_0F | T_EW1 | T_YMM | T_MUST_EVEX | T_B64,
+                    0x72,
+                    imm
+                );
             }
 
             void vpsraq(Xmm x1, Xmm x2, Operand op)
@@ -19952,56 +20096,88 @@ public:
             void vscatterpf0dpd(Address addr)
             {
                 opGatherFetch(
-                    addr, zm5, T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC6, Kind.YMM
+                    addr,
+                    zm5,
+                    T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC6,
+                    Kind.YMM
                 );
             }
 
             void vscatterpf0dps(Address addr)
             {
                 opGatherFetch(
-                    addr, zm5, T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC6, Kind.ZMM
+                    addr,
+                    zm5,
+                    T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC6,
+                    Kind.ZMM
                 );
             }
 
             void vscatterpf0qpd(Address addr)
             {
                 opGatherFetch(
-                    addr, zm5, T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC7, Kind.ZMM
+                    addr,
+                    zm5,
+                    T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC7,
+                    Kind.ZMM
                 );
             }
 
             void vscatterpf0qps(Address addr)
             {
                 opGatherFetch(
-                    addr, zm5, T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC7, Kind.ZMM
+                    addr,
+                    zm5,
+                    T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC7,
+                    Kind.ZMM
                 );
             }
 
             void vscatterpf1dpd(Address addr)
             {
                 opGatherFetch(
-                    addr, zm6, T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC6, Kind.YMM
+                    addr,
+                    zm6,
+                    T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC6,
+                    Kind.YMM
                 );
             }
 
             void vscatterpf1dps(Address addr)
             {
                 opGatherFetch(
-                    addr, zm6, T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC6, Kind.ZMM
+                    addr,
+                    zm6,
+                    T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC6,
+                    Kind.ZMM
                 );
             }
 
             void vscatterpf1qpd(Address addr)
             {
                 opGatherFetch(
-                    addr, zm6, T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC7, Kind.ZMM
+                    addr,
+                    zm6,
+                    T_N8 | T_66 | T_0F38 | T_EW1 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC7,
+                    Kind.ZMM
                 );
             }
 
             void vscatterpf1qps(Address addr)
             {
                 opGatherFetch(
-                    addr, zm6, T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB, 0xC7, Kind.ZMM
+                    addr,
+                    zm6,
+                    T_N4 | T_66 | T_0F38 | T_EW0 | T_MUST_EVEX | T_M_K | T_VSIB,
+                    0xC7,
+                    Kind.ZMM
                 );
             }
 

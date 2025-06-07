@@ -304,7 +304,7 @@ void verify(uint8_t* _f, int pNum)
         return;
     case 4:
         auto r4 =  cast(int* function(int, int, int, int)) f;
-        assert( 11111 == cast(int) r4(10, 100, 1000, 10000) );
+        assert( 1_1111 == cast(int) r4(10, 100, 1000, 1_0000) );
         return;
     default:
         printf("ERR pNum=%d\n", pNum);
