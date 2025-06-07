@@ -1076,7 +1076,7 @@ else
 
     version (XBYAK64)
     {
-        const int useRCX = 1 << 6;
+        const int UseRCX = 1 << 6;
         const int UseRDX = 1 << 7;
 
         struct Pack
