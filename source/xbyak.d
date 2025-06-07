@@ -14395,7 +14395,8 @@ public:
             opRO(
                 reg,
                 op,
-                T_0F, 0xC0 | (reg.isBit(8) ? 0 : 1),
+                T_0F,
+                0xC0 | (reg.isBit(8) ? 0 : 1),
                 op.getBit() == reg.getBit()
             );
         }
