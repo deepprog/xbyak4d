@@ -10,8 +10,8 @@
 
 module xbyak;
 
-version(X86)    version = XBYAK32;
-version(X86_64) version = XBYAK64;
+version (X86)    version = XBYAK32;
+version (X86_64) version = XBYAK64;
 
 version = XBYAK_ENABLE_OMITTED_OPERAND;
 //version = XBYAK_NO_EXCEPTION;
@@ -53,11 +53,11 @@ import std.string;
     import core.sys.posix.unistd;
   }
 
-size_t    DEFAULT_MAX_CODE_SIZE = 4096 * 8;
-size_t    VERSION               = 0x0742;  // 0xABCD = A.BC(D)
+size_t DEFAULT_MAX_CODE_SIZE = 4096 * 8;
+size_t VERSION = 0x07250;  // 0xABCD = A.BC(D)
 
 
-  version(MIE_INTEGER_TYPE_DEFINED)
+  version (MIE_INTEGER_TYPE_DEFINED)
   {}
   else
   {
@@ -201,7 +201,7 @@ string ConvertErrorToString(ERR err)
     return err <= ERR.INTERNAL ? errTbl[err] : "unknown err";
 }
 
-  version(XBYAK_NO_EXCEPTION)
+  version (XBYAK_NO_EXCEPTION)
   {
     struct local
     {
@@ -270,9 +270,9 @@ string ConvertErrorToString(ERR err)
     {
         return "throw new XError(" ~ err ~ ");";
     }
-  } //version(XBYAK_NO_EXCEPTION)
+  } //version (XBYAK_NO_EXCEPTION)
 
-  version(CRuntime_Microsoft)
+  version (CRuntime_Microsoft)
   {
     @nogc nothrow pure private extern(C) void* _aligned_malloc(size_t, size_t);
     @nogc nothrow pure private extern(C) void _aligned_free(void* memblock);
@@ -315,7 +315,7 @@ static:
     size_t getPageSize()
     {
         size_t pageSize = 4096;
-  version(Windows)
+  version (Windows)
   {        
         import core.sys.windows.windows;
         SYSTEM_INFO sysinfo;
@@ -323,7 +323,7 @@ static:
         pageSize = sysinfo.dwAllocationGranularity;
   }
 
-  version(Posix)
+  version (Posix)
   {        
         import core.sys.posix.unistd;
         pageSize = cast(size_t) sysconf(_SC_PAGESIZE); 
@@ -374,19 +374,19 @@ class Allocator
     bool useProtect() const { return true; }
 }
 
-  version(XBYAK_USE_MEMFD)
+  version (XBYAK_USE_MEMFD)
   {
     extern(C) int memfd_create(const char*, uint);
   }
 
-  version(XBYAK_USE_MMAP_ALLOCATOR)
+  version (XBYAK_USE_MMAP_ALLOCATOR)
   {
     class MmapAllocator : Allocator
     {
         struct Allocation
         {
             size_t size;
-            version(XBYAK_USE_MEMFD)
+            version (XBYAK_USE_MEMFD)
             {
             // fd_ is only used with XBYAK_USE_MEMFD. We keep the file open
             // during the lifetime of each allocation in order to support
@@ -411,7 +411,7 @@ class Allocator
             size = (size + alignedSizeM1) & ~alignedSizeM1;
             int mode = MAP_PRIVATE | MAP_ANON;
             int fd = -1; 
-      version(XBYAK_USE_MEMFD)
+      version (XBYAK_USE_MEMFD)
       {
             uint flag = 0;
             fd = memfd_create(name_.toStringz(), flag);
@@ -440,7 +440,7 @@ class Allocator
             Allocation* alloc = &allocList_[uip];
             alloc.size = size;
     
-      version(XBYAK_USE_MEMFD)
+      version (XBYAK_USE_MEMFD)
       {
             alloc.fd = fd;
       }
@@ -457,7 +457,7 @@ class Allocator
             GC.removeRange(cast(void*)p);
             if (munmap(cast(void*)uip, allocList_[uip].size) < 0) mixin(XBYAK_THROW(ERR.MUNMAP));
 
-      version(XBYAK_USE_MEMFD)
+      version (XBYAK_USE_MEMFD)
       {
             if (allocList_[uip].fd != -1)
             {
@@ -469,7 +469,7 @@ class Allocator
 }
   }
 
-  version(XBYAK_USE_MMAP_ALLOCATOR)
+  version (XBYAK_USE_MMAP_ALLOCATOR)
   {}
   else
   {
@@ -551,7 +551,7 @@ public:
         TMM = 1 << 9
     }
     
-  version(XBYAK64)
+  version (XBYAK64)
   {
     enum : int //Code
     {
@@ -672,7 +672,7 @@ public:
             switch (bit)
             {
                 case 8:
-  version(XBYAK32)
+  version (XBYAK32)
   {
                     if (idx >= 4) goto ERR;
   }
@@ -685,7 +685,7 @@ public:
                 case 16:
                 case 32:
                 case 64:
-  version(XBYAK32)
+  version (XBYAK32)
   {
                     if (idx >= 16) goto ERR;
   }
@@ -892,7 +892,7 @@ public:
         return new Reg32(changeBit(32).getIdx());
     }
 
-  version(XBYAK64)
+  version (XBYAK64)
   {
     Reg64 cvt64()
     {
@@ -1106,7 +1106,7 @@ public:
     }
 }
 
-  version(XBYAK64)
+  version (XBYAK64)
   {
     public class Tmm : Reg
     {
@@ -1276,7 +1276,7 @@ public class Reg32 : Reg32e
     }
   }
 
-  version(XBYAK_DISABLE_SEGMENT)
+  version (XBYAK_DISABLE_SEGMENT)
   {}
   else
   {
@@ -1303,7 +1303,7 @@ public class Reg32 : Reg32e
 struct RegExp
 {
 public:
-  version(XBYAK64)
+  version (XBYAK64)
   {
     enum { i32e = 32 | 64 }
   }
@@ -1463,7 +1463,7 @@ class CodeArray
     AddrInfoList addrInfoList_;
     Type type_;
 
-  version(XBYAK_USE_MMAP_ALLOCATOR)
+  version (XBYAK_USE_MMAP_ALLOCATOR)
   {
     MmapAllocator defaultAllocator_ = new MmapAllocator();
   }
@@ -1612,7 +1612,7 @@ public:
                 break;
             }
         }
-  version(XBYAK_TEST)
+  version (XBYAK_TEST)
   {
         if (doClear) size_ = 0;
   }    
@@ -1666,7 +1666,7 @@ public:
             default:
                 return false;
         }
-  version(Windows)
+  version (Windows)
   {
         DWORD oldProtect;
         return VirtualProtect(addr, size, mode, &oldProtect) != 0;
@@ -1733,7 +1733,7 @@ public:
         e_.verify();
     }
 
-  version(XBYAK64)
+  version (XBYAK64)
   {
     this(size_t disp)
     {
@@ -2187,7 +2187,7 @@ public:
     }
 
 private:
-  version(XBYAK64)
+  version (XBYAK64)
   {
         enum { i32e = 64 | 32, BIT = 64 }
         static const size_t dummyAddr = cast(uint64_t) (0x1122334455667788UL);
@@ -2518,7 +2518,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         size_t disp64 = e.getDisp();
   version (XBYAK64)
   {
-      version(XBYAK_OLD_DISP_CHECK)
+      version (XBYAK_OLD_DISP_CHECK)
       {
         // treat 0xffffffff as 0xffffffffffffffff
         uint64_t high = disp64 >> 32;
@@ -2560,7 +2560,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         const int newBaseIdx = baseBit ? (baseIdx & 7) : Operand.EBP;
         /* ModR/M = [2:3:3] = [Mod:reg/code:R/M] */
         bool hasSIB = indexBit || (baseIdx & 7) == Operand.ESP;
-  version(XBYAK64)
+  version (XBYAK64)
   {
         if (!baseBit && !indexBit) hasSIB = true;
   }
@@ -2909,7 +2909,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     }
     void opIncDec(Reg d, Operand op, int ext)
     {
-  version(XBYAK64)
+  version (XBYAK64)
   {
         if (d.isREG()) {
             int code = d.isBit(8) ? 0xFE : 0xFF;
@@ -2924,7 +2924,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         cast(void)d;
   }
         verifyMemHasSize(op);
-  version(XBYAK64)
+  version (XBYAK64)
   {}
   else
   {
@@ -3272,7 +3272,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         {
             mixin(XBYAK_THROW_RET(ERR.BAD_ENCODING_MODE, "PreferredEncoding.VexEncoding"));
         }
-  version(XBYAK_DISABLE_AVX512)
+  version (XBYAK_DISABLE_AVX512)
   {
         if (enc == EvexEncoding || enc == AVX10v2Encoding) mixin(XBYAK_THROW_RET(ERR.EVEX_IS_INVALID, VexEncoding));
   }
@@ -3346,7 +3346,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             opROO(d, op1, cast(Reg)op2|T_nf, T_MUST_EVEX|T_NF, code);
         }
     }
-  version(XBYAK64)
+  version (XBYAK64)
   {
     void opAMX(Tmm t1, Address addr, uint64_t type, int code)
     {
@@ -3568,7 +3568,7 @@ public:
         rip = RegRip()
     }
 
-      version(XBYAK_DISABLE_SEGMENT)
+      version (XBYAK_DISABLE_SEGMENT)
       {}
       else
       {
@@ -3619,7 +3619,7 @@ public:
     void call(ref Label label) { opJmp(label, T_NEAR, 0, 0xE8, 0); }
 
     // call(function pointer)
-  version(XBYAK_VARIADIC_TEMPLATE)
+  version (XBYAK_VARIADIC_TEMPLATE)
   {    
     void call(Ret, Params)(Ret function(Params...) func)
     {
@@ -3807,7 +3807,7 @@ public:
         opRO(cast(Reg)p1, p2, 0, 0x86 | (p1.isBit(8) ? 0 : 1), (p1.isREG() && (p1.getBit() == p2.getBit())));
     }
 
-  version(XBYAK_DISABLE_SEGMENT)
+  version (XBYAK_DISABLE_SEGMENT)
   {}
   else
   {
@@ -3897,7 +3897,7 @@ public:
     // set read/exec
     void readyRE() { return ready(ProtectMode.PROTECT_RE); }
 
-  version(XBYAK_TEST)
+  version (XBYAK_TEST)
   {
     override void dump(bool doClear = true)
     {
@@ -3984,7 +3984,7 @@ public:
         }
     }
 
-  version(XBYAK_DONT_READ_LIST)
+  version (XBYAK_DONT_READ_LIST)
   {}
   else
   {
@@ -4003,7 +4003,7 @@ public:
     }
   }
 
-version(XBYAK_DONT_READ_LIST)
+version (XBYAK_DONT_READ_LIST)
 {}
 else
 {
@@ -5731,7 +5731,7 @@ void xorps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x57, &isXMM_XMMorMEM); }
 void xresldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE9); }
 void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
 
-  version(XBYAK_ENABLE_OMITTED_OPERAND)
+  version (XBYAK_ENABLE_OMITTED_OPERAND)
   {
     void vblendpd(Xmm x, Operand op, uint8_t imm) { vblendpd(x, x, op, imm); }
     void vblendps(Xmm x, Operand op, uint8_t imm) { vblendps(x, x, op, imm); }
@@ -5991,7 +5991,7 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vunpcklps(Xmm x, Operand op) { vunpcklps(x, x, op); }
   }
 
-  version(XBYAK64)
+  version (XBYAK64)
   {
     void jecxz(string label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
     void jecxz(ref Label label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
@@ -6105,7 +6105,7 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void les(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NONE, 0xC4); }
   }
 
-  version(XBYAK_NO_OP_NAMES)
+  version (XBYAK_NO_OP_NAMES)
   {}
   else
   {
@@ -6128,7 +6128,7 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void not(Reg d, Operand op) { not_(d, op); }
   }
 
-  version(XBYAK_DISABLE_AVX512)
+  version (XBYAK_DISABLE_AVX512)
   {}
   else
   {
@@ -6823,13 +6823,13 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vucomxsd(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N8|T_F2|T_0F|T_EW1|T_SAE_X|T_MUST_EVEX, 0x2E); }
     void vucomxsh(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N2|T_F3|T_MAP5|T_EW0|T_SAE_X|T_MUST_EVEX, 0x2E); }
     void vucomxss(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N4|T_F3|T_0F|T_EW0|T_SAE_X|T_MUST_EVEX, 0x2E); }
-      version(XBYAK64)
+      version (XBYAK64)
       {
         void kmovq(Reg64 r, Opmask k) { opKmov(k, r, true, 64); }
         void vpbroadcastq(Xmm x, Reg64 r) { opVex(x, null, r, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x7C); }
       }
   }
-}// version(XBYAK_DONT_READ_LIST) else
+}// version (XBYAK_DONT_READ_LIST) else
 
 }// CodeGenerator
 
@@ -6903,7 +6903,7 @@ mixin(["T_z"].def_alias);
     mixin(["T_zu"].def_alias);
   }
 
-  version(XBYAK_DISABLE_SEGMENT)
+  version (XBYAK_DISABLE_SEGMENT)
   {}
   else
   {
