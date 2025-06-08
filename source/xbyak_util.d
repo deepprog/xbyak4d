@@ -14,20 +14,20 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import std.stdint;
 
-version(X86)
+version (X86)
 {
     version = XBYAK32;
     version = XBYAK_INTEL_CPU_SPECIFIC;
 }
 
-version(X86_64)
+version (X86_64)
 {
     version = XBYAK64;
     version = XBYAK_INTEL_CPU_SPECIFIC;
 }
 
-version(Win64) version = XBYAK64_WIN;
-version(XBYAK_ONLY_CLASS_CPU)
+version (Win64) version = XBYAK64_WIN;
+version (XBYAK_ONLY_CLASS_CPU)
 {
     enum ERR
     {
@@ -114,8 +114,8 @@ T local_min_(T)(T x, T y) { return x < y ? x : y; }
 
 enum CpuTopologyLevel
 {
-   SmtLevel = 1,
-   CoreLevel = 2
+    SmtLevel = 1,
+    CoreLevel = 2
 }
 alias SmtLevel = CpuTopologyLevel.SmtLevel;
 alias CoreLevel = CpuTopologyLevel.CoreLevel;
@@ -131,29 +131,30 @@ public:
         uint64_t H = 0;
     public:
         this(uint64_t L, uint64_t H = 0) 
+        this(uint64_t L, uint64_t H = 0)
         {
             this.L = L;
             this.H = H;
         }
-        Type opOpAssign(string op:"&")(Type rhs)
+        Type opOpAssign(string op : "&")(Type rhs)
         {
             this.L &= rhs.L;
             this.H &= rhs.H;
             return this;
         }
-        Type opOpAssign(string op:"|")(Type rhs)
+        Type opOpAssign(string op : "|")(Type rhs)
         {
             this.L |= rhs.L;
             this.H |= rhs.H;
             return this;
         }
-        Type opBinary(string op:"&")(Type rhs) const
+        Type opBinary(string op : "&")(Type rhs) const
         {
             Type t = this;
             t &= rhs;
             return t;
         }
-        Type opBinary(string op:"|")(Type rhs) const
+        Type opBinary(string op : "|")(Type rhs) const
         {
             Type t = this;
             t |= rhs;
@@ -757,7 +758,7 @@ public:
     }
     void putFamily() const
     {
-version(XBYAK_ONLY_CLASS_CPU)
+version (XBYAK_ONLY_CLASS_CPU)
 {}
 else
 {
@@ -774,7 +775,7 @@ else
     int getAVX10version() const { return avx10version_; }
 }
 
-version(XBYAK_ONLY_CLASS_CPU)
+version (XBYAK_ONLY_CLASS_CPU)
 {}
 else
 {
@@ -783,7 +784,7 @@ else
         public:
             static uint64_t getRdtsc()
             {
-version(XBYAK_INTEL_CPU_SPECIFIC)
+version (XBYAK_INTEL_CPU_SPECIFIC)
 {
                 asm {
                     naked;
@@ -836,7 +837,7 @@ unittest
 }
 
 
-version(XBYAK64)
+version (XBYAK64)
 {
     const int UseRCX = 1 << 6;
     const int UseRDX = 1 << 7;
@@ -1006,10 +1007,8 @@ version(XBYAK64)
             tbl_[n_++] = t;
             return this;
         }
-        void init(Reg64[] tbl, size_t n)
         {
             if (n > maxTblNum) {
-                fprintf(stderr, "ERR Pack::init bad n=%d\n", cast(int)n);
                 mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
             }
             n_ = n;
@@ -1055,7 +1054,7 @@ version(XBYAK64)
 
     struct StackFrame
     {
-version(XBYAK64_WIN)
+version (XBYAK64_WIN)
 {
         static const int noSaveNum = 6;
         static const int rcxPos = 0;
@@ -1162,7 +1161,7 @@ version(XBYAK64_WIN)
     private:
         int[] getOrderTbl(size_t n = 0)
         {
-version(XBYAK64_WIN)
+version (XBYAK64_WIN)
 {
             static int[] tbl = [
                 Operand.RCX, Operand.RDX, Operand.R8, Operand.R9, Operand.R10, Operand.R11, Operand.RDI, Operand.RSI,
