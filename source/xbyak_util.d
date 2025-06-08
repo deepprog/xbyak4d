@@ -130,7 +130,6 @@ public:
         uint64_t L = 0;
         uint64_t H = 0;
     public:
-        this(uint64_t L, uint64_t H = 0) 
         this(uint64_t L, uint64_t H = 0)
         {
             this.L = L;
@@ -160,10 +159,13 @@ public:
             t |= rhs;
             return t;
         }
+/+
+// 'Type' has method 'opEquals', but not 'toHash'.
         bool opEquals(Type rhs) const
         {
             return this.H == rhs.H && this.L == rhs.L;
         }
++/    
         // without explicit because backward compatilibity
         bool opCast() const { return (H | L) != 0; }
         uint64_t getL() const { return L; }
@@ -839,8 +841,13 @@ unittest
 
 version (XBYAK64)
 {
-    const int UseRCX = 1 << 6;
-    const int UseRDX = 1 << 7;
+// Variable name 'UseRCX' does not match style guidelines.
+// Variable name 'UseRDX' does not match style guidelines.
+//  const int UseRCX = 1 << 6;
+//  const int UseRDX = 1 << 7;
+
+    enum UseRCX = 1 << 6;
+    enum UseRDX = 1 << 7;
 
     struct Pack
     {
@@ -851,7 +858,7 @@ version (XBYAK64)
     public:
         this(Reg64[] tbl, size_t n)
         {
-            init(tbl, n);
+            init_(tbl, n);
         }
         this(ref Pack rhs)
         {
@@ -1007,8 +1014,12 @@ version (XBYAK64)
             tbl_[n_++] = t;
             return this;
         }
+// Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type.
+//      void init(Reg64[] tbl, size_t n)
+        void init_(Reg64[] tbl, size_t n)
         {
             if (n > maxTblNum) {
+                fprintf(stderr, "ERR Pack::init_ bad n=%d\n", cast(int)n);
                 mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
             }
             n_ = n;
@@ -1134,8 +1145,8 @@ version (XBYAK64_WIN)
             if (useRcx_ && rcxPos < pNum) code_.mov(code_.r10, code_.rcx);
             if (useRdx_ && rdxPos < pNum) code_.mov(code_.r11, code_.rdx);
 
-            p.init(pTbl_, pNum);
-            t.init(tTbl_, tNum_);
+            p.init_(pTbl_, pNum);
+            t.init_(tTbl_, tNum_);
         }
         /*
             make epilog manually
