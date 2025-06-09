@@ -4143,8 +4143,10 @@ public:
     void vmovd(Operand op1, Operand op2, PreferredEncoding enc = DefaultEncoding)
     {
         uint64_t[4] typeTbl = [
-            T_EVEX|T_66|T_0F|T_W0|T_N4, T_EVEX|T_66|T_0F|T_W0|T_N4, // legacy, avx, avx512
-            T_MUST_EVEX|T_66|T_0F|T_EW0|T_N4, T_MUST_EVEX|T_F3|T_0F|T_EW0|T_N4, // avx10.2
+            T_EVEX | T_66 | T_0F | T_W0 | T_N4,
+            T_EVEX | T_66 | T_0F | T_W0 | T_N4, // legacy, avx, avx512
+            T_MUST_EVEX | T_66 | T_0F | T_EW0 | T_N4,
+            T_MUST_EVEX | T_F3 | T_0F | T_EW0 | T_N4, // avx10.2
         ];
         int[4] codeTbl = [ 0x7E, 0x6E, 0xD6, 0x7E ];
         opAVX10ZeroExt(op1, op2, typeTbl, codeTbl, enc, 32);
@@ -4152,8 +4154,10 @@ public:
     void vmovw(Operand op1, Operand op2, PreferredEncoding enc = DefaultEncoding)
     {
         uint64_t[4] typeTbl = [
-            T_MUST_EVEX|T_66|T_MAP5|T_N2, T_MUST_EVEX|T_66|T_MAP5|T_N2, // avx512-fp16
-            T_MUST_EVEX|T_F3|T_MAP5|T_EW0|T_N2, T_MUST_EVEX|T_F3|T_MAP5|T_EW0|T_N2, // avx10.2
+            T_MUST_EVEX | T_66 | T_MAP5 | T_N2,
+            T_MUST_EVEX | T_66 | T_MAP5 | T_N2, // avx512-fp16
+            T_MUST_EVEX | T_F3 | T_MAP5 | T_EW0 | T_N2,
+            T_MUST_EVEX | T_F3 | T_MAP5 | T_EW0 | T_N2, // avx10.2
         ];
         int[4] codeTbl = [ 0x7E, 0x6E, 0x7E, 0x6E ];
         opAVX10ZeroExt(op1, op2, typeTbl, codeTbl, enc, 16|32|64);
