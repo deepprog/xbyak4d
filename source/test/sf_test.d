@@ -8,63 +8,11 @@ import std.string;
 
 import xbyak;
 import xbyak_util;
+import test.test_count;
+
 
 version(X86)    version = XBYAK32;
 version(X86_64) version = XBYAK64;
-
-struct AutoRun
-{
-    void reset()
-    {
-        okCount_ = 0;
-        ngCount_ = 0;
-    }
-
-    void set(bool isOK)
-    {
-        if (isOK) {
-            okCount_++;
-        } else {
-            ngCount_++;
-        }
-    }
-
-    void test(bool ret, string msg, string param, string file, size_t line)
-    {
-        this.set(ret);
-        if (!ret) {
-            writefln("%s(%d): AutoRun.%s(%s);", file, line, msg, param);
-        }
-    }
-
-    void TEST_EQUAL(T)(T x, T y, string file = __FILE__, size_t line = __LINE__)
-    {
-        auto isEqual = (x == y);
-        this.test(isEqual, "TEST_EQUAL", x.stringof ~ ", " ~ y.stringof, file, line);
-
-        if (!isEqual) {
-            writeln("test: lhs = ", x);
-            writeln("test: rhs = ", y);
-        }
-    }
-
-    void end(string name = "")
-    {
-        writeln(name, " OK:", okCount_, " NG:", ngCount_);
-        assert(ngCount_ == 0);
-    }
-
-private:
-    int okCount_;
-    int ngCount_;
-}
-
-
-
-
-
-
-
 
 version(XBYAK64)
 {
@@ -316,9 +264,9 @@ void verify(uint8_t* _f, int pNum)
 @("param")
 unittest
 {
-    AutoRun autoRun;
-    autoRun.reset();
-    scope(exit) autoRun.end("param");
+    TestCount testCount;
+    testCount.reset();
+    scope(exit) testCount.end("param");
     
     scope Code2 code = new Code2;
     for (int stackSize = 0; stackSize < 32; stackSize += 7) {
@@ -350,7 +298,7 @@ unittest
                         scope Code2 c2 = new Code2();
                         c2.gen2(pNum, tNum | opt, stackSize);
                         uint64_t addr = cast(uint64_t) c2.getCode!(uint64_t* function())();
-                        autoRun.TEST_EQUAL(addr % 16, 0);
+                        testCount.TEST_EQUAL(addr % 16, 0);
                     }
                 }
             }
@@ -361,73 +309,73 @@ unittest
 @("args")
 unittest
 {
-    AutoRun autoRun;
-    autoRun.reset();
-    scope(exit) autoRun.end("args");
-
+    TestCount testCount;
+    testCount.reset();
+    scope(exit) testCount.end("args");
+    
     scope Code code = new Code();
     auto f1 = code.getCurr!(int function(int))();
     code.gen1();
-    autoRun.TEST_EQUAL(5, f1(5));
+    testCount.TEST_EQUAL(5, f1(5));
 
     auto f2 = code.getCurr!(int function(int, int))();
     code.gen2();
-    autoRun.TEST_EQUAL(9, f2(3, 6));
+    testCount.TEST_EQUAL(9, f2(3, 6));
 
     auto f3 = code.getCurr!(int function(int, int, int))();
     code.gen3();
-    autoRun.TEST_EQUAL(14, f3(1, 4, 9));
+    testCount.TEST_EQUAL(14, f3(1, 4, 9));
 
     auto f4  = code.getCurr!(int function(int, int, int, int))();
     code.gen4();
-    autoRun.TEST_EQUAL(30, f4(1, 4, 9, 16));
+    testCount.TEST_EQUAL(30, f4(1, 4, 9, 16));
 
     auto f5 = code.getCurr!(int function(int, int, int, int))();
     code.gen5();
-    autoRun.TEST_EQUAL(23, f5(2, 5, 7, 9));
+    testCount.TEST_EQUAL(23, f5(2, 5, 7, 9));
 
     auto f6 = code.getCurr!(int function(int, int, int, int))();
     code.gen6();
-    autoRun.TEST_EQUAL(18, f6(3, 4, 5, 6));
+    testCount.TEST_EQUAL(18, f6(3, 4, 5, 6));
 
     auto f7 = code.getCurr!(int function(int, int, int))();
     code.gen7();
-    autoRun.TEST_EQUAL(12, f7(3, 4, 5));
+    testCount.TEST_EQUAL(12, f7(3, 4, 5));
 
     auto f8 = code.getCurr!(int function(int, int, int))();
     code.gen8();
-    autoRun.TEST_EQUAL(23, f8(5, 8, 10));
+    testCount.TEST_EQUAL(23, f8(5, 8, 10));
  
     auto f9 = code.getCurr!(int function(int, int, int))();
     code.gen9();
-    autoRun.TEST_EQUAL(60, f9(10, 20, 30));
+    testCount.TEST_EQUAL(60, f9(10, 20, 30));
 
     auto f10 = code.getCurr!(int function(int, int, int, int))();
     code.gen10();
-    autoRun.TEST_EQUAL(100, f10(10, 20, 30, 40));
+    testCount.TEST_EQUAL(100, f10(10, 20, 30, 40));
 
     auto f11 = code.getCurr!(int function())();
     code.gen11();
-    autoRun.TEST_EQUAL(3, f11());
+    testCount.TEST_EQUAL(3, f11());
 
     auto f12 = code.getCurr!(int function(int, int, int, int))();
     code.gen12();
-    autoRun.TEST_EQUAL(24, f12(3, 5, 7, 9));
+    testCount.TEST_EQUAL(24, f12(3, 5, 7, 9));
 
     {
         const int64_t[] tbl = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ];
         auto f13 = code.getCurr!(int64_t function(const int64_t*))();
         code.gen13();
-        autoRun.TEST_EQUAL(91, f13(&tbl[0]));
+        testCount.TEST_EQUAL(91, f13(&tbl[0]));
 
         auto f14 = code.getCurr!(int64_t function(const int64_t*))();
         code.gen14();
-        autoRun.TEST_EQUAL(91, f14(&tbl[0]));
+        testCount.TEST_EQUAL(91, f14(&tbl[0]));
     }
 
     auto f15 = code.getCurr!(int function())();
     code.gen15();
-    autoRun.TEST_EQUAL((1 << 15) - 1, f15());
+    testCount.TEST_EQUAL((1 << 15) - 1, f15());
 }
 
 
@@ -439,10 +387,10 @@ void put(Pack p)
     printf("\n");
 }
 
-void verifyPack(Pack p, int[] tbl, size_t tblNum, ref AutoRun ar)
+void verifyPack(Pack p, int[] tbl, size_t tblNum, ref TestCount tc)
 {
     for (size_t i = 0; i < tblNum; i++) {
-        ar.TEST_EQUAL(p[i].getIdx, tbl[i]);
+        tc.TEST_EQUAL(p[i].getIdx, tbl[i]);
     }
 }
 
@@ -450,9 +398,9 @@ void verifyPack(Pack p, int[] tbl, size_t tblNum, ref AutoRun ar)
 @("pack")
 unittest
 {
-    AutoRun autoRun;
-    autoRun.reset();
-    scope(exit) autoRun.end("pack");
+    TestCount testCount;
+    testCount.reset();
+    scope(exit) testCount.end("pack");
 
     const int N = 10;
     Reg64[N] regTbl;
@@ -491,9 +439,9 @@ unittest
     for (size_t i = 0; i < tbl.length; i++) {
         const int pos = tbl[i].pos;
         const int num = tbl[i].num;
-        verifyPack(p.sub(pos, num), tbl[i].tbl, num, autoRun) ;
+        verifyPack(p.sub(pos, num), tbl[i].tbl, num, testCount) ;
         if (pos + num == N) {
-            verifyPack(p.sub(pos), tbl[i].tbl, num, autoRun);
+            verifyPack(p.sub(pos), tbl[i].tbl, num, testCount);
         }
     }
 }
@@ -537,16 +485,16 @@ class CloseCode : CodeGenerator
 @("close")
 unittest
 {
-    AutoRun autoRun;
-    autoRun.reset();
-    scope(exit) autoRun.end("close");
+    TestCount testCount;
+    testCount.reset();
+    scope(exit) testCount.end("close");
 
     const size_t[] expectedTbl = [
         1, 1, 2,
     ];
     for (size_t i = 0; i < expectedTbl.length; i++) {
         scope CloseCode c = new CloseCode(i);
-        autoRun.TEST_EQUAL(c.getSize(), expectedTbl[i]);
+        testCount.TEST_EQUAL(c.getSize(), expectedTbl[i]);
     }
 }
 
