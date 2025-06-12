@@ -1457,6 +1457,9 @@ version(XBYAK64)
 	}
 }
 
+version(XBYAK64)
+{
+
 @("LabelTable")
 unittest{
 	LabelTable();
@@ -1511,7 +1514,6 @@ class GetAddressCode2 : CodeGenerator
 	}
 }
 
-
 @("testGetAddressCode2")
 unittest{
 	testGetAddressCode2();
@@ -1542,9 +1544,6 @@ void testGetAddressCode2()
 	}
 }
 
-
-version(XBYAK64)
-{
 @("testrip")
 unittest{
 	testrip();

@@ -2,9 +2,18 @@
 	"authors": [
 		"herumi / deepprog"
 	],
+	"configurations": [
+		{
+			"name": "xbyak",
+			"targetType": "library"
+		},
+		{
+			"name": "unittest",
+			"targetType": "library"
+		}
+	],
 	"copyright": "Copyright (c) 2007 MITSUNARI Shigeo",
 	"dependencies": {
-		"silly": "~>1.1.1"
 	},
 	"description": "A minimal D application.",
 	"license": "BSD-3-Clause",
@@ -12,15 +21,5 @@
 	"subPackages": [
 		"./noexception/",
 		"./test_util/"
-	],
-	"configurations": [
-        {
-            "name": "xbyak",
-            "targetType": "library"
-        },
-        {
-            "name": "unittest",
-            "targetType": "library"
-        }
 	]
 }
