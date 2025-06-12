@@ -23,7 +23,7 @@ jobs:
     - name: test
       run: |
         sudo apt-get update
-        sudo apt-get install lib32z1
+        sudo apt install gcc-multilib
         source $(curl https://dlang.org/install.sh | bash -s -- ${{ matrix.compiler }} -a)
         dub test -ax86 --parallel -b=unittest-cov
     - name: codecov
