@@ -8,57 +8,9 @@ import std.exception;
 
 import xbyak;
 
-version(X86)
-{
-	version = XBYAK32;
-}
+version (X86) version = XBYAK32;
+version (X86_64) version = XBYAK64;
 
-version(X86_64)
-{
-	version = XBYAK64;
-}
-
-/+
-@("test0")
-unittest
-{
-
-	test1();
-	testJmpCx();
-	testloop();
-	test2();
-	//test3();
-	test4();
-	test5();	//MyAllocator
-	MovLabel();
-	testMovLabel2();
-	testF_B();
-	test6();
-	test_jcc();
-
-	testNewLabel();
-	
-	returnLabel();
-	testAssige();
-
-//	doubleDefine();
-	getAddress1();
-	LabelTable();
-
-	testGetAddressCode2();
-
-	testrip();
-	rip_jmp(); //ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW
-
-//	rip_addr();	// we can't assume |&x - &code| < 2GiB anymore
-	rip_addr_with_fixed_buf();
-	release_label_after_code(); //dlang
-	setDefaultJmpNEAR();
-	ambiguousFarJmp();
-
-	doubleDefine();
-}
-+/
 
 void putNop(CodeGenerator gen, int n)
 {
@@ -1684,35 +1636,37 @@ void rip_jmp()
 }
 
 
-//* //#if 0
-@("rip_addr")
-unittest{
-	rip_addr();
-}
-
-void rip_addr()
+version (none)
 {
-	//	we can't assume |&x - &code| < 2GiB anymore
-	static int x = 5;
-	class Code : CodeGenerator
-	{
-		this()
-		{
-		//	super();
-			mov(eax, 123);
-			mov(ptr[rip + &x], eax);
-			ret();
-		}
+
+	@("rip_addr")
+	unittest{
+		rip_addr();
 	}
 
-	scope code = new Code();
-	auto fn = cast(void function())code.getCode();
-	writeln(x);
-	fn();
-	writeln(x);
-	assert(x == 123);
+	void rip_addr()
+	{
+		//	we can't assume |&x - &code| < 2GiB anymore
+		static int x = 5;
+		class Code : CodeGenerator
+		{
+			this()
+			{
+			//	super();
+				mov(eax, 123);
+				mov(ptr[rip + &x], eax);
+				ret();
+			}
+		}
+
+		scope code = new Code();
+		auto fn = cast(void function())code.getCode();
+		writeln(x);
+		fn();
+		writeln(x);
+		assert(x == 123);
+	}
 }
-//*/
 
 version(OSX)
 {}
@@ -1948,48 +1902,4 @@ version(XBYAK32){
 	scope code = new Code();
 	assertThrown!Exception(code.genJmp());
 	assertThrown!Exception(code.genCall());
-}
-
-__EOF__
-version(unittest)
-{}
-else
-{
-void main()
-{
-	testAssige();
-//	testGetAddressCode2();
-//	release_label_after_code(); //dlang
-}
-}
-__EOF__
-	test1();
-	testJmpCx();
-	testloop();
-	test2();
-	//test3();
-	test4();
-	test5();	//MyAllocator
-	MovLabel();
-	testMovLabel2();
-	testF_B();
-	test6();
-	test_jcc();
-	testNewLabel();
-	
-	returnLabel();
-//	testAssige();
-	doubleDefine();
-	getAddress1();
-	LabelTable();
-//	testGetAddressCode2();
-	testrip();
-	rip_jmp(); //ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW
-
-	rip_addr();	// we can't assume |&x - &code| < 2GiB anymore
-	rip_addr_with_fixed_buf();
-//	release_label_after_code(); //dlang
-	setDefaultJmpNEAR();
-	ambiguousFarJmp();
-	}
 }
