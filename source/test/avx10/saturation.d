@@ -7,374 +7,341 @@ import std.stdint;
 import std.exception;
 import xbyak;
 
+version (X86) version = XBYAK32;
+version (X86_64) version = XBYAK64;
 
-class Code : CodeGenerator
+version (XBYAK64)
 {
-    this()
+    @("xed_saturation")
+    unittest
     {
-        super(4096*8);
-        setDefaultEncodingAVX10(AVX10v2Encoding);
-
-        //
-        vcvtbf162ibs(xm1, xm2);  dump(); size_ = 0;
-        vcvtbf162ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtbf162ibs(ym1, ym2);  dump(); size_ = 0;
-        vcvtbf162ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtbf162ibs(zm1, zm2);  dump(); size_ = 0;
-        vcvtbf162ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvtbf162iubs(xm1, xm2);  dump(); size_ = 0;
-        vcvtbf162iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtbf162iubs(ym1, ym2);  dump(); size_ = 0;
-        vcvtbf162iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtbf162iubs(zm1, zm2);  dump(); size_ = 0;
-        vcvtbf162iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtbf162iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttbf162ibs(xm1, xm2);  dump(); size_ = 0;
-        vcvttbf162ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttbf162ibs(ym1, ym2);  dump(); size_ = 0;
-        vcvttbf162ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttbf162ibs(zm1, zm2);  dump(); size_ = 0;
-        vcvttbf162ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttbf162iubs(xm1, xm2);  dump(); size_ = 0;
-        vcvttbf162iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttbf162iubs(ym1, ym2);  dump(); size_ = 0;
-        vcvttbf162iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttbf162iubs(zm1, zm2);  dump(); size_ = 0;
-        vcvttbf162iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttbf162iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttpd2qqs(xm1, xm2);  dump(); size_ = 0;
-        vcvttpd2qqs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttpd2qqs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttpd2qqs(ym1, ym2);  dump(); size_ = 0;
-        vcvttpd2qqs(ym1, ym2|T_sae);  dump(); size_ = 0;
-        vcvttpd2qqs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttpd2qqs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttpd2qqs(zm1, zm2);  dump(); size_ = 0;
-        vcvttpd2qqs(zm1, zm2|T_sae);  dump(); size_ = 0;
-        vcvttpd2qqs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttpd2qqs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttpd2uqqs(xm1, xm2);  dump(); size_ = 0;
-        vcvttpd2uqqs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttpd2uqqs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttpd2uqqs(ym1, ym2);  dump(); size_ = 0;
-        vcvttpd2uqqs(ym1, ym2|T_sae);  dump(); size_ = 0;
-        vcvttpd2uqqs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttpd2uqqs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttpd2uqqs(zm1, zm2);  dump(); size_ = 0;
-        vcvttpd2uqqs(zm1, zm2|T_sae);  dump(); size_ = 0;
-        vcvttpd2uqqs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttpd2uqqs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvtph2ibs(xm1, xm2);  dump(); size_ = 0;
-        vcvtph2ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtph2ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtph2ibs(ym1, ym2);  dump(); size_ = 0;
-        vcvtph2ibs(ym1, ym2|T_rd_sae);  dump(); size_ = 0;
-        vcvtph2ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtph2ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtph2ibs(zm1, zm2);  dump(); size_ = 0;
-        vcvtph2ibs(zm1, zm2|T_ru_sae);  dump(); size_ = 0;
-        vcvtph2ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtph2ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvtph2iubs(xm1, xm2);  dump(); size_ = 0;
-        vcvtph2iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtph2iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtph2iubs(ym1, ym2);  dump(); size_ = 0;
-        vcvtph2iubs(ym1, ym2|T_rd_sae);  dump(); size_ = 0;
-        vcvtph2iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtph2iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtph2iubs(zm1, zm2);  dump(); size_ = 0;
-        vcvtph2iubs(zm1, zm2|T_ru_sae);  dump(); size_ = 0;
-        vcvtph2iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtph2iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttph2ibs(xm1, xm2);  dump(); size_ = 0;
-        vcvttph2ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttph2ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttph2ibs(ym1, ym2);  dump(); size_ = 0;
-        vcvttph2ibs(ym1, ym2|T_rd_sae);  dump(); size_ = 0;
-        vcvttph2ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttph2ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttph2ibs(zm1, zm2);  dump(); size_ = 0;
-        vcvttph2ibs(zm1, zm2|T_ru_sae);  dump(); size_ = 0;
-        vcvttph2ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttph2ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttph2iubs(xm1, xm2);  dump(); size_ = 0;
-        vcvttph2iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttph2iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttph2iubs(ym1, ym2);  dump(); size_ = 0;
-        vcvttph2iubs(ym1, ym2|T_rd_sae);  dump(); size_ = 0;
-        vcvttph2iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttph2iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttph2iubs(zm1, zm2);  dump(); size_ = 0;
-        vcvttph2iubs(zm1, zm2|T_ru_sae);  dump(); size_ = 0;
-        vcvttph2iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttph2iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttps2dqs(xm1, xm2);  dump(); size_ = 0;
-        vcvttps2dqs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2dqs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2dqs(ym1, ym2);  dump(); size_ = 0;
-        vcvttps2dqs(ym1, ym2|T_sae);  dump(); size_ = 0;
-        vcvttps2dqs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2dqs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2dqs(zm1, zm2);  dump(); size_ = 0;
-        vcvttps2dqs(zm1, zm2|T_sae);  dump(); size_ = 0;
-        vcvttps2dqs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2dqs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvtps2ibs(xm1, xm2);  dump(); size_ = 0;
-        vcvtps2ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtps2ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtps2ibs(ym1, ym2);  dump(); size_ = 0;
-        vcvtps2ibs(ym1, ym2|T_rd_sae);  dump(); size_ = 0;
-        vcvtps2ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtps2ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtps2ibs(zm1, zm2);  dump(); size_ = 0;
-        vcvtps2ibs(zm1, zm2|T_ru_sae);  dump(); size_ = 0;
-        vcvtps2ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtps2ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvtps2iubs(xm1, xm2);  dump(); size_ = 0;
-        vcvtps2iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtps2iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtps2iubs(ym1, ym2);  dump(); size_ = 0;
-        vcvtps2iubs(ym1, ym2|T_rd_sae);  dump(); size_ = 0;
-        vcvtps2iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtps2iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvtps2iubs(zm1, zm2);  dump(); size_ = 0;
-        vcvtps2iubs(zm1, zm2|T_ru_sae);  dump(); size_ = 0;
-        vcvtps2iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvtps2iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttps2ibs(xm1, xm2);  dump(); size_ = 0;
-        vcvttps2ibs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2ibs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2ibs(ym1, ym2);  dump(); size_ = 0;
-        vcvttps2ibs(ym1, ym2|T_rd_sae);  dump(); size_ = 0;
-        vcvttps2ibs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2ibs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2ibs(zm1, zm2);  dump(); size_ = 0;
-        vcvttps2ibs(zm1, zm2|T_ru_sae);  dump(); size_ = 0;
-        vcvttps2ibs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2ibs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttps2iubs(xm1, xm2);  dump(); size_ = 0;
-        vcvttps2iubs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2iubs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2iubs(ym1, ym2);  dump(); size_ = 0;
-        vcvttps2iubs(ym1, ym2|T_rd_sae);  dump(); size_ = 0;
-        vcvttps2iubs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2iubs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2iubs(zm1, zm2);  dump(); size_ = 0;
-        vcvttps2iubs(zm1, zm2|T_ru_sae);  dump(); size_ = 0;
-        vcvttps2iubs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2iubs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttps2udqs(xm1, xm2);  dump(); size_ = 0;
-        vcvttps2udqs(xm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2udqs(xm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2udqs(ym1, ym2);  dump(); size_ = 0;
-        vcvttps2udqs(ym1, ym2|T_sae);  dump(); size_ = 0;
-        vcvttps2udqs(ym1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2udqs(ym1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2udqs(zm1, zm2);  dump(); size_ = 0;
-        vcvttps2udqs(zm1, zm2|T_sae);  dump(); size_ = 0;
-        vcvttps2udqs(zm1, ptr[rax+128]);  dump(); size_ = 0;
-        vcvttps2udqs(zm1, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        //
-        vcvttpd2dqs(xm1|k1|T_z, xm2);  dump(); size_ = 0;
-        vcvttpd2dqs(xm1|k1|T_z, xword [rax+128]);  dump(); size_ = 0;
-        vcvttpd2dqs(xm1|k1|T_z, xword_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttpd2dqs(xm1|k1|T_z, ym2);  dump(); size_ = 0;
-        vcvttpd2dqs(xm1|k1|T_z, ym2|T_sae);  dump(); size_ = 0;
-        vcvttpd2dqs(xm1|k1|T_z, yword [rax+128]);  dump(); size_ = 0;
-        vcvttpd2dqs(xm1|k1|T_z, yword_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttpd2dqs(ym1|k1|T_z, zm2);  dump(); size_ = 0;
-        vcvttpd2dqs(ym1|k1|T_z, zm2|T_sae);  dump(); size_ = 0;
-        vcvttpd2dqs(ym1|k1|T_z, zword [rax+128]);  dump(); size_ = 0;
-        vcvttpd2dqs(ym1|k1|T_z, zword_b[rax+128]);  dump(); size_ = 0;
-
-        //
-        vcvttpd2udqs(xm1|k1|T_z, xm2);  dump(); size_ = 0;
-        vcvttpd2udqs(xm1|k1|T_z, xword [rax+128]);  dump(); size_ = 0;
-        vcvttpd2udqs(xm1|k1|T_z, xword_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttpd2udqs(xm1|k1|T_z, ym2);  dump(); size_ = 0;
-        vcvttpd2udqs(xm1|k1|T_z, ym2|T_sae);  dump(); size_ = 0;
-        vcvttpd2udqs(xm1|k1|T_z, yword [rax+128]);  dump(); size_ = 0;
-        vcvttpd2udqs(xm1|k1|T_z, yword_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttpd2udqs(ym1|k1|T_z, zm2);  dump(); size_ = 0;
-        vcvttpd2udqs(ym1|k1|T_z, zm2|T_sae);  dump(); size_ = 0;
-        vcvttpd2udqs(ym1|k1|T_z, zword [rax+128]);  dump(); size_ = 0;
-        vcvttpd2udqs(ym1|k1|T_z, zword_b[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttps2qqs(xm1|k1|T_z, xm2);  dump(); size_ = 0;
-        vcvttps2qqs(xm1|k1|T_z, ptr [rax+128]);  dump(); size_ = 0;
-        vcvttps2qqs(xm1|k1|T_z, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2qqs(ym1|k1|T_z, xm2);  dump(); size_ = 0;
-        vcvttps2qqs(ym1|k1|T_z, xm2|T_sae);  dump(); size_ = 0;
-        vcvttps2qqs(ym1|k1|T_z, ptr [rax+128]);  dump(); size_ = 0;
-        vcvttps2qqs(ym1|k1|T_z, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2qqs(zm1, ym2);  dump(); size_ = 0;
-        vcvttps2qqs(zm1|k1|T_z, ym2);  dump(); size_ = 0;
-        vcvttps2qqs(zm1|k1|T_z|T_sae, ym2);  dump(); size_ = 0;
-        vcvttps2qqs(zm1|k1|T_z, ptr [rax+128]);  dump(); size_ = 0;
-        vcvttps2qqs(zm1|k1|T_z, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        //
-        vcvttps2uqqs(xm1|k1|T_z, xm2);  dump(); size_ = 0;
-        vcvttps2uqqs(xm1|k1|T_z, ptr [rax+128]);  dump(); size_ = 0;
-        vcvttps2uqqs(xm1|k1|T_z, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2uqqs(ym1|k1|T_z, xm2);  dump(); size_ = 0;
-        vcvttps2uqqs(ym1|k1|T_z, xm2|T_sae);  dump(); size_ = 0;
-        vcvttps2uqqs(ym1|k1|T_z, ptr [rax+128]);  dump(); size_ = 0;
-        vcvttps2uqqs(ym1|k1|T_z, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        vcvttps2uqqs(zm1, ym2);  dump(); size_ = 0;
-        vcvttps2uqqs(zm1|k1|T_z, ym2);  dump(); size_ = 0;
-        vcvttps2uqqs(zm1|k1|T_z|T_sae, ym2);  dump(); size_ = 0;
-        vcvttps2uqqs(zm1|k1|T_z, ptr [rax+128]);  dump(); size_ = 0;
-        vcvttps2uqqs(zm1|k1|T_z, ptr_b[rax+128]);  dump(); size_ = 0;
-
-        //
-        vcvttsd2sis(eax, xm1);  dump(); size_ = 0;
-        vcvttsd2sis(eax, xm1|T_sae);  dump(); size_ = 0;
-        vcvttsd2sis(eax, ptr[rax+128]);  dump(); size_ = 0;
-
-        vcvttsd2sis(r30, xm1);  dump(); size_ = 0;
-        vcvttsd2sis(r30, xm1|T_sae);  dump(); size_ = 0;
-        vcvttsd2sis(r30, ptr[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttsd2usis(eax, xm1);  dump(); size_ = 0;
-        vcvttsd2usis(eax, xm1|T_sae);  dump(); size_ = 0;
-        vcvttsd2usis(eax, ptr[rax+128]);  dump(); size_ = 0;
-
-        vcvttsd2usis(r30, xm1);  dump(); size_ = 0;
-        vcvttsd2usis(r30, xm1|T_sae);  dump(); size_ = 0;
-        vcvttsd2usis(r30, ptr[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttss2sis(eax, xm1);  dump(); size_ = 0;
-        vcvttss2sis(eax, xm1|T_sae);  dump(); size_ = 0;
-        vcvttss2sis(eax, ptr[rax+128]);  dump(); size_ = 0;
-
-        vcvttss2sis(r30, xm1);  dump(); size_ = 0;
-        vcvttss2sis(r30, xm1|T_sae);  dump(); size_ = 0;
-        vcvttss2sis(r30, ptr[rax+128]);  dump(); size_ = 0;
-        //
-        vcvttss2usis(eax, xm1);  dump(); size_ = 0;
-        vcvttss2usis(eax, xm1|T_sae);  dump(); size_ = 0;
-        vcvttss2usis(eax, ptr[rax+128]);  dump(); size_ = 0;
-
-        vcvttss2usis(r30, xm1);  dump(); size_ = 0;
-        vcvttss2usis(r30, xm1|T_sae);  dump(); size_ = 0;
-        vcvttss2usis(r30, ptr[rax+128]);  dump(); size_ = 0;
+        xed_saturation();
     }
-}
 
-void Xdump(uint8_t* p, size_t bufSize) 
-{
-    size_t remain  = bufSize;
-    for (int i = 0; i < 4; i++) {
-        size_t disp = 16;
-        if (remain < 16) {
-            disp = remain;
-        }
-        for (size_t j = 0; j < 16; j++) {
-            if (j < disp) {
-                write(format("%02X", p[i * 16 + j]));
-            }
-        }
-        writeln();
-        remain -= disp;
-        if (remain <= 0) {
-            break;
-        }
-    }
-}
+    void xed_saturation()
+    {
 
-@("xed_saturation")
-unittest
-{
-    xed_saturation();
-}
-
-void xed_saturation()
-{
-    //try
-    //{
-    //    writeln("xed_saturation");
+        writeln("xed_saturation");
         scope Code c = new Code();
-        auto tbl = c.getCode();
-    
-        //writeln(c.getSize());    
-        //Xdump(tbl, c.getSize());
+    }
 
-    //    writeln("end xed_saturation");
-    //    FILE *fp = fopen("bin", "wb");
-    //    if (fp) {
-    //        fwrite(c.getCode(), 1, c.getSize(), fp);
-    //        fclose(fp);
-    //} 
-    //catch (Exception e)
-    //{
-    //    printf("ERR %s\n", e.what());
-    //}
+    class Code : CodeGenerator
+    {
+        this()
+        {
+            super(4096 * 8);
+            setDefaultEncodingAVX10(AVX10v2Encoding);
+
+            //
+            vcvtbf162ibs(xm1, xm2);
+            vcvtbf162ibs(xm1, ptr[rax + 128]);
+            vcvtbf162ibs(xm1, ptr_b[rax + 128]);
+
+            vcvtbf162ibs(ym1, ym2);
+            vcvtbf162ibs(ym1, ptr[rax + 128]);
+            vcvtbf162ibs(ym1, ptr_b[rax + 128]);
+
+            vcvtbf162ibs(zm1, zm2);
+            vcvtbf162ibs(zm1, ptr[rax + 128]);
+            vcvtbf162ibs(zm1, ptr_b[rax + 128]);
+            //
+            vcvtbf162iubs(xm1, xm2);
+            vcvtbf162iubs(xm1, ptr[rax + 128]);
+            vcvtbf162iubs(xm1, ptr_b[rax + 128]);
+
+            vcvtbf162iubs(ym1, ym2);
+            vcvtbf162iubs(ym1, ptr[rax + 128]);
+            vcvtbf162iubs(ym1, ptr_b[rax + 128]);
+
+            vcvtbf162iubs(zm1, zm2);
+            vcvtbf162iubs(zm1, ptr[rax + 128]);
+            vcvtbf162iubs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttbf162ibs(xm1, xm2);
+            vcvttbf162ibs(xm1, ptr[rax + 128]);
+            vcvttbf162ibs(xm1, ptr_b[rax + 128]);
+
+            vcvttbf162ibs(ym1, ym2);
+            vcvttbf162ibs(ym1, ptr[rax + 128]);
+            vcvttbf162ibs(ym1, ptr_b[rax + 128]);
+
+            vcvttbf162ibs(zm1, zm2);
+            vcvttbf162ibs(zm1, ptr[rax + 128]);
+            vcvttbf162ibs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttbf162iubs(xm1, xm2);
+            vcvttbf162iubs(xm1, ptr[rax + 128]);
+            vcvttbf162iubs(xm1, ptr_b[rax + 128]);
+
+            vcvttbf162iubs(ym1, ym2);
+            vcvttbf162iubs(ym1, ptr[rax + 128]);
+            vcvttbf162iubs(ym1, ptr_b[rax + 128]);
+
+            vcvttbf162iubs(zm1, zm2);
+            vcvttbf162iubs(zm1, ptr[rax + 128]);
+            vcvttbf162iubs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttpd2qqs(xm1, xm2);
+            vcvttpd2qqs(xm1, ptr[rax + 128]);
+            vcvttpd2qqs(xm1, ptr_b[rax + 128]);
+
+            vcvttpd2qqs(ym1, ym2);
+            vcvttpd2qqs(ym1, ym2 | T_sae);
+            vcvttpd2qqs(ym1, ptr[rax + 128]);
+            vcvttpd2qqs(ym1, ptr_b[rax + 128]);
+
+            vcvttpd2qqs(zm1, zm2);
+            vcvttpd2qqs(zm1, zm2 | T_sae);
+            vcvttpd2qqs(zm1, ptr[rax + 128]);
+            vcvttpd2qqs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttpd2uqqs(xm1, xm2);
+            vcvttpd2uqqs(xm1, ptr[rax + 128]);
+            vcvttpd2uqqs(xm1, ptr_b[rax + 128]);
+
+            vcvttpd2uqqs(ym1, ym2);
+            vcvttpd2uqqs(ym1, ym2 | T_sae);
+            vcvttpd2uqqs(ym1, ptr[rax + 128]);
+            vcvttpd2uqqs(ym1, ptr_b[rax + 128]);
+
+            vcvttpd2uqqs(zm1, zm2);
+            vcvttpd2uqqs(zm1, zm2 | T_sae);
+            vcvttpd2uqqs(zm1, ptr[rax + 128]);
+            vcvttpd2uqqs(zm1, ptr_b[rax + 128]);
+            //
+            vcvtph2ibs(xm1, xm2);
+            vcvtph2ibs(xm1, ptr[rax + 128]);
+            vcvtph2ibs(xm1, ptr_b[rax + 128]);
+
+            vcvtph2ibs(ym1, ym2);
+            vcvtph2ibs(ym1, ym2 | T_rd_sae);
+            vcvtph2ibs(ym1, ptr[rax + 128]);
+            vcvtph2ibs(ym1, ptr_b[rax + 128]);
+
+            vcvtph2ibs(zm1, zm2);
+            vcvtph2ibs(zm1, zm2 | T_ru_sae);
+            vcvtph2ibs(zm1, ptr[rax + 128]);
+            vcvtph2ibs(zm1, ptr_b[rax + 128]);
+            //
+            vcvtph2iubs(xm1, xm2);
+            vcvtph2iubs(xm1, ptr[rax + 128]);
+            vcvtph2iubs(xm1, ptr_b[rax + 128]);
+
+            vcvtph2iubs(ym1, ym2);
+            vcvtph2iubs(ym1, ym2 | T_rd_sae);
+            vcvtph2iubs(ym1, ptr[rax + 128]);
+            vcvtph2iubs(ym1, ptr_b[rax + 128]);
+
+            vcvtph2iubs(zm1, zm2);
+            vcvtph2iubs(zm1, zm2 | T_ru_sae);
+            vcvtph2iubs(zm1, ptr[rax + 128]);
+            vcvtph2iubs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttph2ibs(xm1, xm2);
+            vcvttph2ibs(xm1, ptr[rax + 128]);
+            vcvttph2ibs(xm1, ptr_b[rax + 128]);
+
+            vcvttph2ibs(ym1, ym2);
+            vcvttph2ibs(ym1, ym2 | T_rd_sae);
+            vcvttph2ibs(ym1, ptr[rax + 128]);
+            vcvttph2ibs(ym1, ptr_b[rax + 128]);
+
+            vcvttph2ibs(zm1, zm2);
+            vcvttph2ibs(zm1, zm2 | T_ru_sae);
+            vcvttph2ibs(zm1, ptr[rax + 128]);
+            vcvttph2ibs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttph2iubs(xm1, xm2);
+            vcvttph2iubs(xm1, ptr[rax + 128]);
+            vcvttph2iubs(xm1, ptr_b[rax + 128]);
+
+            vcvttph2iubs(ym1, ym2);
+            vcvttph2iubs(ym1, ym2 | T_rd_sae);
+            vcvttph2iubs(ym1, ptr[rax + 128]);
+            vcvttph2iubs(ym1, ptr_b[rax + 128]);
+
+            vcvttph2iubs(zm1, zm2);
+            vcvttph2iubs(zm1, zm2 | T_ru_sae);
+            vcvttph2iubs(zm1, ptr[rax + 128]);
+            vcvttph2iubs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttps2dqs(xm1, xm2);
+            vcvttps2dqs(xm1, ptr[rax + 128]);
+            vcvttps2dqs(xm1, ptr_b[rax + 128]);
+
+            vcvttps2dqs(ym1, ym2);
+            vcvttps2dqs(ym1, ym2 | T_sae);
+            vcvttps2dqs(ym1, ptr[rax + 128]);
+            vcvttps2dqs(ym1, ptr_b[rax + 128]);
+
+            vcvttps2dqs(zm1, zm2);
+            vcvttps2dqs(zm1, zm2 | T_sae);
+            vcvttps2dqs(zm1, ptr[rax + 128]);
+            vcvttps2dqs(zm1, ptr_b[rax + 128]);
+            //
+            vcvtps2ibs(xm1, xm2);
+            vcvtps2ibs(xm1, ptr[rax + 128]);
+            vcvtps2ibs(xm1, ptr_b[rax + 128]);
+
+            vcvtps2ibs(ym1, ym2);
+            vcvtps2ibs(ym1, ym2 | T_rd_sae);
+            vcvtps2ibs(ym1, ptr[rax + 128]);
+            vcvtps2ibs(ym1, ptr_b[rax + 128]);
+
+            vcvtps2ibs(zm1, zm2);
+            vcvtps2ibs(zm1, zm2 | T_ru_sae);
+            vcvtps2ibs(zm1, ptr[rax + 128]);
+            vcvtps2ibs(zm1, ptr_b[rax + 128]);
+            //
+            vcvtps2iubs(xm1, xm2);
+            vcvtps2iubs(xm1, ptr[rax + 128]);
+            vcvtps2iubs(xm1, ptr_b[rax + 128]);
+
+            vcvtps2iubs(ym1, ym2);
+            vcvtps2iubs(ym1, ym2 | T_rd_sae);
+            vcvtps2iubs(ym1, ptr[rax + 128]);
+            vcvtps2iubs(ym1, ptr_b[rax + 128]);
+
+            vcvtps2iubs(zm1, zm2);
+            vcvtps2iubs(zm1, zm2 | T_ru_sae);
+            vcvtps2iubs(zm1, ptr[rax + 128]);
+            vcvtps2iubs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttps2ibs(xm1, xm2);
+            vcvttps2ibs(xm1, ptr[rax + 128]);
+            vcvttps2ibs(xm1, ptr_b[rax + 128]);
+
+            vcvttps2ibs(ym1, ym2);
+            vcvttps2ibs(ym1, ym2 | T_rd_sae);
+            vcvttps2ibs(ym1, ptr[rax + 128]);
+            vcvttps2ibs(ym1, ptr_b[rax + 128]);
+
+            vcvttps2ibs(zm1, zm2);
+            vcvttps2ibs(zm1, zm2 | T_ru_sae);
+            vcvttps2ibs(zm1, ptr[rax + 128]);
+            vcvttps2ibs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttps2iubs(xm1, xm2);
+            vcvttps2iubs(xm1, ptr[rax + 128]);
+            vcvttps2iubs(xm1, ptr_b[rax + 128]);
+
+            vcvttps2iubs(ym1, ym2);
+            vcvttps2iubs(ym1, ym2 | T_rd_sae);
+            vcvttps2iubs(ym1, ptr[rax + 128]);
+            vcvttps2iubs(ym1, ptr_b[rax + 128]);
+
+            vcvttps2iubs(zm1, zm2);
+            vcvttps2iubs(zm1, zm2 | T_ru_sae);
+            vcvttps2iubs(zm1, ptr[rax + 128]);
+            vcvttps2iubs(zm1, ptr_b[rax + 128]);
+            //
+            vcvttps2udqs(xm1, xm2);
+            vcvttps2udqs(xm1, ptr[rax + 128]);
+            vcvttps2udqs(xm1, ptr_b[rax + 128]);
+
+            vcvttps2udqs(ym1, ym2);
+            vcvttps2udqs(ym1, ym2 | T_sae);
+            vcvttps2udqs(ym1, ptr[rax + 128]);
+            vcvttps2udqs(ym1, ptr_b[rax + 128]);
+
+            vcvttps2udqs(zm1, zm2);
+            vcvttps2udqs(zm1, zm2 | T_sae);
+            vcvttps2udqs(zm1, ptr[rax + 128]);
+            vcvttps2udqs(zm1, ptr_b[rax + 128]);
+
+            //
+            vcvttpd2dqs(xm1 | k1 | T_z, xm2);
+            vcvttpd2dqs(xm1 | k1 | T_z, xword[rax + 128]);
+            vcvttpd2dqs(xm1 | k1 | T_z, xword_b[rax + 128]);
+
+            vcvttpd2dqs(xm1 | k1 | T_z, ym2);
+            vcvttpd2dqs(xm1 | k1 | T_z, ym2 | T_sae);
+            vcvttpd2dqs(xm1 | k1 | T_z, yword[rax + 128]);
+            vcvttpd2dqs(xm1 | k1 | T_z, yword_b[rax + 128]);
+
+            vcvttpd2dqs(ym1 | k1 | T_z, zm2);
+            vcvttpd2dqs(ym1 | k1 | T_z, zm2 | T_sae);
+            vcvttpd2dqs(ym1 | k1 | T_z, zword[rax + 128]);
+            vcvttpd2dqs(ym1 | k1 | T_z, zword_b[rax + 128]);
+
+            //
+            vcvttpd2udqs(xm1 | k1 | T_z, xm2);
+            vcvttpd2udqs(xm1 | k1 | T_z, xword[rax + 128]);
+            vcvttpd2udqs(xm1 | k1 | T_z, xword_b[rax + 128]);
+
+            vcvttpd2udqs(xm1 | k1 | T_z, ym2);
+            vcvttpd2udqs(xm1 | k1 | T_z, ym2 | T_sae);
+            vcvttpd2udqs(xm1 | k1 | T_z, yword[rax + 128]);
+            vcvttpd2udqs(xm1 | k1 | T_z, yword_b[rax + 128]);
+
+            vcvttpd2udqs(ym1 | k1 | T_z, zm2);
+            vcvttpd2udqs(ym1 | k1 | T_z, zm2 | T_sae);
+            vcvttpd2udqs(ym1 | k1 | T_z, zword[rax + 128]);
+            vcvttpd2udqs(ym1 | k1 | T_z, zword_b[rax + 128]);
+            //
+            vcvttps2qqs(xm1 | k1 | T_z, xm2);
+            vcvttps2qqs(xm1 | k1 | T_z, ptr[rax + 128]);
+            vcvttps2qqs(xm1 | k1 | T_z, ptr_b[rax + 128]);
+
+            vcvttps2qqs(ym1 | k1 | T_z, xm2);
+            vcvttps2qqs(ym1 | k1 | T_z, xm2 | T_sae);
+            vcvttps2qqs(ym1 | k1 | T_z, ptr[rax + 128]);
+            vcvttps2qqs(ym1 | k1 | T_z, ptr_b[rax + 128]);
+
+            vcvttps2qqs(zm1, ym2);
+            vcvttps2qqs(zm1 | k1 | T_z, ym2);
+            vcvttps2qqs(zm1 | k1 | T_z | T_sae, ym2);
+            vcvttps2qqs(zm1 | k1 | T_z, ptr[rax + 128]);
+            vcvttps2qqs(zm1 | k1 | T_z, ptr_b[rax + 128]);
+
+            //
+            vcvttps2uqqs(xm1 | k1 | T_z, xm2);
+            vcvttps2uqqs(xm1 | k1 | T_z, ptr[rax + 128]);
+            vcvttps2uqqs(xm1 | k1 | T_z, ptr_b[rax + 128]);
+
+            vcvttps2uqqs(ym1 | k1 | T_z, xm2);
+            vcvttps2uqqs(ym1 | k1 | T_z, xm2 | T_sae);
+            vcvttps2uqqs(ym1 | k1 | T_z, ptr[rax + 128]);
+            vcvttps2uqqs(ym1 | k1 | T_z, ptr_b[rax + 128]);
+
+            vcvttps2uqqs(zm1, ym2);
+            vcvttps2uqqs(zm1 | k1 | T_z, ym2);
+            vcvttps2uqqs(zm1 | k1 | T_z | T_sae, ym2);
+            vcvttps2uqqs(zm1 | k1 | T_z, ptr[rax + 128]);
+            vcvttps2uqqs(zm1 | k1 | T_z, ptr_b[rax + 128]);
+
+            //
+            vcvttsd2sis(eax, xm1);
+            vcvttsd2sis(eax, xm1 | T_sae);
+            vcvttsd2sis(eax, ptr[rax + 128]);
+
+            vcvttsd2sis(r30, xm1);
+            vcvttsd2sis(r30, xm1 | T_sae);
+            vcvttsd2sis(r30, ptr[rax + 128]);
+            //
+            vcvttsd2usis(eax, xm1);
+            vcvttsd2usis(eax, xm1 | T_sae);
+            vcvttsd2usis(eax, ptr[rax + 128]);
+
+            vcvttsd2usis(r30, xm1);
+            vcvttsd2usis(r30, xm1 | T_sae);
+            vcvttsd2usis(r30, ptr[rax + 128]);
+            //
+            vcvttss2sis(eax, xm1);
+            vcvttss2sis(eax, xm1 | T_sae);
+            vcvttss2sis(eax, ptr[rax + 128]);
+
+            vcvttss2sis(r30, xm1);
+            vcvttss2sis(r30, xm1 | T_sae);
+            vcvttss2sis(r30, ptr[rax + 128]);
+            //
+            vcvttss2usis(eax, xm1);
+            vcvttss2usis(eax, xm1 | T_sae);
+            vcvttss2usis(eax, ptr[rax + 128]);
+
+            vcvttss2usis(r30, xm1);
+            vcvttss2usis(r30, xm1 | T_sae);
+            vcvttss2usis(r30, ptr[rax + 128]);
+        }
+    }
 }
-
