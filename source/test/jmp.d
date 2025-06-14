@@ -7,6 +7,7 @@ import std.stdint;
 import std.exception;
 
 import xbyak;
+import test.test_count;
 
 version (X86) version = XBYAK32;
 version (X86_64) version = XBYAK64;
@@ -50,7 +51,9 @@ void dump(string m)
 }
 
 @("test1")
-unittest{
+unittest
+{
+	writef("%s(%d) : ", __FILE__, __LINE__);
 	test1();
 }
 
@@ -142,32 +145,31 @@ void test1()
 		Tbl( 128, false, false, [ 0xe9, 0x80, 0x00, 0x00, 0x00 ], 5 )
 	];
 
+	TestCount tc;
+	tc.reset();
+	scope (exit) tc.end("test1");
 
-	for(int i = 0; i < tbl.length; i++) {
+	for (int i = 0; i < tbl.length; i++)
+	{
 		Tbl p = tbl[i];
-		for(int k = 0; k < 2; k++) {
+		for (int k = 0; k < 2; k++)
+		{
 			scope TestJmp testjmp = new TestJmp(p.offset, p.isBack, p.isShort, k == 0);
-			uint8_t* q = cast(uint8_t*)testjmp.getCode();
-			if (p.isBack) q += p.offset; /* skip nop */
-			for (int j = 0; j < p.size; j++) {
-				writeln(q[j], " : ", p.result[j]);
-				bool b = q[j] == p.result[j];
-				assert(b);
+			uint8_t* q = cast(uint8_t*) testjmp.getCode();
+			if (p.isBack)
+				q += p.offset; /* skip nop */
+			for (int j = 0; j < p.size; j++)
+			{
+				tc.TEST_EQUAL(q[j], p.result[j]);
 			}
-		
-			for (size_t j = 0; j < testjmp.getSize(); j++) {
-				if ((j % 16) == 0) printf("%04x ", cast(int)(j / 16));
-				printf("%02x ", q[j]);
-				if ((j % 16) == 15) putchar('\n');
-			}
-			putchar('\n');
-
 		}
 	}
 }
 
 @("testJmpCx")
-unittest{
+unittest
+{
+	writef("%s(%d) : ", __FILE__, __LINE__);
 	testJmpCx();
 }
 
@@ -182,40 +184,48 @@ void testJmpCx()
 			if (useNewLabel)
 			{
 				Label lp;
-			L(lp);
-version(XBYAK64) {
+				L(lp);
+				version (XBYAK64)
+				{
 				/*
 					67 E3 FD ; jecxz lp
 					E3 FB    ; jrcxz lp
 				*/
-				jecxz(lp);
-				jrcxz(lp);
-} else {
+					jecxz(lp);
+					jrcxz(lp);
+				}
+				else
+				{
 				/*
 					E3FE   ; jecxz lp
 					67E3FB ; jcxz lp
 				*/
-				jecxz(lp);
-				jcxz(lp);
-}
-			} else {
+					jecxz(lp);
+					jcxz(lp);
+				}
+			}
+			else
+			{
 				inLocalLabel();
-			L(".lp");
-version(XBYAK64) {
+				L(".lp");
+				version (XBYAK64)
+				{
 				/*
 					67 E3 FD ; jecxz lp
 					E3 FB    ; jrcxz lp
 				*/
-				jecxz(".lp");
-				jrcxz(".lp");
-} else {
+					jecxz(".lp");
+					jrcxz(".lp");
+				}
+				else
+				{
 				/*
 					E3FE   ; jecxz lp
 					67E3FB ; jcxz lp
 				*/
-				jecxz(".lp");
-				jcxz(".lp");
-}
+					jecxz(".lp");
+					jcxz(".lp");
+				}
 				outLocalLabel();
 			}
 		}
@@ -227,47 +237,61 @@ version(XBYAK64) {
 		size_t len;
 	}
 
-version(XBYAK64) {
-	Tbl tbl = Tbl("\x67\xe3\xfd\xe3\xfb", 5);
-} else {
-	Tbl tbl = Tbl("\xe3\xfe\x67\xe3\xfb", 5);
-}
-	
-	for(int j = 0; j < 2; j++) {
+	version (XBYAK64)
+	{
+		Tbl tbl = Tbl("\x67\xe3\xfd\xe3\xfb", 5);
+	}
+	else
+	{
+		Tbl tbl = Tbl("\xe3\xfe\x67\xe3\xfb", 5);
+	}
+
+	TestCount tc;
+	tc.reset();
+	scope (exit) tc.end("testJmpCx");
+
+	for (int j = 0; j < 2; j++)
+	{
 		char[16] buf;
 		scope TestJmpCx code = new TestJmpCx(&buf, (j == 0));
-		for(size_t i = 0; i < tbl.len; i++)
+		for (size_t i = 0; i < tbl.len; i++)
 		{
-			assert(buf[i] == tbl.p[i]);
+			tc.TEST_EQUAL(buf[i], tbl.p[i]);
 		}
 	}
 }
 
 @("testloop")
-unittest{
+unittest
+{
+	writef("%s(%d) : ", __FILE__, __LINE__);
 	testloop();
 }
 
 void testloop()
 {
 	uint8_t[] ok = [
-		// lp:
+					// lp:
 		0x31, 0xC0, // xor eax, eax
 		0xE2, 0xFC, // loop lp
 		0xE0, 0xFA, // loopne lp
 		0xE1, 0xF8, // loope lp
 	];
-	
-	class Code : CodeGenerator {
+
+	class Code : CodeGenerator
+	{
 		this(bool useLabel)
 		{
-			if (useLabel) {
- 			Label lp = L();
+			if (useLabel)
+			{
+				Label lp = L();
 				xor(eax, eax);
 				loop(lp);
 				loopne(lp);
 				loope(lp);
-			} else {
+			}
+			else
+			{
 				L("@@");
 				xor(eax, eax);
 				loop("@b");
@@ -276,42 +300,33 @@ void testloop()
 			}
 		}
 	}
-	
-	scope Code code1 = new Code(false);
-	auto bufSize = code1.getSize();
-	if(bufSize != ok.length)
+
+	TestCount tc;
+	tc.reset();
+	scope (exit) tc.end("testloop");
+
+	scope code1 = new Code(false);
+	tc.TEST_EQUAL(code1.getSize(), ok.length);
+	auto buf1 = code1.getCode();
+	for (size_t i = 0; i < ok.length; i++)
 	{
-		assert(0);
+		tc.TEST_EQUAL(buf1[i], ok[i]);
 	}
 
-	auto buf = code1.getCode();
-	for(size_t i = 0; i < ok.length; i++)
-	{
-		if(buf[i] != ok[i])
-		{
-			assert(0);
-		}
-	}
+	scope code2 = new Code(false);
+	tc.TEST_EQUAL(code2.getSize(), ok.length);
 
-	scope Code code2 = new Code(true);
-	bufSize = code2.getSize();
-	if(bufSize != ok.length)
+	auto buf2 = code2.getCode();
+	for (size_t i = 0; i < ok.length; i++)
 	{
-		assert(0);
-	}
-
-	buf = code2.getCode();
-	for(size_t i = 0; i < ok.length; i++)
-	{
-		if(buf[i] != ok[i])
-		{
-			assert(0);
-		}
+		tc.TEST_EQUAL(buf2[i], ok[i]);
 	}
 }
 
 @("test2")
-unittest{
+unittest
+{
+	writef("%s(%d) : ", __FILE__, __LINE__);
 	test2();
 }
 
@@ -322,27 +337,28 @@ void test2()
 	/*
 	  1 00000000 90                      nop
 	  2 00000001 90                      nop
-	  3                                  f1:
+	  3                              f1:
 	  4 00000002 <res 0000007E>          dummyX1 resb 126
-	  6 00000080 EB80                     jmp f1
+	  6 00000080 EB80                    jmp f1
 	  7
-	  8                                  f2:
+	  8                              f2:
 	  9 00000082 <res 0000007F>          dummyX2 resb 127
-	 11 00000101 E97CFFFFFF               jmp f2
+	 11 00000101 E97CFFFFFF              jmp f2
 	 12
 	 13
 	 14 00000106 EB7F                    jmp f3
 	 15 00000108 <res 0000007F>          dummyX3 resb 127
-	 17                                  f3:
+	 17                              f3:
 	 18
 	 19 00000187 E980000000              jmp f4
 	 20 0000018C <res 00000080>          dummyX4 resb 128
-	 22                                  f4:
+	 22                              f4:
 	*/
 		this(void* p, bool useNewLabel)
 		{
 			super(8192, p);
-			if(useNewLabel) {
+			if(useNewLabel)
+			{
 				inLocalLabel();
 				nop();
 				nop();
@@ -382,7 +398,7 @@ void test2()
 		}
 	}
 
-	char[1024] ok;
+	ubyte[1024] ok;
 	ok[] = 0x90;
  
 	ok[0x080] = 0xeb;
@@ -402,56 +418,43 @@ void test2()
 	ok[0x189] = 0x00;
 	ok[0x18a] = 0x00;
 	ok[0x18b] = 0x00;
-	
+
+	TestCount tc;
+	tc.reset();
+	scope (exit) tc.end("test2");
+
 	scope TestJmp2 c;
 	c = new TestJmp2(null, true);
 	c.ready();
 	auto code = c.getCode();
-	for(auto i = 0; i < c.getSize; i++)
+	for (auto i = 0; i < c.getSize; i++)
 	{
-		if(code[i] != ok[i])
-		{
-			printf("TestJmp2(null, true) NG: %X != %X\n", code[i], ok[i]); 
-			assert(0);
-		}
+		tc.TEST_EQUAL(code[i], ok[i]);
 	}
-	
-	
- 	c = new TestJmp2(AutoGrow, true);
+
+	c = new TestJmp2(AutoGrow, true);
 	c.ready();
 	code = c.getCode();
-	for(auto i = 0; i < c.getSize; i++)
+	for (auto i = 0; i < c.getSize; i++)
 	{
-    	if(code[i] != ok[i])
-		{
-			printf("TestJmp2(AutoGrow, true) NG: %X != %X\n", code[i], ok[i]); 
-			assert(0);
-		}
+		tc.TEST_EQUAL(code[i], ok[i]);
 	}
-		
+
 	c = new TestJmp2(null, false);
 	c.ready();
 	code = c.getCode();
-	for(auto i = 0; i < c.getSize; i++)
+	for (auto i = 0; i < c.getSize; i++)
 	{
-    	if(code[i] != ok[i])
-		{
-			printf("TestJmp2(null, false) NG: %X != %X\n", code[i], ok[i]); 
-			assert(0);
-		}
+		tc.TEST_EQUAL(code[i], ok[i]);
 	}
 
 	c = new TestJmp2(AutoGrow, false);
 	c.ready();
 	code = c.getCode();
-	for(auto i = 0; i < c.getSize; i++)
+	for (auto i = 0; i < c.getSize; i++)
 	{
-    	if(code[i] != ok[i])
-		{
-			printf("TestJmp2(AutoGrow, false) NG: %X != %X\n", code[i], ok[i]); 
-			assert(0);
-		}
-	}	
+		tc.TEST_EQUAL(code[i], ok[i]);
+	}
 }
 
 version(XBYAK32)
@@ -459,11 +462,13 @@ version(XBYAK32)
 	int add5(int x) { return x + 5; }
 	int add2(int x) { return x + 2; }
  
-@("test3")
-unittest{
-	test3();
-}
-	void test3()
+	@("test3")
+	unittest
+	{
+		test3();
+	}
+
+	void test3(size_t line = __LINE__)
 	{
 		class Grow : CodeGenerator
 		{
@@ -486,11 +491,19 @@ unittest{
 			}
 		}
 
+		TestCount tc;
+		tc.reset();
+		scope (exit)
+		{
+			writef("%s(%d) : ", __FILE__, line);
+			tc.end("test3");
+		}
+		
 		const size_t maxSize = 40_000;
 		const size_t incSize = 10_000;
 
 		for (size_t dummySize = 0; dummySize < maxSize; dummySize += incSize) {
-			printf("dummySize=%d\n", dummySize);
+			printf("dummySize=%d ", dummySize);
 			scope Grow g = new Grow(dummySize);
 			g.ready();
 			
@@ -498,12 +511,9 @@ unittest{
 			auto x = f();
 			
 			int ok = 107;
+			tc.TEST_EQUAL(x, ok);
 			if(x == ok) printf("test3 OK: %d == %d\n", x, ok); 
-			if(x != ok) 
-			{
-				printf("test3 NG: %d != %d\n", x, ok); 
-				assert(0);
-			}
+			tc.TEST_EQUAL(x, ok);
 		}
 	}
 }
@@ -512,7 +522,8 @@ unittest{
 uint8_t[4096 * 32] bufL;
 uint8_t[4096 * 2] bufS;
 
-class MyAllocator : Allocator {
+class MyAllocator : Allocator
+{
 	override uint8_t* alloc(size_t size)
 	{
 		if (size < bufS.length) {
@@ -528,6 +539,7 @@ class MyAllocator : Allocator {
 		//exit(1);
 		assert(0);
 	}
+
 	override void free(uint8_t* p)
 	{
 		return;
@@ -535,11 +547,12 @@ class MyAllocator : Allocator {
 }
 
 @("test4")
-unittest{
+unittest
+{
 	test4();
 }
 
-void test4()
+void test4(size_t line = __LINE__)
 {
 	class Test4 : CodeGenerator
 	{
@@ -563,6 +576,14 @@ void test4()
 		}
 	}
 
+	TestCount tc;
+	tc.reset();
+	scope (exit) 
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("test4");
+	}
+	
 	MyAllocator myAlloc = new MyAllocator();
 	
 	for (int i = 0; i < 2; i++) {
@@ -577,120 +598,136 @@ void test4()
 		auto gcode = gc.getCode();
 		auto gsize = gc.getSize();
 	
+		tc.TEST_EQUAL(fsize, gsize);
 		if(fsize != gsize)
 		{
 			writefln("Test4 NG fsize:%d != gsize:%d", fsize, gsize );
 			assert(0);
 		}
-		else
+		
+		for (auto j = 0; j < fsize; j++)
 		{
-			writefln("Test4 OK fsize:%d == gsize:%d", fsize, gsize );
+			tc.TEST_EQUAL(fcode[j], gcode[j]);
 		}
 	}
 }
 
 
-version(OSX){}
+version (OSX)
+{}
 else
 {
 
-@("test5")
-unittest{
-	test5();
-}
-
-void test5()
-{
-	MyAllocator myAlloc = new MyAllocator();
-	
-	class Test5 : CodeGenerator
+	@("test5")
+	unittest
 	{
-		this(int size, int count, void* mode)
-		{
-			super(size, mode, myAlloc);
-		
-			inLocalLabel();
-			mov(ecx, count);
-			xor(eax, eax);
-		L(".lp");
-			for (int i = 0; i < count; i++) {
-				L(Label.toStr(i));
-				add(eax, 1);
-				int to = 0;
-				if (i < count / 2) {
-					to = count - 1 - i;
-				} else {
-					to = count  - i;
-				}
-				if (i == count / 2) {
-					jmp(".exit", T_NEAR);
-				} else {
-					jmp(Label.toStr(to), T_NEAR);
-				}
-			}
-		L(".exit");
-			sub(ecx, 1);
-			jnz(".lp", T_NEAR);
-			ret();
-			outLocalLabel();
-		}
+		test5();
 	}
 
-	int count = 50;
-	int ret;
-	scope Test5 fc = new Test5(1024 * 64, count, null);
-	fc.readyRE();
-	auto fcode = fc.getCode();
-	auto ffun = cast(int function())fcode;
-	ret = ffun();
-	assert(ret == count * count);	
-	writefln("Test5 fc:ok");
-	fc.readyRE();
-	auto fm = fc.getCode();
-	
-	scope Test5 gc=  new Test5(10, count, AutoGrow);
-	gc.readyRE();
-	auto gcode = gc.getCode();
-	auto gfun = cast(int function())gcode;
-	ret = gfun();
-	assert(ret == count * count);
-	writefln("Test5 gc:ok");
-	
-	gc.readyRE();
-	auto gm = gc.getCode();
-	
-	for(int i = 0; i < fc.getSize; i++){
-		if(fm[i] != gm[i])
+	void test5(size_t line = __LINE__)
+	{
+		MyAllocator myAlloc = new MyAllocator();
+
+		class Test5 : CodeGenerator
 		{
-			writefln("Test5 NG: fm != gm: %d %d", fm[i], gm[i]);
-			assert(0);
+			this(int size, int count, void* mode)
+			{
+				super(size, mode, myAlloc);
+
+				inLocalLabel();
+				mov(ecx, count);
+				xor(eax, eax);
+				L(".lp");
+				for (int i = 0; i < count; i++)
+				{
+					L(Label.toStr(i));
+					add(eax, 1);
+					int to = 0;
+					if (i < count / 2)
+					{
+						to = count - 1 - i;
+					}
+					else
+					{
+						to = count - i;
+					}
+					if (i == count / 2)
+					{
+						jmp(".exit", T_NEAR);
+					}
+					else
+					{
+						jmp(Label.toStr(to), T_NEAR);
+					}
+				}
+				L(".exit");
+				sub(ecx, 1);
+				jnz(".lp", T_NEAR);
+				ret();
+				outLocalLabel();
+			}
+		}
+
+		TestCount tc;
+		tc.reset();
+		scope (exit)
+		{
+			writef("%s(%d) : ", __FILE__, line);
+			tc.end("test5");
+		}
+
+		int count = 50;
+		int ret;
+		scope Test5 fc = new Test5(1024 * 64, count, null);
+		fc.readyRE();
+		auto fcode = fc.getCode();
+		auto ffun = cast(int function()) fcode;
+		ret = ffun();
+		tc.TEST_EQUAL(ret, count * count);
+		fc.readyRE();
+		auto fm = fc.getCode();
+
+		scope Test5 gc = new Test5(10, count, AutoGrow);
+		gc.readyRE();
+		auto gcode = gc.getCode();
+		auto gfun = cast(int function()) gcode;
+		ret = gfun();
+		tc.TEST_EQUAL(ret, count * count);
+
+		gc.readyRE();
+		auto gm = gc.getCode();
+
+		for (int i = 0; i < fc.getSize(); i++)
+		{
+			tc.TEST_EQUAL(fm[i], gm[i]);
 		}
 	}
-}
 }
 
 
 size_t getValue(const uint8_t* p)
 {
 	size_t v = 0;
-	for (size_t i = 0; i < size_t.sizeof; i++) {
+	for (size_t i = 0; i < size_t.sizeof; i++)
+	{
 		v |= cast(size_t)(p[i]) << (i * 8);
 	}
 	return v;
 }
 
-void checkAddr(const uint8_t* p, size_t offset, size_t expect)
+void checkAddr(ref TestCount tc, const uint8_t* p, size_t offset, size_t expect)
 {
 	size_t v = getValue(p + offset);
-	assert(v == cast(size_t)p + expect);
+	tc.TEST_EQUAL(v, cast(size_t) p + expect);
 }
 
 @("MovLabel")
-unittest{
+unittest
+{
 	MovLabel();
 }
 
-void MovLabel()
+void MovLabel(size_t line = __LINE__)
 {
 	class MovLabelCode : CodeGenerator
 	{
@@ -698,18 +735,21 @@ void MovLabel()
 		{
 			super(grow ? 128 : 4096, grow ? AutoGrow : null);
 
-version(XBYAK64) {
-			Reg64 a = rax;
-} else {
-			Reg32 a = eax;
-}
+			version (XBYAK64)
+			{
+				Reg64 a = rax;
+			}
+			else
+			{
+				Reg32 a = eax;
+			}
 
 			if (useNewLabel)
 			{
 				nop(); // 0x90
 				Label lp1;
 				Label lp2;
-			L(lp1);
+				L(lp1);
 				nop();
 				mov(a, lp1); // 0xb8 + <4byte> / 0x48bb + <8byte>
 				nop();
@@ -717,11 +757,13 @@ version(XBYAK64) {
 				// force realloc if AutoGrow
 				putNop(this, 256);
 				nop();
-			L(lp2);
-			} else {
+				L(lp2);
+			}
+			else
+			{
 				inLocalLabel();
 				nop(); // 0x90
-			L(".lp1");
+				L(".lp1");
 				nop();
 				mov(a, ".lp1"); // 0xb8 + <4byte> / 0x48bb + <8byte>
 				nop();
@@ -729,106 +771,123 @@ version(XBYAK64) {
 				// force realloc if AutoGrow
 				putNop(this, 256);
 				nop();
-			L(".lp2");
+				L(".lp2");
 				outLocalLabel();
 			}
 		}
 	}
 
-
 	struct PosOk
 	{
 		int pos;
 		uint8_t ok;
-	
+
 		this(int pos, uint8_t ok)
 		{
 			this.pos = pos;
 			this.ok = ok;
 		}
 	}
- 
-version(XBYAK32)
-{
-	PosOk[] pk = [
-		PosOk( 0x00, 0x90 ),
-		// lp1:0x001
-		PosOk( 0x001, 0x90 ),
-		PosOk( 0x002, 0xb8 ),
-		// 0x003
-		PosOk( 0x007, 0x90 ),
-		PosOk( 0x008, 0xb8 ),
-		// 0x009
-		PosOk( 0x10d, 0x90 ),
-		// lp2:0x10e
-	];
-}
 
-version(XBYAK64)
-{
-	PosOk[] pk = [
-		PosOk( 0x000, 0x90 ),
-		// lp1:0x001
-		PosOk( 0x001, 0x90 ),
-		PosOk( 0x002, 0x48 ),
-		PosOk( 0x003, 0xb8 ),
-		// 0x004
-		PosOk( 0x00c, 0x90 ),
-		PosOk( 0x00d, 0x48 ),
-		PosOk( 0x00e, 0xb8 ),
-		// 0x00f
-		PosOk( 0x117, 0x90 ),
-		// lp2:0x118
-	];
-}
+	version (XBYAK32)
+	{
+		PosOk[] pk = [
+			PosOk(0x00, 0x90),
+			// lp1:0x001
+			PosOk(0x001, 0x90),
+			PosOk(0x002, 0xb8),
+			// 0x003
+			PosOk(0x007, 0x90),
+			PosOk(0x008, 0xb8),
+			// 0x009
+			PosOk(0x10d, 0x90),
+			// lp2:0x10e
+		];
+	}
 
-	for (int j = 0; j < 2; j++) {
+	version (XBYAK64)
+	{
+		PosOk[] pk = [
+			PosOk(0x000, 0x90),
+			// lp1:0x001
+			PosOk(0x001, 0x90),
+			PosOk(0x002, 0x48),
+			PosOk(0x003, 0xb8),
+			// 0x004
+			PosOk(0x00c, 0x90),
+			PosOk(0x00d, 0x48),
+			PosOk(0x00e, 0xb8),
+			// 0x00f
+			PosOk(0x117, 0x90),
+			// lp2:0x118
+		];
+	}
+
+	TestCount tc;
+	tc.reset();
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("MovLabel");
+	}
+
+	for (int j = 0; j < 2; j++)
+	{
 		bool grow = j == 0;
-		for (int k = 0; k < 2; k++) {
+		for (int k = 0; k < 2; k++)
+		{
 			bool useNewLabel = k == 0;
 			scope MovLabelCode code = new MovLabelCode(grow, useNewLabel);
-			if (grow) code.ready();
+			if (grow)
+				code.ready();
 			auto p = code.getCode();
-			for (size_t i = 0; i < pk.length; i++) {
+			for (size_t i = 0; i < pk.length; i++)
+			{
 				int pos = pk[i].pos;
 				uint8_t x = p[pos];
 				uint8_t ok = pk[i].ok;
-				assert(x == ok);
+				tc.TEST_EQUAL(x, ok);
 			}
-version(XBYAK32)
-{
-			checkAddr(p, 0x03, 0x001);
-			checkAddr(p, 0x09, 0x10e);
-}
+			
+			version (XBYAK32)
+			{
+				tc.checkAddr(p, 0x03, 0x001);
+				tc.checkAddr(p, 0x09, 0x10e);
+			}
 
-version(XBYAK64)
-  {			checkAddr(p, 0x04, 0x001);
-			checkAddr(p, 0x0f, 0x118);
-}
+			version (XBYAK64)
+			{
+				tc.checkAddr(p, 0x04, 0x001);
+				tc.checkAddr(p, 0x0f, 0x118);
+			}
 		}
 	}
 }
 
 
 @("testMovLaberl2")
-unittest{
+unittest
+{
 	testMovLabel2();
 }
 
-void testMovLabel2()
+void testMovLabel2(size_t line = __LINE__)
 {
 	class MovLabel2Code : CodeGenerator
 	{
 		this()
 		{
 			super();
-version(XBYAK64){
-			Reg64 a = rax;
-			Reg64 c = rcx;
-}else{
-			Reg32 a = eax;
-			Reg32 c = ecx;
-}
+			version (XBYAK64)
+			{
+				Reg64 a = rax;
+				Reg64 c = rcx;
+			}
+			else
+			{
+				Reg32 a = eax;
+				Reg32 c = ecx;
+			}
 
 			xor(a, a);
 			xor(c, c);
@@ -850,24 +909,31 @@ version(XBYAK64){
 		}
 	}
 
+	TestCount tc;
+	tc.reset();
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("testMovLaberl2");
+	}
+
 	scope MovLabel2Code code = new MovLabel2Code();
 	code.ready();
-	auto fn = cast(int function())code.getCode();
-	
-	int ret = 0;	
-	ret = fn();
-	ret.writeln;
-	assert(ret == 7);
-}
+	auto fn = code.getCode!(int function());
 
+	int ret = 0;
+	ret = fn();
+	tc.TEST_EQUAL(ret, 7);
+}
 
 
 @("testF_B")
-unittest{
+unittest
+{
 	testF_B();
 }
 
-void testF_B()
+void testF_B(size_t line = __LINE__)
 {
 	class Code : CodeGenerator
 	{
@@ -967,25 +1033,34 @@ void testF_B()
 		}
 	}
 
+	TestCount tc;
+	tc.reset();
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("testF_B");
+	}
+
 	int[] expectedTbl = [
 		2, 0, 3, 3, 5, 2, 2, 6
 	];
 
-	for (size_t i = 0; i < expectedTbl.length; i++) {
-		scope Code code = new Code(cast(int)i);
-		auto fn  = cast(int function())code.getCode();
+	for (size_t i = 0; i < expectedTbl.length; i++)
+	{
+		scope Code code = new Code(cast(int) i);
+		auto fn = code.getCode!(int function());
 		int ret = fn();
-		bool bl = ret == expectedTbl[i];
-		assert(bl);
+		tc.TEST_EQUAL(ret, expectedTbl[i]);
 	}
 }
 
 @("test6")
-unittest{
+unittest
+{
 	test6();
 }
 
-void test6()
+void test6(size_t line = __LINE__)
 {
 	class TestLocal : CodeGenerator
 	{
@@ -1054,23 +1129,33 @@ void test6()
 		}
 	}
 
-	for (int i = 0; i < 2; i++) {
+	TestCount tc;
+	tc.reset();
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("test6");
+	}
+
+	for (int i = 0; i < 2; i++)
+	{
 		bool grow = i == 1;
 		printf("test6 grow=%d\n", i);
 		scope TestLocal code = new TestLocal(grow);
 		if (grow) code.ready();
-		auto f = cast(int function())code.getCode();
+		auto f = code.getCode!(int function());
 		int a = f();
-		assert(a == 15);
+		tc.TEST_EQUAL(a, 15);
 	}
 }
 
 @("test_jcc")
-unittest{
+unittest
+{
 	test_jcc();
 }
 
-void test_jcc()
+void test_jcc(size_t line = __LINE__)
 {
 	class A : CodeGenerator
 	{
@@ -1091,30 +1176,40 @@ void test_jcc()
 			jnz(p);
 		}
 	}
+
+	TestCount tc;
+	tc.reset();
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("test_jcc");
+	}
+
 	scope A a = new A();
-	void* p = cast(void*)a.getCode();
-	
+	void* p = cast(void*) a.getCode();
+
 	for (int i = 0; i < 2; i++)
 	{
 		bool grow = i == 1;
 		scope B b = new B(grow, p);
-		if (grow) {
+		if (grow)
+		{
 			b.readyRE();
 		}
-		auto f = cast(int function())b.getCode();
-		b.dump();
-		assert(f() ==  8);
+		auto f = b.getCode!(int function());
+		//	b.dump();
+		tc.TEST_EQUAL(f(), 8);
 	}
-	
 }
 
 
 @("testNewLabel")
-unittest{
+unittest
+{
 	testNewLabel();
 }
 
-void testNewLabel()
+void testNewLabel(size_t line = __LINE__)
 {
 	class Code : CodeGenerator
 	{
@@ -1191,24 +1286,35 @@ void testNewLabel()
 		}
 	}
 
-	for (int i = 0; i < 2; i++) {
+	TestCount tc;
+	tc.reset();
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("testNewLabel");
+	}
+
+	for (int i = 0; i < 2; i++)
+	{
 		bool grow = (i == 0 ? true : false);
 		writeln("testNewLabel grow=", grow);
 		scope Code code = new Code(grow);
-		if (grow) code.ready();
-		auto f = cast(int function())code.getCode();
+		if (grow)
+			code.ready();
+		auto f = code.getCode!(int function());
 		int r;
 		r = f();
-		assert (r == 16);
+		tc.TEST_EQUAL(r, 16);
 	}
 }
 
 @("returnLabel")
-unittest{
+unittest
+{
 	returnLabel();
 }
 
-void returnLabel()
+void returnLabel(size_t line = __LINE__)
 {
 	class Code : CodeGenerator
 	{
@@ -1233,19 +1339,28 @@ void returnLabel()
 		}
 	}
 
+	TestCount tc;
+	tc.reset();
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("returnLabel");
+	}
+
 	scope Code code = new Code();
-	auto f = cast(int function())code.getCode();
+	auto f = code.getCode!(int function());
 	int r = f();
-	assert(r == 3);
+	tc.TEST_EQUAL(r, 3);
 }
 
 
 @("testAssige")
-unittest{
+unittest
+{
 	testAssige();
 }
 
-void testAssige()
+void testAssige(size_t line = __LINE__)
 {
 	class Code : CodeGenerator
 	{
@@ -1276,27 +1391,39 @@ void testAssige()
 		}
 	}
 
-	for (int i = 0; i < 2; i++) {
+	TestCount tc;
+	tc.reset();
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("testAssige");
+	}
+
+	for (int i = 0; i < 2; i++)
+	{
 		bool grow = (i == 0 ? true : false);
 		writeln("testAssign grow=", grow);
 		scope Code code = new Code(grow);
-		if (grow) {
+		if (grow)
+		{
 			writeln("grow:", grow);
 			code.ready();
 		}
-		auto f = cast(int function())code.getCode();
+		auto f = code.getCode!(int function());
 		int ret = f();
-		assert(ret == 5);
-    }
+		tc.TEST_EQUAL(ret, 5);
+	}
 }
 
 
 @("doubleDefine")
-unittest{
+unittest
+{
+	writefln("%s(%d) : doubleDefine", __FILE__, __LINE__);
 	doubleDefine();
 }
 
-void doubleDefine()
+void doubleDefine(size_t line = __LINE__)
 {
 	class Code1 : CodeGenerator
 	{
@@ -1401,11 +1528,13 @@ class GetAddressCode1 : CodeGenerator
 
 
 @("getAddress1")
-unittest{
+unittest
+{
+	writefln("%s(%d) : getAddress1", __FILE__, __LINE__);
 	getAddress1();
 }
 
-void getAddress1()
+void getAddress1(size_t line = __LINE__)
 {
 	GetAddressCode1 c = new GetAddressCode1();
 	c.test();
@@ -1457,255 +1586,269 @@ version(XBYAK64)
 	}
 }
 
-version(XBYAK64)
+version (XBYAK64)
 {
 
-@("LabelTable")
-unittest{
-	LabelTable();
-}
-void LabelTable()
-{
-	scope c = new CodeLabelTable();
-	auto fn = cast(int function(int))c.getCode();
-	c.dump();
-	assert(fn(0) == c.ret0);
-	assert(fn(1) == c.ret1);
-	assert(fn(2) == c.ret2);
-}
-
-
-class GetAddressCode2 : CodeGenerator
-{
-	Label L1, L2, L3;
-	size_t a1;
-	size_t a3;
-	this(int size)
+	@("LabelTable")
+	unittest
 	{
-		super(size, size == 4096 ? null : AutoGrow);
-		a1 = 0;
-		a3 = 0;
-		bool autoGrow = size != 4096;
-		nop();
-	L(L1);
-		if (autoGrow) {
-			auto tmp1 = L1.getAddress() == null;
+		writefln("%s(%d) : LabelTable", __FILE__, __LINE__);
+		LabelTable();
+	}
+
+	void LabelTable(size_t line = __LINE__)
+	{
+		scope c = new CodeLabelTable();
+		auto fn = cast(int function(int)) c.getCode();
+		c.dump();
+		assert(fn(0) == c.ret0);
+		assert(fn(1) == c.ret1);
+		assert(fn(2) == c.ret2);
+	}
+
+	class GetAddressCode2 : CodeGenerator
+	{
+		Label L1, L2, L3;
+		size_t a1;
+		size_t a3;
+		this(int size)
+		{
+			super(size, size == 4096 ? null : AutoGrow);
+			a1 = 0;
+			a3 = 0;
+			bool autoGrow = size != 4096;
+			nop();
+			L(L1);
+			if (autoGrow)
+			{
+				auto tmp1 = L1.getAddress() == null;
+				assert(tmp1);
+			}
+			a1 = getSize();
+			nop();
+			jmp(L2);
+			if (autoGrow)
+			{
+				auto tmp2 = L2.getAddress() == null;
+				assert(tmp2);
+			}
+			L(L3);
+			a3 = getSize();
+			if (autoGrow)
+			{
+				auto tmp3 = L3.getAddress() == null;
+				assert(tmp3);
+			}
+			nop();
+			assignL(L2, L1);
+			if (autoGrow)
+			{
+				auto tmp4 = L2.getAddress() == null;
+				assert(tmp4);
+			}
+		}
+	}
+
+	@("testGetAddressCode2")
+	unittest
+	{
+		writefln("%s(%d) : testGetAddressCode2", __FILE__, __LINE__);
+		testGetAddressCode2();
+	}
+
+	void testGetAddressCode2(size_t line = __LINE__)
+	{
+
+		int[] sizeTbl = [
+			2, 128, // grow
+			4096 // not grow
+		];
+
+		foreach (int size; sizeTbl)
+		{
+			//	int size = sizeTbl[i];
+			scope c = new GetAddressCode2(size);
+			c.readyRE();
+			uint8_t* p = c.getCode();
+
+			auto tmp1 = c.L1.getAddress() == p + c.a1;
 			assert(tmp1);
-		}
-		a1 = getSize();
-		nop();
-		jmp(L2);
-		if (autoGrow) {
-			auto tmp2 = L2.getAddress() == null;
+
+			auto tmp2 = c.L3.getAddress() == p + c.a3;
 			assert(tmp2);
-		}
-	L(L3);
-		a3 = getSize();
-		if (autoGrow) {
-			auto tmp3 = L3.getAddress() == null;
+
+			auto tmp3 = c.L2.getAddress() == p + c.a1;
 			assert(tmp3);
 		}
-		nop();
-		assignL(L2, L1);
-		if (autoGrow) {
-			auto tmp4 = L2.getAddress() == null;
-			assert(tmp4);
-		}
 	}
-}
 
-@("testGetAddressCode2")
-unittest{
-	testGetAddressCode2();
-}
-
-void testGetAddressCode2()
-{
-
-	int[] sizeTbl = [
-		2, 128, // grow
-		4096 // not grow
-	];
-
-	foreach (int size; sizeTbl) {
-	//	int size = sizeTbl[i];
-		scope c = new GetAddressCode2(size);
-		c.readyRE();
-		uint8_t* p = c.getCode();
-
-		auto tmp1 = c.L1.getAddress() == p + c.a1;
-		assert(tmp1);
-		
-		auto tmp2 = c.L3.getAddress() == p + c.a3;
-		assert(tmp2);
-		
-		auto tmp3 = c.L2.getAddress() == p + c.a1;
-		assert(tmp3);
-	}
-}
-
-@("testrip")
-unittest{
-	testrip();
-}
-
-void testrip()
-{
-	int[] a = [ 1, 10 ];
-	int[] b = [ 100, 1000 ];
-	class Code : CodeGenerator
+	@("testrip")
+	unittest
 	{
-		this(ref int[] a, ref int[] b)
+		writefln("%s(%d) : testrip", __FILE__, __LINE__);
+		testrip();
+	}
+
+	void testrip(size_t line = __LINE__)
+	{
+		int[] a = [1, 10];
+		int[] b = [100, 1000];
+		class Code : CodeGenerator
 		{
-			super();
-			Label label1, label2;
-			jmp("@f");
-		L(label1);
-			db(a[0], 4);
-			db(a[1], 4);
-		L("@@");
-			mov(eax, ptr [rip + label1]);       // a[0]
-			mov(ecx, ptr [rip + label1+4]);     // a[1]
-			mov(edx, ptr [rip + label2-8+2+6]); // b[0]
-			add(ecx, ptr [rip + 16+label2-12]); // b[1]
-			add(eax, ecx);
-			add(eax, edx);
-			ret();
-		L(label2);
-			db(b[0], 4);
-			db(b[1], 4);
+			this(ref int[] a, ref int[] b)
+			{
+				super();
+				Label label1, label2;
+				jmp("@f");
+				L(label1);
+				db(a[0], 4);
+				db(a[1], 4);
+				L("@@");
+				mov(eax, ptr[rip + label1]); // a[0]
+				mov(ecx, ptr[rip + label1 + 4]); // a[1]
+				mov(edx, ptr[rip + label2 - 8 + 2 + 6]); // b[0]
+				add(ecx, ptr[rip + 16 + label2 - 12]); // b[1]
+				add(eax, ecx);
+				add(eax, edx);
+				ret();
+				L(label2);
+				db(b[0], 4);
+				db(b[1], 4);
 
-			// error
-			assertThrown!XError( rip + label1 + label2 );
+				// error
+				assertThrown!XError(rip + label1 + label2);
+			}
 		}
+
+		scope code = new Code(a, b);
+		code.dump;
+		auto fn = cast(int function()) code.getCode();
+		int ret = fn();
+		int sum = a[0] + a[1] + b[0] + b[1];
+		writeln(ret);
+		writeln(sum);
+		assert(ret == sum);
 	}
-	
-	scope code = new Code(a, b);
-	code.dump;
-	auto fn = cast(int function())code.getCode();
-	int ret = fn();
-	int sum = a[0] + a[1] + b[0] + b[1];
-	writeln(ret);
-	writeln(sum);
-	assert(ret == sum);
-}
 
-
-int ret1234()
-{
-	return 1234;
-}
-
-int ret9999()
-{
-	return 9999;
-}
-
-@("rip_jmp")
-unittest{
-	rip_jmp();
-}
-
-void rip_jmp()
-{
-	class Code : CodeGenerator
+	int ret1234()
 	{
-		this()
-		{
-			Label label;
-			xor(eax, eax);
-			call(ptr [rip + label]);
-			mov(ecx, eax);
-			call(ptr [rip + label + 8]);
-			add(eax, ecx);
-			ret();
-		L(label);
-			db(cast(size_t)&ret1234, 8);
-			db(cast(size_t)&ret9999, 8);
-		}
+		return 1234;
 	}
 
-	scope code = new Code();
-	auto fn = cast(int function())code.getCode();
-	int ret = fn();
-	int sum = ret1234() + ret9999();
-	writeln(ret);
-	writeln(sum);
-	assert(ret == sum);
-}
-
-
-version (none)
-{
-
-	@("rip_addr")
-	unittest{
-		rip_addr();
-	}
-
-	void rip_addr()
+	int ret9999()
 	{
-		//	we can't assume |&x - &code| < 2GiB anymore
-		static int x = 5;
+		return 9999;
+	}
+
+	@("rip_jmp")
+	unittest
+	{
+		rip_jmp();
+	}
+
+	void rip_jmp(size_t line = __LINE__)
+	{
 		class Code : CodeGenerator
 		{
 			this()
 			{
-			//	super();
-				mov(eax, 123);
-				mov(ptr[rip + &x], eax);
+				Label label;
+				xor(eax, eax);
+				call(ptr[rip + label]);
+				mov(ecx, eax);
+				call(ptr[rip + label + 8]);
+				add(eax, ecx);
 				ret();
+				L(label);
+				db(cast(size_t)&ret1234, 8);
+				db(cast(size_t)&ret9999, 8);
 			}
 		}
 
 		scope code = new Code();
-		auto fn = cast(void function())code.getCode();
-		writeln(x);
-		fn();
-		writeln(x);
-		assert(x == 123);
+		auto fn = cast(int function()) code.getCode();
+		int ret = fn();
+		int sum = ret1234() + ret9999();
+		writeln(ret);
+		writeln(sum);
+		assert(ret == sum);
 	}
-}
 
-version(OSX)
-{}
-else
-{
-@("rip_addr_with_fixed_buf")
-unittest{
-	rip_addr_with_fixed_buf();
-}
-
-void rip_addr_with_fixed_buf()
-{
-	align(4096) static uint8_t[8192] buf;
-	uint8_t* p = buf.ptr + 4096;
-	int* x0 = cast(int*)buf.ptr;
-	int* x1 = x0 + 1;
-	class Code : CodeGenerator
+	version (none)
 	{
-		this()
+
+		@("rip_addr")
+		unittest
 		{
-			super(4096, p);
-			mov(eax, 123);
-			mov(ptr[rip + x0], eax);
-			mov(dword[rip + x1], 456);
-			mov(byte_[rip + 1 + x1 + 3], 99);
-			ret();
+			writefln("%s(%d) : rip_addr", __FILE__, __LINE__);
+			rip_addr();
+		}
+
+		void rip_addr(size_t line = __LINE__)
+		{
+			//	we can't assume |&x - &code| < 2GiB anymore
+			static int x = 5;
+			class Code : CodeGenerator
+			{
+				this()
+				{
+					//	super();
+					mov(eax, 123);
+					mov(ptr[rip + &x], eax);
+					ret();
+				}
+			}
+
+			scope code = new Code();
+			auto fn = cast(void function()) code.getCode();
+			writeln(x);
+			fn();
+			writeln(x);
+			assert(x == 123);
 		}
 	}
-	
-	scope code = new Code();
-	code.setProtectModeRE();
-	auto fn = cast(void function())code.getCode();
-	fn();
 
-	assert(*x0 == 123);
-	assert(*x1 == 456);
-	assert(buf[8] == 99);
-	code.setProtectModeRW();
-}
-}
+	version (OSX)
+	{}
+	else
+	{
+		@("rip_addr_with_fixed_buf")
+		unittest
+		{
+			writefln("%s(%d) : rip_addr_with_fixed_buf", __FILE__, __LINE__);
+			rip_addr_with_fixed_buf();
+		}
+
+		void rip_addr_with_fixed_buf(size_t line = __LINE__)
+		{
+			align(4096) static uint8_t[8192] buf;
+			uint8_t* p = buf.ptr + 4096;
+			int* x0 = cast(int*) buf.ptr;
+			int* x1 = x0 + 1;
+			class Code : CodeGenerator
+			{
+				this()
+				{
+					super(4096, p);
+					mov(eax, 123);
+					mov(ptr[rip + x0], eax);
+					mov(dword[rip + x1], 456);
+					mov(byte_[rip + 1 + x1 + 3], 99);
+					ret();
+				}
+			}
+
+			scope code = new Code();
+			code.setProtectModeRE();
+			auto fn = cast(void function()) code.getCode();
+			fn();
+
+			assert(*x0 == 123);
+			assert(*x1 == 456);
+			assert(buf[8] == 99);
+			code.setProtectModeRW();
+		}
+	}
 }
 
 class ReleaseTestCode : CodeGenerator
@@ -1724,11 +1867,13 @@ class ReleaseTestCode : CodeGenerator
 	code must unlink label if code is destroyed
 */
 @("release_label_after_code")
-unittest{
+unittest
+{
+	writefln("%s(%d) : release_label_after_code", __FILE__, __LINE__);
 	release_label_after_code();
 }
 
-void release_label_after_code()
+void release_label_after_code(size_t line = __LINE__)
 {
 	puts("---");
 	{
@@ -1800,11 +1945,13 @@ class JmpTypeCode : CodeGenerator
 }
 
 @("setDefaultJmpNEAR")
-unittest{
+unittest
+{
+	writefln("%s(%d) : setDefaultJmpNEAR", __FILE__, __LINE__);
 	setDefaultJmpNEAR();
 }
 
-void setDefaultJmpNEAR()
+void setDefaultJmpNEAR(size_t line = __LINE__)
 {
 	alias LabelType = CodeGenerator.LabelType;
 
@@ -1881,11 +2028,13 @@ void setDefaultJmpNEAR()
 
 
 @("ambiguousFarJmp")
-unittest{
+unittest
+{
+	writefln("%s(%d) : ambiguousFarJmp", __FILE__, __LINE__);
 	ambiguousFarJmp();
 }
 
-void ambiguousFarJmp()
+void ambiguousFarJmp(size_t line = __LINE__)
 {
 	class Code : CodeGenerator
 	{
