@@ -1950,6 +1950,205 @@ public:
     }
 }
 
+import core.stdc.stdio;
+import core.stdc.stdlib;
+
+struct Node
+{
+    Label* labelPtr_;
+    Node* left, right, parent;
+    Node* prev, next;
+}
+
+struct LabelPtrList
+{
+    Node* root, head, tail;
+    size_t length;
+
+    Node* createNode(Label* labelPtr) @nogc nothrow
+    {
+        Node* n = cast(Node*) malloc(Node.sizeof);
+        if (n)
+        {
+            *n = Node(labelPtr, null, null, null, null, null);
+        }
+        return n;
+    }
+
+    const(Node)* begin() const @nogc nothrow
+    {
+        return head;
+    }
+
+    const(Node)* end() const @nogc nothrow
+    {
+        return null;
+    }
+
+    size_t size() const @nogc nothrow
+    {
+        return length;
+    }
+
+    bool empty() const @nogc nothrow
+    {
+        return length == 0;
+    }
+
+    bool insert(Label* labelPtr) @nogc nothrow
+    {
+        if (find(labelPtr))
+        {
+            return false;
+        }
+
+        Node* z = createNode(labelPtr);
+        if (z is null)
+        {
+            return false;
+        }
+        
+        Node* y = null, x = root;
+        while (x)
+        {
+            y = x;
+            x = (labelPtr < x.labelPtr_) ? x.left : x.right;
+        }
+
+        z.parent = y;
+        if (y is null)
+        {
+            root = head = tail = z;
+        }
+        else if (labelPtr < y.labelPtr_)
+        {
+            y.left = z;
+            z.next = y;
+            z.prev = y.prev;
+            if (y.prev)
+            {
+                y.prev.next = z;
+            }
+            else
+            {
+                head = z;
+            }
+            y.prev = z;
+        }
+        else
+        {
+            y.right = z;
+            z.prev = y;
+            z.next = y.next;
+            if (y.next)
+            {
+                y.next.prev = z;
+            }
+            else
+            {
+                tail = z;
+            }
+            y.next = z;
+        }
+
+        ++length;
+        return true;
+    }
+
+    const(Node)* find(Label* labelPtr) const @nogc nothrow
+    {
+        const(Node)* curr = root;
+        while (curr)
+        {
+            if (labelPtr == curr.labelPtr_)
+            {
+                return curr;
+            }
+            curr = (labelPtr < curr.labelPtr_) ? curr.left : curr.right;
+        }
+        return null;
+    }
+
+    bool erase(Label* labelPtr) @nogc nothrow
+    {
+        Node* z = cast(Node*) find(labelPtr);
+        if (z is null)
+        {
+            return false;
+        }
+
+        if (z.prev)
+        {
+            z.prev.next = z.next;
+        }
+        else
+        {
+            head = z.next;
+        }
+
+        if (z.next)
+        {
+            z.next.prev = z.prev;
+        }
+        else
+        {
+            tail = z.prev;
+        }
+
+        Node* y = (z.left is null || z.right is null) ? z : (() {
+            Node* n = z.right;
+            while (n.left)
+            {
+                n = n.left;
+            }
+            return n;
+        })();
+
+        Node* x = (y.left) ? y.left : y.right;
+        if (x)
+        {
+            x.parent = y.parent;
+        }
+
+        if (y.parent is null)
+        {
+            root = x;
+        }
+        else if (y == y.parent.left)
+        {
+            y.parent.left = x;
+        }
+        else
+        {
+            y.parent.right = x;
+        }
+
+        if (y != z)
+        {
+            z.labelPtr_ = y.labelPtr_;
+        }
+        free(y);
+        --length;
+        return true;
+    }
+
+    void destroy(Node* n) @nogc nothrow
+    {
+        if (n)
+        {
+            destroy(n.left);
+            destroy(n.right);
+            free(n);
+        }
+    }
+
+    void release() @nogc nothrow
+    {
+        destroy(root);
+        root = head = tail = null;
+        length = 0;
+    }
+}
 
 struct LabelManager
 {
@@ -1985,7 +2184,6 @@ struct LabelManager
     }
     alias ClabelDefList = ClabelVal[int];
     alias ClabelUndefList = JmpLabel[][int];
-    alias LabelPtrList = Label*[];
     CodeArray base_;
 
 // global : stateList_[0], local : stateList_[$-1]
@@ -2050,16 +2248,12 @@ struct LabelManager
     void incRefCount(int id, Label* label)
     {
         clabelDefList_[id].refCount++;
-        labelPtrList_ ~= label;
+        labelPtrList_.insert(label);
     }
     void decRefCount(int id, Label* label)
     {
-        foreach(i, labelptr; labelPtrList_)
-        {
-            if(labelptr == label) {
-                labelPtrList_.remove(i);
-            }
-        }
+        labelPtrList_.erase(label);
+
         if (null == (id in clabelDefList_)) {
             return;
         }
@@ -2083,7 +2277,12 @@ struct LabelManager
     // detach all labels linked to LabelManager
     void resetLabelPtrList()
     {
-        labelPtrList_ = [];
+        for (auto i = labelPtrList_.begin(), ie = labelPtrList_.end(); i != ie; i = i.next)
+        {
+            Label* label = cast(Label*) i.labelPtr_;
+            label.clear();
+        }
+        labelPtrList_.release();
     }
     
 public:
@@ -2153,7 +2352,7 @@ public:
     {
         define_inner(clabelDefList_, clabelUndefList_, getId(label), base_.getSize);
         label.mgr = &this;
-        labelPtrList_ ~= label;
+        labelPtrList_.insert(label);
     }
     void assign(ref Label dst, ref Label src)
     {
@@ -2163,7 +2362,7 @@ public:
         define_inner(clabelDefList_, clabelUndefList_, dst.id, clabelDefList_[src.id].offset);
         dst.mgr = &this;
         Label* dst_ptr = &dst;
-        labelPtrList_ ~= dst_ptr;
+        labelPtrList_.insert(dst_ptr);
     }
     bool getOffset(size_t* offset, ref string label)
     {

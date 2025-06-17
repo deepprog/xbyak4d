@@ -1878,8 +1878,19 @@ void release_label_after_code(size_t line = __LINE__)
 	puts("---");
 	{
 		Label L1, L2, L3, L4, L5;
-		//{
+		{
+		static if(false)
+		{
+			writeln("auto");
+			auto code = new ReleaseTestCode(L1, L2, L3);
+			scope (exit) destroy(code);
+		}
+		else
+		{	
+			writeln("scope");
 			scope code = new ReleaseTestCode(L1, L2, L3);
+		}
+
 			auto L1_getId = L1.getId();
 			assert(L1.getId > 0);
 			auto L1_getAddress = L1.getAddress();
@@ -1898,18 +1909,18 @@ void release_label_after_code(size_t line = __LINE__)
 			code.assignL(L4, L1);
 			L5 = L1;
 			writefln("id=%d %d %d %d %d", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
-		//}
+		}
 		puts("code is released");
-	//	assert(L1.getId() == 0);
-	//	assert(L1.getAddress() == null);
-	//	assert(L2.getId() == 0);
-	//	assert(L2.getAddress() == null);
+		assert(L1.getId() == 0);
+		assert(L1.getAddress() == null);
+		assert(L2.getId() == 0);
+		assert(L2.getAddress() == null);
 //		assert(L3.getId() == 0); // L3 is not assigned so not cleared
-	//	assert(L3.getAddress() == null);
-	//	assert(L4.getId() == 0);
-	//	assert(L4.getAddress() == null);
-	//	assert(L5.getId() == 0);
-	//	assert(L5.getAddress() == null);
+		assert(L3.getAddress() == null);
+		assert(L4.getId() == 0);
+		assert(L4.getAddress() == null);
+		assert(L5.getId() == 0);
+		assert(L5.getAddress() == null);
 		writef("id=%d %d %d %d %d\n", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
 	}
 }
