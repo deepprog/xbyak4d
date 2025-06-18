@@ -44,7 +44,7 @@ version (XBYAK32)
 
             ~this()
             {
-                testCount.end("nm64_gen00");
+                testCount.end("nm32_gen00");
             }
 
             this()
