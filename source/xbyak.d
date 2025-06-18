@@ -2007,17 +2007,9 @@ struct LabelPtrList
 
     bool insert(Label* labelPtr) @nogc nothrow
     {
-        Node* y = null;
-        Node* x = root;
-
-        while (x)
+        if (find(labelPtr))
         {
-            if (labelPtr == x.labelPtr_)
-            {
-                return false;
-            }
-            y = x;
-            x = (labelPtr < x.labelPtr_) ? x.left : x.right;
+            return false;
         }
 
         Node* z = createNode(labelPtr);
@@ -2025,8 +2017,17 @@ struct LabelPtrList
         {
             return false;
         }
-        z.parent = y;
 
+        Node* y = null;
+        Node* x = root;
+
+        while (x)
+        {
+            y = x;
+            x = (labelPtr < x.labelPtr_) ? x.left : x.right;
+        }
+
+        z.parent = y;
         if (y is null)
         {
             root = head = tail = z;
