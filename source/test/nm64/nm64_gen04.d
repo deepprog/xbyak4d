@@ -50,6 +50,7 @@ version (XBYAK64)
             this()
             {
                 testCount.reset();
+                
                 psllw(mm0, 4);
                 sdump("0F71F004");
                 psllw(mm4, 0xda);

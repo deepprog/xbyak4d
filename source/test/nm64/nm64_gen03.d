@@ -50,6 +50,7 @@ version (XBYAK64)
             this()
             {
                 testCount.reset();
+                
                 bsr(rbp, ptr[eax + ecx + 3]);
                 sdump("67480FBD6C0803");
                 bsr(rbp, ptr[rdx + r15 + 0x12]);

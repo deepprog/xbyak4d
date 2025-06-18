@@ -49,6 +49,8 @@ version (XBYAK64)
 
             this()
             {
+                testCount.reset();
+                
                 addps(xmm4, xmm7);
                 sdump("0F58E7");
                 addps(xmm4, ptr[eax + ecx + 3]);
