@@ -1960,6 +1960,15 @@ struct Node
     Node* prev, next;
 }
 
+Node* minimumNode(Node* n) @nogc nothrow
+{
+    while (n && n.left)
+    {
+        n = n.left;
+    }
+    return n;
+}
+
 struct LabelPtrList
 {
     Node* root, head, tail;
@@ -1970,6 +1979,7 @@ struct LabelPtrList
         Node* n = cast(Node*) malloc(Node.sizeof);
         if (n)
         {
+            *n = Node.init;
             *n = Node(labelPtr, null, null, null, null, null);
         }
         return n;
@@ -1997,9 +2007,17 @@ struct LabelPtrList
 
     bool insert(Label* labelPtr) @nogc nothrow
     {
-        if (find(labelPtr))
+        Node* y = null;
+        Node* x = root;
+
+        while (x)
         {
-            return false;
+            if (labelPtr == x.labelPtr_)
+            {
+                return false;
+            }
+            y = x;
+            x = (labelPtr < x.labelPtr_) ? x.left : x.right;
         }
 
         Node* z = createNode(labelPtr);
@@ -2007,15 +2025,8 @@ struct LabelPtrList
         {
             return false;
         }
-        
-        Node* y = null, x = root;
-        while (x)
-        {
-            y = x;
-            x = (labelPtr < x.labelPtr_) ? x.left : x.right;
-        }
-
         z.parent = y;
+
         if (y is null)
         {
             root = head = tail = z;
@@ -2095,14 +2106,7 @@ struct LabelPtrList
             tail = z.prev;
         }
 
-        Node* y = (z.left is null || z.right is null) ? z : (() {
-            Node* n = z.right;
-            while (n.left)
-            {
-                n = n.left;
-            }
-            return n;
-        })();
+        Node* y = (!z.left || !z.right) ? z : minimumNode(z.right);
 
         Node* x = (y.left) ? y.left : y.right;
         if (x)
@@ -2149,6 +2153,7 @@ struct LabelPtrList
         length = 0;
     }
 }
+
 
 struct LabelManager
 {
