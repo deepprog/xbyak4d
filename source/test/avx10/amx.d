@@ -108,6 +108,9 @@ version (XBYAK64)
 
             tcvtrowps2phl(zmm1, tmm2, r30d);
             tcvtrowps2phl(zmm29, tmm2, 0x12);
+
+            tilemovrow(zmm1, tmm2, r30d);
+            tilemovrow(zmm29, tmm2, 0x12);
         }
     }
 }
