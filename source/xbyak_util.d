@@ -585,6 +585,7 @@ public:
     enum tAMX_AVX512            = Type(0, 1uL << (93 % 64));
     enum tAMX_MOVRS             = Type(0, 1uL << (94 % 64));
     enum tAMX_FP8               = Type(0, 1uL << (95 % 64));
+    enum tMOVRS                 = Type(0, 1uL << (96 % 64));
 
     this()
     {
@@ -728,6 +729,7 @@ public:
                 if (*EAX & (1U << 7)) type_ |= tCMPCCXADD;
                 if (*EAX & (1U << 21)) type_ |= tAMX_FP16;
                 if (*EAX & (1U << 23)) type_ |= tAVX_IFMA;
+                if (*EAX & (1U << 31)) type_ |= tMOVRS;
                 if (*EDX & (1U << 4)) type_ |= tAVX_VNNI_INT8;
                 if (*EDX & (1U << 5)) type_ |= tAVX_NE_CONVERT;
                 if (*EDX & (1U << 10)) type_ |= tAVX_VNNI_INT16;
