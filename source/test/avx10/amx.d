@@ -99,6 +99,15 @@ version (XBYAK64)
 
             tcvtrowps2bf16h(zmm1, tmm2, r30d);
             tcvtrowps2bf16h(zmm29, tmm2, 0x12);
+
+            tcvtrowps2bf16l(zmm1, tmm2, r30d);
+            tcvtrowps2bf16l(zmm29, tmm2, 0x12);
+
+            tcvtrowps2phh(zmm1, tmm2, r30d);
+            tcvtrowps2phh(zmm29, tmm2, 0x12);
+
+            tcvtrowps2phl(zmm1, tmm2, r30d);
+            tcvtrowps2phl(zmm29, tmm2, 0x12);
         }
     }
 }

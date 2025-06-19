@@ -7264,6 +7264,12 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
         void kmovq(Reg64 r, Opmask k) { opKmov(k, r, true, 64); }
         void tcvtrowps2bf16h(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_F2|T_0F38|T_W0|T_MUST_EVEX, 0x6D); }
         void tcvtrowps2bf16h(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_F2|T_0F3A|T_W0|T_MUST_EVEX, 0x07, imm); }
+        void tcvtrowps2bf16l(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_F3|T_0F38|T_W0|T_MUST_EVEX, 0x6D); }
+        void tcvtrowps2bf16l(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_F3|T_0F3A|T_W0|T_MUST_EVEX, 0x77, imm); }
+        void tcvtrowps2phh(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_0F38|T_W0|T_MUST_EVEX, 0x6D); }
+        void tcvtrowps2phh(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_0F3A|T_W0|T_MUST_EVEX, 0x07, imm); }
+        void tcvtrowps2phl(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_66|T_0F38|T_W0|T_MUST_EVEX, 0x6D); }
+        void tcvtrowps2phl(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_F2|T_0F3A|T_W0|T_MUST_EVEX, 0x77, imm); }
         void vpbroadcastq(Xmm x, Reg64 r) { opVex(x, null, r, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x7C); }
       }
   }
