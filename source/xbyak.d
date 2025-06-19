@@ -6501,6 +6501,8 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void tdphbf8ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3|T_MAP5|T_W0, 0xFD); }
     void tdphf8ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66|T_MAP5|T_W0, 0xFD); }
     void tmmultf32ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66|T_0F38|T_W0, 0x48); }
+    void tcmmimfp16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66|T_0F38|T_W0, 0x6C); }
+    void tcmmrlfp16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_0F38|T_W0, 0x6C); }
     void tileloadd(Tmm tm, Address addr) { opAMX(tm, addr, T_F2|T_0F38|T_W0, 0x4B); }
     void tileloaddt1(Tmm tm, Address addr) { opAMX(tm, addr, T_66|T_0F38|T_W0, 0x4B); }
     void tileloaddrs(Tmm tm, Address addr) { opAMX(tm, addr, T_F2|T_0F38|T_W0, 0x4A); }
