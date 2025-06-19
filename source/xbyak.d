@@ -2594,7 +2594,7 @@ static const uint64_t T_0F38 = 1uL << 9;
 static const uint64_t T_0F3A = 1uL << 10;
 static const uint64_t T_MAP5 = 1uL << 11;
 static const uint64_t T_L1 = 1uL << 12;
-static const uint64_t T_W0 = 1uL << 13;
+static const uint64_t T_W0 = 1uL << 13; // T_EW0 = T_W0
 static const uint64_t T_W1 = 1uL << 14;
 
 static const uint64_t T_EW1 = 1uL << 16;
@@ -6487,24 +6487,24 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void wrgsbase(Reg32e r) { opRR(ebx, r, T_F3|T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
     void ldtilecfg(Address addr) { if (opROO(Reg(), addr, tmm0, T_APX|T_0F38|T_W0, 0x49)) return; opVex(tmm0, tmm0, addr, T_0F38, 0x49); }
     void sttilecfg(Address addr) { if (opROO(Reg(), addr, tmm0, T_APX|T_66|T_0F38|T_W0, 0x49)) return; opVex(tmm0, tmm0, addr, T_66|T_0F38, 0x49); }
-    void tileloadd(Tmm tm, Address addr) { opAMX(tm, addr, T_F2|T_0F38|T_W0, 0x4B); }
-    void tileloaddt1(Tmm tm, Address addr) { opAMX(tm, addr, T_66|T_0F38|T_W0, 0x4B); }
     void tilerelease() { db(0xc4); db(0xe2); db(0x78); db(0x49); db(0xc0); }
     void tilestored(Address addr, Tmm tm) { if (opROO(Reg(), addr, tm, T_APX|T_F3|T_0F38|T_W0, 0x4B)) return; opVex(tm, tmm0, addr, T_F3|T_0F38|T_W0, 0x4B); }
     void tilezero(Tmm Tmm) { opVex(Tmm, tmm0, tmm0, T_F2 | T_0F38 | T_W0, 0x49); }
-    void tdpbssd(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F2 | T_0F38 | T_W0, 0x5e); }
-    void tdpbsud(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3 | T_0F38 | T_W0, 0x5e); }
-    void tdpbusd(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66 | T_0F38 | T_W0, 0x5e); }
-    void tdpbuud(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_0F38 | T_W0, 0x5e); }
-    void tdpfp16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F2 | T_0F38 | T_W0, 0x5c); }
-    void tdpbf16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3 | T_0F38 | T_W0, 0x5c); }
-    void tileloaddrs(Tmm tm, Address addr) { opAMX(tm, addr, T_F2|T_0F38|T_W0, 0x4A); }
-    void tileloaddrst1(Tmm tm, Address addr) { opAMX(tm, addr, T_66|T_0F38|T_W0, 0x4A); }
+    void tdpbssd(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F2|T_0F38|T_W0, 0x5E); }
+    void tdpbsud(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3|T_0F38|T_W0, 0x5E); }   
+    void tdpbusd(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66|T_0F38|T_W0, 0x5E); }
+    void tdpbuud(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_0F38|T_W0, 0x5E); }
+    void tdpfp16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F2|T_0F38|T_W0, 0x5C); }
+    void tdpbf16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3|T_0F38|T_W0, 0x5C); }
     void tdpbf8ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_MAP5|T_W0, 0xFD); }
     void tdpbhf8ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F2|T_MAP5|T_W0, 0xFD); }
     void tdphbf8ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3|T_MAP5|T_W0, 0xFD); }
     void tdphf8ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66|T_MAP5|T_W0, 0xFD); }
-    void tmmultf32ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66 | T_0F38 | T_W0, 0x48); }
+    void tmmultf32ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66|T_0F38|T_W0, 0x48); }
+    void tileloadd(Tmm tm, Address addr) { opAMX(tm, addr, T_F2|T_0F38|T_W0, 0x4B); }
+    void tileloaddt1(Tmm tm, Address addr) { opAMX(tm, addr, T_66|T_0F38|T_W0, 0x4B); }
+    void tileloaddrs(Tmm tm, Address addr) { opAMX(tm, addr, T_F2|T_0F38|T_W0, 0x4A); }
+    void tileloaddrst1(Tmm tm, Address addr) { opAMX(tm, addr, T_66|T_0F38|T_W0, 0x4A); }
   }
   else
   {
