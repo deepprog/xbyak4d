@@ -6485,10 +6485,10 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void rdgsbase(Reg32e r) { opRR(ecx, r, T_F3|T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
     void wrfsbase(Reg32e r) { opRR(edx, r, T_F3|T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
     void wrgsbase(Reg32e r) { opRR(ebx, r, T_F3|T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
-    void ldtilecfg(Address addr) { if (opROO(Reg(), addr, tmm0, T_APX|T_0F38|T_W0, 0x49)) return; opVex(tmm0, tmm0, addr, T_0F38, 0x49); }
-    void sttilecfg(Address addr) { if (opROO(Reg(), addr, tmm0, T_APX|T_66|T_0F38|T_W0, 0x49)) return; opVex(tmm0, tmm0, addr, T_66|T_0F38, 0x49); }
+    void ldtilecfg(Address addr) { opAMX(tmm0, addr, T_0F38|T_W0, 0x49); }
+    void sttilecfg(Address addr) { opAMX(tmm0, addr,  T_66|T_0F38|T_W0, 0x49); }
+    void tilestored(Address addr, Tmm tm) { opAMX(tm, addr, T_F3|T_0F38|T_W0, 0x4B); }
     void tilerelease() { db(0xc4); db(0xe2); db(0x78); db(0x49); db(0xc0); }
-    void tilestored(Address addr, Tmm tm) { if (opROO(Reg(), addr, tm, T_APX|T_F3|T_0F38|T_W0, 0x4B)) return; opVex(tm, tmm0, addr, T_F3|T_0F38|T_W0, 0x4B); }
     void tilezero(Tmm Tmm) { opVex(Tmm, tmm0, tmm0, T_F2 | T_0F38 | T_W0, 0x49); }
     void tdpbssd(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F2|T_0F38|T_W0, 0x5E); }
     void tdpbsud(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3|T_0F38|T_W0, 0x5E); }   

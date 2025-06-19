@@ -46,10 +46,6 @@ version (XBYAK64)
             tilezero(tmm7);
             tdpbssd(tmm1, tmm2, tmm3);
             tdpbsud(tmm2, tmm3, tmm4);
-            tdpbusd(tmm3, tmm4, tmm5);
-            tdpbuud(tmm4, tmm5, tmm6);
-            tdpfp16ps(tmm5, tmm6, tmm7);
-            tdpbf16ps(tmm5, tmm6, tmm7);
             tileloadd(tmm1, ptr[r8 + r8]);
             tileloadd(tmm1, ptr[rax + rcx * 4]);
             tileloadd(tmm1, ptr[r8 + r9 * 1 + 0x40]);
@@ -59,6 +55,12 @@ version (XBYAK64)
             tileloaddrst1(tmm4, ptr[r8 + r9 + 32]);
             tileloaddrst1(tmm4, ptr[r25 + r9 + 32]);
 
+            tdpbf8ps(tmm1, tmm2, tmm3);
+            tdpbhf8ps(tmm1, tmm2, tmm3);
+            tdphbf8ps(tmm1, tmm2, tmm3);
+            tdphf8ps(tmm1, tmm2, tmm3);
+
+            tmmultf32ps(tmm1, tmm2, tmm3);
         }
     }
 }
