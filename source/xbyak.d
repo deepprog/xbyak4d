@@ -6506,6 +6506,9 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void tileloaddrs(Tmm tm, Address addr) { opAMX(tm, addr, T_F2|T_0F38|T_W0, 0x4A); }
     void tileloaddrst1(Tmm tm, Address addr) { opAMX(tm, addr, T_66|T_0F38|T_W0, 0x4A); }
     void t2rpntlvwz0(Tmm tm, Address addr) { opAMX(tm, addr, T_0F38|T_W0, 0x6E); }
+    void t2rpntlvwz0t1(Tmm tm, Address addr) { opAMX(tm, addr, T_0F38|T_W0, 0x6F); }
+    void t2rpntlvwz1(Tmm tm, Address addr) { opAMX(tm, addr, T_66|T_0F38|T_W0, 0x6E); }
+    void t2rpntlvwz1t1(Tmm tm, Address addr) { opAMX(tm, addr, T_66|T_0F38|T_W0, 0x6F); }
   }
   else
   {

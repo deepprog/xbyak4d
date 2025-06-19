@@ -64,6 +64,15 @@ version (XBYAK64)
 
             t2rpntlvwz0(tmm1, ptr[rax + rax * 2 + 0x80]);
             t2rpntlvwz0(tmm7, ptr[r30 + rax * 2 + 0x80]);
+
+            t2rpntlvwz0t1(tmm1, ptr[rax + rax * 2 + 0x80]);
+            t2rpntlvwz0t1(tmm7, ptr[r30 + rax * 2 + 0x80]);
+
+            t2rpntlvwz1(tmm1, ptr[rax + rax * 2 + 0x80]);
+            t2rpntlvwz1(tmm7, ptr[r30 + rax * 2 + 0x80]);
+
+            t2rpntlvwz1t1(tmm1, ptr[rax + rax * 2 + 0x80]);
+            t2rpntlvwz1t1(tmm7, ptr[r30 + rax * 2 + 0x80]);
         }
     }
 }
