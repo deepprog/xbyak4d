@@ -96,6 +96,9 @@ version (XBYAK64)
             tconjtcmmimfp16ps(tmm1, tmm2, tmm3);
 
             tconjtfp16(tmm1, tmm2);
+
+            tcvtrowps2bf16h(zmm1, tmm2, r30d);
+            tcvtrowps2bf16h(zmm29, tmm2, 0x12);
         }
     }
 }

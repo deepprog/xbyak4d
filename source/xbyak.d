@@ -2722,7 +2722,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         } else {
             if (v) VL = max(VL, v.getBit());
             VL = max(max(reg.getBit(), base.getBit()), VL);
-            LL = (VL == 512) ? 2 : (VL == 256) ? 1 : 0;
+            LL = (VL >= 512 /* tmm */) ? 2 : (VL == 256) ? 1 : 0;
             if (b) {
                 disp8N = ((type & T_B16) == T_B16) ? 2 : (type & T_B32) ? 4 : 8;
             } else if ((type & T_NX_MASK) == T_DUP) {
@@ -7262,6 +7262,8 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
       version (XBYAK64)
       {
         void kmovq(Reg64 r, Opmask k) { opKmov(k, r, true, 64); }
+        void tcvtrowps2bf16h(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_F2|T_0F38|T_W0|T_MUST_EVEX, 0x6D); }
+        void tcvtrowps2bf16h(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_F2|T_0F3A|T_W0|T_MUST_EVEX, 0x07, imm); }
         void vpbroadcastq(Xmm x, Reg64 r) { opVex(x, null, r, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x7C); }
       }
   }
