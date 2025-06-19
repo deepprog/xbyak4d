@@ -2595,9 +2595,9 @@ static const uint64_t T_0F3A = 1uL << 10;
 static const uint64_t T_MAP5 = 1uL << 11;
 static const uint64_t T_L1 = 1uL << 12;
 static const uint64_t T_W0 = 1uL << 13; // T_EW0 = T_W0
-static const uint64_t T_W1 = 1uL << 14;
+static const uint64_t T_W1 = 1uL << 14; // for VEX
 
-static const uint64_t T_EW1 = 1uL << 16;
+static const uint64_t T_EW1 = 1uL << 16; // for EVEX
 static const uint64_t T_YMM = 1uL << 17; // support YMM, ZMM
 static const uint64_t T_EVEX = 1uL << 18;
 static const uint64_t T_ER_X = 1uL << 19; // xmm{er}
