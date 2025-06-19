@@ -61,6 +61,9 @@ version (XBYAK64)
             tdphf8ps(tmm1, tmm2, tmm3);
 
             tmmultf32ps(tmm1, tmm2, tmm3);
+
+            t2rpntlvwz0(tmm1, ptr[rax + rax * 2 + 0x80]);
+            t2rpntlvwz0(tmm7, ptr[r30 + rax * 2 + 0x80]);
         }
     }
 }
