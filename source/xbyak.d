@@ -1627,9 +1627,9 @@ public:
         }
         size_ = size;
     }
-    void dump(bool doClear = false) 
+    void dump()
     {
-        uint8_t* p     = getCode();
+        const uint8_t* p = getCode();
         size_t bufSize = getSize();
         size_t remain  = bufSize;
         for (int i = 0; i < 4; i++)
@@ -1642,20 +1642,15 @@ public:
             for (size_t j = 0; j < 16; j++)
             {
                 if (j < disp) {
-                    write(format("%02X", p[i * 16 + j]));
+                    printf("%02X", p[i * 16 + j]);
                 }
             }
-            writeln();
+            putchar('\n');
             remain -= disp;
-            if (remain <= 0)
-            {
+            if (remain == 0) {
                 break;
             }
-        }
-  version (XBYAK_TEST)
-  {
-        if (doClear) size_ = 0;
-  }    
+        }   
     }
 
 //  @param data [in] address of jmp data
@@ -4313,7 +4308,8 @@ public:
   {
     override void dump(bool doClear = true)
     {
-        xbyak.CodeArray.dump(doClear);
+        xbyak.CodeArray.dump();
+        if (doClear) size_ = 0;
     }
   }
     // set default encoding of VNNI
