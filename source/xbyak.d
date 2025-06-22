@@ -304,9 +304,9 @@ string ConvertErrorToString(ERR err)
   }
 
 
-const(To) CastTo(To, From)(From p)
+To CastTo(To, From)(From p)
 {
-    return cast(const(To))(cast(size_t) p);
+    return cast(const To)cast(size_t)(p);
 }
 
 struct inner
