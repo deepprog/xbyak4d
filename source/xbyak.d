@@ -304,9 +304,9 @@ string ConvertErrorToString(ERR err)
   }
 
 
-To CastTo(To, From)(From p)
+const(To) CastTo(To, From)(From p)
 {
-    return cast(const To)cast(size_t)(p);
+    return cast(const(To))(cast(size_t) p);
 }
 
 struct inner
@@ -1616,9 +1616,11 @@ public:
     void dd(uint32_t code) { db(code, 4); }
     void dq(uint64_t code) { db(code, 8); }
     uint8_t* getCode() { return top_; }
-    F getCode(F)() const { return CastTo !(F)(top_); }
-    uint8_t* getCurr() { return &top_[size_];}
-    F getCurr(F)() const { return CastTo !(F)(&top_[size_]); }
+    const(uint8_t)* getCode() const { return top_; }
+    const(F) getCode(F)() const { return cast(F) top_; }
+    uint8_t* getCurr() { return &top_[size_]; }
+    const(uint8_t)* getCurr() const { return &top_[size_]; }
+    const(F) getCurr(F)() const { return cast(F) &top_[size_]; }
     size_t getSize() const { return size_; }
     void setSize(size_t size)
     {
@@ -1627,9 +1629,9 @@ public:
         }
         size_ = size;
     }
-    void dump()
+    void dump() const
     {
-        const uint8_t* p = getCode();
+        const(uint8_t)* p = getCode();
         size_t bufSize = getSize();
         size_t remain = bufSize;
         for (int i = 0; i < 4; i++)
