@@ -18,12 +18,12 @@ version (XBYAK64)
     @("xed_apx")
     unittest
     {
-        xed_comp();
+        xed_apx();
     }
 
-    void xed_comp()
+    void xed_apx()
     {
-        Code c = new Code();
+        scope c = new Code();
     }
 
     class Code : CodeGenerator
