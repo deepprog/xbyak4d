@@ -23,7 +23,7 @@ version (XBYAK64)
 
     void xed_comp()
     {
-        Code c = new Code();
+        scope c = new Code();
     }
 
     class Code : CodeGenerator
