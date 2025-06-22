@@ -1631,7 +1631,7 @@ public:
     {
         const uint8_t* p = getCode();
         size_t bufSize = getSize();
-        size_t remain  = bufSize;
+        size_t remain = bufSize;
         for (int i = 0; i < 4; i++)
         {
             size_t disp = 16;
@@ -1641,18 +1641,20 @@ public:
             }
             for (size_t j = 0; j < 16; j++)
             {
-                if (j < disp) {
+                if (j < disp)
+                {
                     printf("%02X", p[i * 16 + j]);
                 }
             }
             putchar('\n');
             remain -= disp;
-            if (remain == 0) {
+            if (remain == 0)
+            {
                 break;
             }
-        }   
+        }
+   
     }
-
 //  @param data [in] address of jmp data
 //  @param disp [in] offset from the next of jmp
 //  @param size [in] write size(1, 2, 4, 8)
