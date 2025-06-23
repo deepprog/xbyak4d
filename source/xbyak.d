@@ -2040,9 +2040,9 @@ public:
     // backward compatibility
     static string toStr(int num)
     {
-        static char[16] buf;
-        snprintf(cast(char*) buf, buf.sizeof, ".%08x", num);
-        return buf;
+        char[32] buf;
+        snprintf(buf.ptr, buf.sizeof, ".%08x", num);
+        return buf[0 .. strlen(buf.ptr)].idup;
     }
 }
 
