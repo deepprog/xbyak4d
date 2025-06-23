@@ -1026,7 +1026,8 @@ public:
 
 struct EvexModifierRounding
 {
-    enum {
+    enum
+    {
         T_RN_SAE = 1,
         T_RD_SAE = 2,
         T_RU_SAE = 3,
@@ -1341,8 +1342,18 @@ public class Reg32 : Reg32e
         enum {
             es, cs, ss, ds, fs, gs
         }
-        this(int idx){ assert(0 <= idx_ && idx_ < 6); idx_ = idx; }
-        int getIdx() const { return idx_; }
+
+        this(int idx)
+        {
+            assert(0 <= idx_ && idx_ < 6);
+            idx_ = idx;
+        }
+
+        int getIdx() const
+        {
+            return idx_;
+        }
+
         string toString() const
         {
             string[] tbl = [
@@ -1432,7 +1443,8 @@ public:
 
     RegExp opBinary(string op : "+")(RegExp b)
     {
-        if (this.index_.getBit() && b.index_.getBit()) {
+        if (this.index_.getBit() && b.index_.getBit())
+        {
             mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegExp()"));
         }
         RegExp ret = this;
@@ -1452,7 +1464,10 @@ public:
                 // base + base => base + index * 1
                 ret.index_ = b.base_;
                 // [reg + esp] => [esp + reg]
-                if (ret.index_.getIdx() == Operand.ESP) swap(ret.base_, ret.index_);
+                if (ret.index_.getIdx() == Operand.ESP)
+                {
+                    swap(ret.base_, ret.index_);
+                }
                 ret.scale_ = 1;
             }
             else
