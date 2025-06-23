@@ -484,8 +484,8 @@ class Allocator
 
 struct ApxFlagNF
 {
-    T opBinaryRight(string op:"|", T) (T t)
-    {        
+    T opBinaryRight(string op : "|", T)(T t)
+    {
         T r = new T(t);
         r.setNF();
         return r;
@@ -494,8 +494,8 @@ struct ApxFlagNF
 
 struct ApxFlagZU
 {
-    T opBinaryRight(string op:"|", T) (T t)
-    {        
+    T opBinaryRight(string op : "|", T)(T t)
+    {
         T r = new T(t);
         r.setZU();
         return r;
@@ -608,7 +608,7 @@ public:
     {
         this.idx_ = op.idx_;
         this.kind_ = op.kind_;
-        this.bit_  = op.bit_;
+        this.bit_ = op.bit_;
         this.zero_ = op.zero_;
         this.mask_ = op.mask_;
         this.rounding_ = op.rounding_;
@@ -616,7 +616,7 @@ public:
         this.ZU_ = op.ZU_;
         assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
     }
-    
+
     static Operand opCall()
     {
         return new Operand();
@@ -719,14 +719,16 @@ public:
     }
     void setOpmaskIdx(int idx, bool /*ignore_idx0*/ = true)
     {
-        if (mask_ && (mask_ != idx)) {
+        if (mask_ && (mask_ != idx))
+        {
             mixin(XBYAK_THROW(ERR.OPMASK_IS_ALREADY_SET));
         }
         mask_ = idx;
     }
     void setRounding(int idx)
     {
-        if (rounding_ && (rounding_ != idx)) {
+        if (rounding_ && (rounding_ != idx))
+        {
             mixin(XBYAK_THROW(ERR.ROUNDING_IS_ALREADY_SET));
         }
         rounding_ = idx;
@@ -750,7 +752,7 @@ public:
         return (kind == 0 || (kind_ & kind)) && (bit == 0 || (bit_ & bit)); // cf. you can set (8|16)
     }
     bool isBit(uint32_t bit) const { return (bit_ & bit) != 0; }
-    uint32_t getBit() const { return bit_;}
+    uint32_t getBit() const { return bit_; }
 
     override string toString() const
     {
@@ -930,31 +932,37 @@ public:
         return r;
     }
 
-    RegExp opBinary(string op:"+") (Reg b)
+    RegExp opBinary(string op : "+")(Reg b)
     {
         return RegExp(this) + RegExp(b);
     }
-    RegExp opBinary(string op:"*") (int scale)
+
+    RegExp opBinary(string op : "*")(int scale)
     {
         return RegExp(this, scale);
     }
-    RegExp opBinaryRight(string op:"*") (int scale)
+
+    RegExp opBinaryRight(string op : "*")(int scale)
     {
         return this * scale;
     }
-    RegExp opBinary(string op:"+") (int disp)
+
+    RegExp opBinary(string op : "+")(int disp)
     {
         return RegExp(this) + disp;
     }
-    RegExp opBinaryRight(string op:"+") (int disp)
+
+    RegExp opBinaryRight(string op : "+")(int disp)
     {
         return RegExp(this) + disp;
     }
-    RegExp opBinary(string op:"-") (int disp)
+
+    RegExp opBinary(string op : "-")(int disp)
     {
         return RegExp(this) - disp;
     }
-    RegExp opBinaryRight(string op:"-") (int disp)
+
+    RegExp opBinaryRight(string op : "-")(int disp)
     {
         return RegExp(this) - disp;
     }
@@ -968,10 +976,12 @@ public:
     {
         super(idx, Kind.REG, 8, ext8bit);
     }
+
     this(Reg8 r)
     {
-        super(cast(Reg)r);
+        super(cast(Reg) r);
     }
+
     static Reg8 opCall(int idx = 0, bool ext8bit = false)
     {
         return new Reg8(idx, ext8bit);
@@ -985,10 +995,12 @@ public:
     {
         super(idx, Kind.REG, 16);
     }
+
     this(Reg16 r)
     {
-        super(cast(Reg)r);
+        super(cast(Reg) r);
     }
+
     static Reg16 opCall(int idx)
     {
         return new Reg16(idx);
@@ -1021,16 +1033,16 @@ struct EvexModifierRounding
         T_RZ_SAE = 4,
         T_SAE = 5
     }
-    
+
     this(int rounding)
     {
         this.rounding_ = rounding;
     }
 
     int rounding_;
-    
-    T opBinaryRight(string op:"|", T)(T x)
-    {        
+
+    T opBinaryRight(string op : "|", T)(T x)
+    {
         T r = new T(x);
         r.setRounding(this.rounding_);
         return r;
@@ -1039,14 +1051,13 @@ struct EvexModifierRounding
 
 struct EvexModifierZero
 {
-    T opBinaryRight(string op:"|", T)(T x)
+    T opBinaryRight(string op : "|", T)(T x)
     {
-        T r = new T(x);    
+        T r = new T(x);
         r.setZero();
         return r;
     }
 }
-
 
 public class Xmm : Mmx
 {
@@ -1055,24 +1066,29 @@ public:
     {
         super(idx, kind, bit);
     }
+
     this(Xmm x)
     {
-        super(cast(Mmx)x);
+        super(cast(Mmx) x);
     }
+
     static Xmm opCall(int idx)
     {
         return new Xmm(idx);
     }
+
     static Xmm opCall(int kind, int idx)
     {
         return new Xmm(idx, kind, kind == Kind.XMM ? 128 : kind == Kind.YMM ? 256 : 512);
     }
+
     Xmm copyAndSetIdx(int idx)
     {
         Xmm ret = new Xmm(this);
         ret.setIdx(idx);
         return ret;
     }
+
     Xmm copyAndSetKind(int kind)
     {
         Xmm ret = new Xmm(this);
@@ -1081,7 +1097,6 @@ public:
     }
 }
 
-
 public class Ymm : Xmm
 {
 public:
@@ -1089,10 +1104,12 @@ public:
     {
         super(idx, kind, bit);
     }
+
     this(Ymm y)
     {
-        super(cast(Xmm)y);
+        super(cast(Xmm) y);
     }
+
     static Ymm opCall(int idx)
     {
         return new Ymm(idx);
@@ -1106,10 +1123,12 @@ public:
     {
         super(idx, kind, bit);
     }
+
     this(Zmm z)
     {
-        super(cast(Ymm)z);
+        super(cast(Ymm) z);
     }
+
     static Zmm opCall(int idx)
     {
         return new Zmm(idx);
@@ -1125,10 +1144,12 @@ public:
         {
             super(idx, kind, bit);
         }
+
         this(Tmm t)
         {
-            super(cast(Reg)t);
+            super(cast(Reg) t);
         }
+
         static Tmm opCall(int idx)
         {
             return new Tmm(idx);
@@ -1143,15 +1164,18 @@ class Opmask : Reg
     {
         super(idx, Kind.OPMASK, 64);
     }
+
     this(Opmask opmask)
     {
-        super(cast(Reg)opmask);
+        super(cast(Reg) opmask);
     }
+
     static Opmask opCall(int idx)
     {
         return new Opmask(idx);
     }
-    T opBinaryRight(string op:"|", T)(T x)
+
+    T opBinaryRight(string op : "|", T)(T x)
     {
         T r = new T(x);
         r.setOpmaskIdx(this.getIdx());
@@ -1165,16 +1189,17 @@ class BoundsReg : Reg
     {
         super(idx, Kind.BNDREG, 128);
     }
+
     this(BoundsReg b)
     {
-        super(cast(Reg)b);
+        super(cast(Reg) b);
     }
+
     static BoundsReg opCall(int idx)
     {
         return new BoundsReg(idx);
     }
 }
-
 
 public class Fpu : Reg
 {
@@ -1183,16 +1208,17 @@ public:
     {
         super(idx, Kind.FPU, 32);
     }
+
     this(Fpu f)
     {
-        super(cast(Reg)f);
+        super(cast(Reg) f);
     }
+
     static Fpu opCall(int idx)
     {
         return new Fpu(idx);
     }
 }
-
 
 public class Reg32e : Reg
 {
@@ -1200,16 +1226,17 @@ public class Reg32e : Reg
     {
         super(idx, Kind.REG, bit);
     }
+
     this(Reg32e r)
     {
-        super(cast(Reg)r);
+        super(cast(Reg) r);
     }
+
     static Reg32e opCall(int idx, int bit)
     {
         return new Reg32e(idx, bit);
     }
 }
-
 
 public class Reg32 : Reg32e
 {
@@ -1217,10 +1244,12 @@ public class Reg32 : Reg32e
     {
         super(idx, bit);
     }
+
     this(Reg32 reg32)
     {
-        super(cast(Reg32e)reg32);
+        super(cast(Reg32e) reg32);
     }
+
     static Reg32 opCall(int idx)
     {
         return new Reg32(idx);
@@ -1235,10 +1264,12 @@ public class Reg32 : Reg32e
         {
             super(idx, bit);
         }
+
         this(Reg64 reg64)
         {
-            super(cast(Reg32e)reg64);
+            super(cast(Reg32e) reg64);
         }
+
         static Reg64 opCall(int idx)
         {
             return new Reg64(idx);
@@ -1250,42 +1281,50 @@ public class Reg32 : Reg32e
         int64_t disp_ = 0;
         Label* label_;
         bool isAddr_;
-        
+
         this(int64_t disp, Label* label = null, bool isAddr = false)
         {
-            disp_  = disp;
+            disp_ = disp;
             label_ = label;
             isAddr_ = isAddr;
         }
-        RegRip opBinary(string op:"+") (int disp)
+
+        RegRip opBinary(string op : "+")(int disp)
         {
             return RegRip(this.disp_ + disp, this.label_, this.isAddr_);
         }
-        RegRip opBinary(string op:"-") (int disp)
+
+        RegRip opBinary(string op : "-")(int disp)
         {
             return RegRip(this.disp_ - disp, this.label_, this.isAddr_);
         }
-        RegRip opBinary(string op:"+") (int64_t disp)
+
+        RegRip opBinary(string op : "+")(int64_t disp)
         {
             return RegRip(this.disp_ + disp, this.label_, this.isAddr_);
         }
-        RegRip opBinary(string op:"-") (int64_t disp)
+
+        RegRip opBinary(string op : "-")(int64_t disp)
         {
             return RegRip(this.disp_ - disp, this.label_, this.isAddr_);
         }
-        RegRip opBinary(string op:"+") (ref Label label)
+
+        RegRip opBinary(string op : "+")(ref Label label)
         {
-            if (this.label_ || this.isAddr_) {
+            if (this.label_ || this.isAddr_)
+            {
                 mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegRip()"));
             }
             return RegRip(this.disp_, &label);
         }
-        RegRip opBinary(string op:"+")(void* addr)
+
+        RegRip opBinary(string op : "+")(void* addr)
         {
-            if (this.label_ || this.isAddr_) {
+            if (this.label_ || this.isAddr_)
+            {
                 mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegRip()"));
             }
-            return RegRip(this.disp_ + cast(int64_t)addr, null, true);
+            return RegRip(this.disp_ + cast(int64_t) addr, null, true);
         }
     }
   }
@@ -1391,16 +1430,23 @@ public:
         }
     }
 
-    RegExp opBinary(string op:"+") (RegExp b)
+    RegExp opBinary(string op : "+")(RegExp b)
     {
         if (this.index_.getBit() && b.index_.getBit()) {
             mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegExp()"));
         }
         RegExp ret = this;
-        if (!ret.index_.getBit()) { ret.index_ = b.index_; ret.scale_ = b.scale_; }
-        if (b.base_.getBit()) {
-            if (ret.base_.getBit()) {
-                if (ret.index_.getBit()) {
+        if (!ret.index_.getBit())
+        {
+            ret.index_ = b.index_;
+            ret.scale_ = b.scale_;
+        }
+        if (b.base_.getBit())
+        {
+            if (ret.base_.getBit())
+            {
+                if (ret.index_.getBit())
+                {
                     mixin(XBYAK_THROW_RET(ERR.BAD_ADDRESSING, "RegExp()"));
                 }
                 // base + base => base + index * 1
@@ -1408,29 +1454,34 @@ public:
                 // [reg + esp] => [esp + reg]
                 if (ret.index_.getIdx() == Operand.ESP) swap(ret.base_, ret.index_);
                 ret.scale_ = 1;
-            } else { 
+            }
+            else
+            {
                 ret.base_ = b.base_;
             }
         }
         ret.disp_ += b.disp_;
         return ret;
     }
-   
-    RegExp opBinary(string op:"+") (Reg b)
+
+    RegExp opBinary(string op : "+")(Reg b)
     {
         return this + RegExp(b);
     }
-    RegExp opBinaryRight(string op:"+") (Reg a)
+
+    RegExp opBinaryRight(string op : "+")(Reg a)
     {
         return RegExp(a) + this;
     }
-    RegExp opBinary(string op:"+") (int disp)
+
+    RegExp opBinary(string op : "+")(int disp)
     {
         RegExp ret = this;
         ret.disp_ += disp;
         return ret;
     }
-    RegExp opBinary(string op:"-") (int disp)
+
+    RegExp opBinary(string op : "-")(int disp)
     {
         RegExp ret = this;
         ret.disp_ -= disp;
