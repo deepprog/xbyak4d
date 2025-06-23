@@ -31,6 +31,7 @@ version = XBYAK_ENABLE_OMITTED_OPERAND;
 import core.memory;
 import core.stdc.stdio;
 import core.stdc.stdlib;
+import core.stdc.string;
 import std.algorithm;
 import std.array;
 import std.conv;
@@ -2046,8 +2047,6 @@ public:
     }
 }
 
-import core.stdc.stdio;
-import core.stdc.stdlib;
 
 struct Node
 {
