@@ -1977,6 +1977,7 @@ struct Label
 {
     LabelManager* mgr = null;
     int id = 0;
+
 public:
     this(ref Label rhs)
     {
@@ -2542,7 +2543,7 @@ private:
   version (XBYAK64)
   {
         enum { i32e = 64 | 32, BIT = 64 }
-        static const size_t dummyAddr = cast(uint64_t) (0x1122334455667788UL);
+        static const size_t dummyAddr = cast(uint64_t) 0x1122334455667788uL;
         alias NativeReg = Reg64;
   }
   else
@@ -2608,64 +2609,91 @@ private:
     // return true if rex2 is selected
     bool rex(Operand op1, Operand op2 = Reg(), uint64_t type = 0)
     {
-        if (op1.getNF() | op2.getNF()) {
+        if (op1.getNF() | op2.getNF())
+        {
             mixin(XBYAK_THROW_RET(ERR.INVALID_NF, "false"));
         }
-        if (op1.getZU() | op2.getZU()) {
+        if (op1.getZU() | op2.getZU())
+        {
             mixin(XBYAK_THROW_RET(ERR.INVALID_ZU, "false"));
         }
         uint8_t rex = 0;
         scope Operand p1 = op1;
         scope Operand p2 = op2;
-        if (p1.isMEM()) swap(p1, p2);
-        if (p1.isMEM()) {
+        if (p1.isMEM())
+        {
+            swap(p1, p2);
+        }
+        if (p1.isMEM())
+        {
             mixin(XBYAK_THROW_RET(ERR.BAD_COMBINATION, "false"));
         }
         // except movsx(16bit, 32/64bit)
         bool p66 = (op1.isBit(16) && !op2.isBit(i32e)) || (op2.isBit(16) && !op1.isBit(i32e));
-        if ((type & T_66) || p66){
+        if ((type & T_66) || p66)
+        {
             db(0x66);
         }
-        if (type & T_F2) {
+        if (type & T_F2)
+        {
             db(0xF2);
         }
-        if (type & T_F3) {
+        if (type & T_F3)
+        {
             db(0xF3);
         }
-        bool is0F = cast(bool)(type & T_0F);
-        if (p2.isMEM()) {
-            scope Reg r = cast(Reg)(p1);
+        bool is0F = cast(bool) (type & T_0F);
+        if (p2.isMEM())
+        {
+            scope Reg r = cast(Reg) p1;
             scope Address addr = p2.getAddress();
             RegExp e = addr.getRegExp();
             scope Reg base = e.getBase();
             scope Reg idx = e.getIndex();
-            if (BIT == 64 && addr.is32bit()) {
+            if (BIT == 64 && addr.is32bit())
+            {
                 db(0x67);
             }
             rex = rexRXB(3, r.isREG(64), r, base, idx);
-            if (r.hasRex2() || addr.hasRex2()) {
-                if (type & (T_0F38|T_0F3A)) {
+            if (r.hasRex2() || addr.hasRex2())
+            {
+                if (type & (T_0F38 | T_0F3A))
+                {
                     mixin(XBYAK_THROW_RET(ERR.CANT_USE_REX2, "false"));
                 }
                 rex2(is0F, rex, r, base, idx);
                 return true;
             }
-            if (rex || r.isExt8bit()) rex |= 0x40;
-        } else {
-            scope Reg r1 = cast(Reg)(op1);
-            scope Reg r2 = cast(Reg)(op2);
+            if (rex || r.isExt8bit())
+            {
+                rex |= 0x40;
+            }
+
+        }
+        else
+        {
+            scope Reg r1 = cast(Reg) op1;
+            scope Reg r2 = cast(Reg) op2;
             // ModRM(reg, base);
             rex = rexRXB(3, r1.isREG(64) || r2.isREG(64), r2, r1);
-            if (r1.hasRex2() || r2.hasRex2()) {
-                if (type & (T_0F38|T_0F3A)) {
+            if (r1.hasRex2() || r2.hasRex2())
+            {
+                if (type & (T_0F38 | T_0F3A))
+                {
                     mixin(XBYAK_THROW_RET(ERR.CANT_USE_REX2, "0"));
                 }
                 rex2(is0F, rex, r2, r1);
                 return true;
             }
-            if (rex || r1.isExt8bit() || r2.isExt8bit()) rex |= 0x40;
+            if (rex || r1.isExt8bit() || r2.isExt8bit())
+            {
+                rex |= 0x40;
+            }
         }
-        if (rex) db(rex);
+        if (rex)
+        {
+            db(rex);
+        }
         return false;
     }
 
@@ -2715,12 +2743,15 @@ static const uint64_t T_CODE1_IF1 = 1uL << 33; // code|=1 if !r.isBit(8)
 static const uint64_t T_ND1 = 1uL << 35; // ND=1
 static const uint64_t T_ZU = 1uL << 36; // ND=ZU
 static const uint64_t T_F2 = 1uL << 37; // pp = 3
-static const uint64_t T_SENTRY = (1uL << 38)-1; // attribute(>=T_SENTRY) is for error check
+static const uint64_t T_SENTRY = (1uL << 38) - 1; // attribute(>=T_SENTRY) is for error check
 static const uint64_t T_ALLOW_DIFF_SIZE = 1uL << 38; // allow difference reg size
 static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
 
     // T_66 = 1, T_F3 = 2, T_F2 = 3
-    uint32_t getPP(uint64_t type) { return (type & T_66) ? 1 : (type & T_F3) ? 2 : (type & T_F2) ? 3 : 0; }
+    uint32_t getPP(uint64_t type)
+    {
+        return (type & T_66) ? 1 : (type & T_F3) ? 2 : (type & T_F2) ? 3 : 0;
+    }
 
     uint32_t getMap(uint64_t type)
     {
