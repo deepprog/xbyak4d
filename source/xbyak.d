@@ -1915,41 +1915,46 @@ struct AddressFrame
 public:
     uint32_t bit_;
     bool broadcast_;
-    
+
     this(uint32_t bit, bool broadcast = false)
     {
         bit_ = bit;
         broadcast_ = broadcast;
     }
+
     Address opIndex(RegExp e) const
     {
         return new Address(bit_, broadcast_, e);
     }
+
     Address opIndex(void* disp) const
     {
-        return new Address(bit_, broadcast_, RegExp(cast(size_t)disp));
+        return new Address(bit_, broadcast_, RegExp(cast(size_t) disp));
     }
+
     Address opIndex(int disp) const
     {
-        return new Address(bit_, broadcast_, RegExp(cast(size_t)disp));
+        return new Address(bit_, broadcast_, RegExp(cast(size_t) disp));
     }
+
     Address opIndex(Reg reg) const
     {
         RegExp ret = RegExp(reg);
         return opIndex(ret);
     }
 
-  version (XBYAK64)
-  {
+    version (XBYAK64)
+    {
         Address opIndex(uint64_t disp) const
         {
             return new Address(disp);
-        }        
+        }
+
         Address opIndex(RegRip addr) const
         {
             return new Address(bit_, broadcast_, addr);
         }
-  }
+    }
 }
 
 struct JmpLabel
@@ -1958,13 +1963,13 @@ struct JmpLabel
     int jmpSize;
     inner.LabelMode mode;
     size_t disp; // disp for [rip + disp]
-   
+
     this(size_t endOfJmp, int jmpSize, inner.LabelMode mode = inner.LabelMode.LasIs, size_t disp = 0)
     {
         this.endOfJmp = endOfJmp;
-        this.jmpSize  = jmpSize;
-        this.mode     = mode;
-        this.disp     = disp;
+        this.jmpSize = jmpSize;
+        this.mode = mode;
+        this.disp = disp;
     }
 }
 
@@ -1975,43 +1980,68 @@ struct Label
 public:
     this(ref Label rhs)
     {
-        this.id  = rhs.id;
+        this.id = rhs.id;
         this.mgr = rhs.mgr;
-        if (this.mgr) mgr.incRefCount(id, &this);
+        if (this.mgr)
+        {
+            mgr.incRefCount(id, &this);
+        }
     }
+
     ~this()
     {
-        if(id && mgr) mgr.decRefCount(id, &this);
+        if (this.id && this.mgr)
+        {
+            mgr.decRefCount(this.id, &this);
+        }
     }
 
     Label opAssign(ref Label rhs)
     {
-        if (id) {
+        if (this.id)
+        {
             mixin(XBYAK_THROW_RET(ERR.LABEL_IS_ALREADY_SET_BY_L, "this"));
         }
-        id = rhs.id;
-        mgr = rhs.mgr;
-        if (mgr) mgr.incRefCount(id, &this);
+        this.id = rhs.id;
+        this.mgr = rhs.mgr;
+        if (this.mgr)
+        {
+            mgr.incRefCount(this.id, &this);
+        }
         return this;
     }
-    uint8_t* getAddress()
-    {
-        if (mgr is null) return null;
-        if (!mgr.isReady()) return null;
-        size_t offset;
-        if (!mgr.getOffset(&offset, &this)) return null;
-        return mgr.getCode() + offset;
-    }
+
     void clear()
     {
-        mgr = null;
-        id = 0;
+        this.mgr = null;
+        this.id = 0;
     }
-    int getId() const { return id; }
-    
+
+    int getId() const
+    {
+        return this.id;
+    }
+
+    uint8_t* getAddress()
+    {
+        if (this.mgr is null || !this.mgr.isReady())
+        {
+            return null;
+        }
+        size_t offset;
+        if (!this.mgr.getOffset(&offset, &this))
+        {
+            return null;
+        }
+        return this.mgr.getCode() + offset;
+    }
+
+    // backward compatibility
     static string toStr(int num)
     {
-        return format(".%08x", num);
+        static char[16] buf;
+        snprintf(cast(char*) buf, buf.sizeof, ".%08x", num);
+        return buf;
     }
 }
 
