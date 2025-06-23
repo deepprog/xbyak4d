@@ -126,6 +126,7 @@ version (XBYAK64)
             vcvttbf162ibs(zm1, ptr[rax + 128]);
             sdump("62F57F48684802");
             vcvttbf162ibs(zm1, ptr_b[rax + 128]);
+            sdump("62F57F58684840");
             //
             vcvttbf162iubs(xm1, xm2);
             sdump("62F57F086ACA");
