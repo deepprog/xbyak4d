@@ -31,7 +31,7 @@ version = XBYAK_ENABLE_OMITTED_OPERAND;
 import core.memory;
 import core.stdc.stdio;
 import core.stdc.stdlib;
-import core.stdc.string;
+
 import std.algorithm;
 import std.array;
 import std.conv;
@@ -2041,9 +2041,9 @@ public:
     // backward compatibility
     static string toStr(int num)
     {
-        char[32] buf;
-        snprintf(buf.ptr, buf.sizeof, ".%08x", num);
-        return buf[0 .. strlen(buf.ptr)].idup;
+        char[16] buf;
+        int len = snprintf(buf.ptr, buf.sizeof, ".%08x", num);
+        return buf[0 .. len].idup;
     }
 }
 
