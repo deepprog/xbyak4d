@@ -2867,7 +2867,18 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         }
         return v;
     }
-    int evex(Reg reg, Reg base, Operand v, uint64_t type, int code, Reg x = null, bool b = false, int aaa = 0, uint32_t VL = 0, bool Hi16Vidx = false)
+    int evex(
+            Reg reg,
+            Reg base,
+            Operand v,
+            uint64_t type,
+            int code,
+            Reg x = null,
+            bool b = false,
+            int aaa = 0,
+            uint32_t VL = 0,
+            bool Hi16Vidx = false
+        )
     {
         if (!(type & (T_EVEX | T_MUST_EVEX))) {
             mixin(XBYAK_THROW_RET(ERR.EVEX_IS_INVALID, "0"));
@@ -2885,7 +2896,13 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         bool B = base.isExtIdx();
         bool Rp = reg.isExtIdx2();
         int LL;
-        int rounding = verifyDuplicate(reg.getRounding(), base.getRounding(), v ? v.getRounding() : 0, ERR.ROUNDING_IS_ALREADY_SET);
+        int rounding =
+            verifyDuplicate(
+                reg.getRounding(),
+                base.getRounding(),
+                v ? v.getRounding() : 0, ERR.ROUNDING_IS_ALREADY_SET
+            );
+
         int disp8N = 1;
         if (rounding) {
             bool isUzero = false;
@@ -2919,7 +2936,13 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         bool z = reg.hasZero() || base.hasZero() || (v ? v.hasZero() : false);
         if (aaa == 0)
         {
-            aaa = verifyDuplicate(base.getOpmaskIdx(), reg.getOpmaskIdx(), (v ? v.getOpmaskIdx() : 0), ERR.OPMASK_IS_ALREADY_SET);
+            aaa =
+                verifyDuplicate(
+                    base.getOpmaskIdx(),
+                    reg.getOpmaskIdx(),
+                    (v ? v.getOpmaskIdx() : 0),
+                    ERR.OPMASK_IS_ALREADY_SET
+                );
         }
         if (aaa == 0) z = false; // clear T_z if mask is not set
         db(0x62);
@@ -3221,7 +3244,14 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             }
         }
     }
-    void opSSE(Reg r, Operand op, uint64_t type, int code, bool delegate(Operand, Operand)isValid = null, int imm8 = NONE)
+    void opSSE(
+        Reg r,
+        Operand op,
+        uint64_t type,
+        int code,
+        bool delegate(Operand, Operand)isValid = null,
+        int imm8 = NONE
+        )
     {
         if (isValid && !isValid(r, op)) {
             mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
@@ -3283,7 +3313,14 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     // (r, r, m) or (r, m, r)
     bool opROO(Reg d, Operand op1, Operand op2, uint64_t type, int code, int immSize = 0, int sc = NONE)
     {
-        if (!(type & T_MUST_EVEX) && !d.isREG() && !(d.hasRex2NFZU() || op1.hasRex2NFZU() || op2.hasRex2NFZU())) return false;
+        if (!(type & T_MUST_EVEX) && !d.isREG() && !(d.hasRex2NFZU() || 
+            op1.hasRex2NFZU() ||
+            op2.hasRex2NFZU())
+            )
+        {
+            return false;
+        }
+
         scope Operand p1 = op1, p2 = op2;
         if (p1.isMEM()) { swap(p1, p2); } else { if (p2.isMEM()) code |= 2; }
         if (p1.isMEM()) {
@@ -3304,12 +3341,28 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         }
         return true;
     }
-    void opRext(Operand op, int bit, int ext, uint64_t type, int code, bool disableRex = false, int immSize = 0, Reg d = null)
+    void opRext(
+        Operand op,
+        int bit,
+        int ext,
+        uint64_t type,
+        int code,
+        bool disableRex = false,
+        int immSize = 0,
+        Reg d = null
+        )
     {
         int opBit = op.getBit();
         if (disableRex && opBit == 64) opBit = 32;
         Reg r = Reg(ext, Kind.REG, opBit);
-        if ((type & T_APX) && (d !is null || op.hasRex2NFZU()) && opROO(d ? d : Reg(0, Kind.REG, opBit), op, r, type, code)) return;
+        if ((type & T_APX) &&
+            (d !is null || op.hasRex2NFZU()) &&
+            opROO(d ? d : Reg(0, Kind.REG, opBit), op, r, type, code)
+            )
+        {
+            return;
+        }
+
         if (op.isMEM()) {
             opMR(op.getAddress(immSize), r, type, code);
         } else if (op.isREG(bit)) {
@@ -3515,7 +3568,14 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             return;
         }
         db(cast(uint64_t) 0, jmpSize);
-        JmpLabel jmp = JmpLabel(size_, jmpSize, (relative ? inner.LabelMode.LasIs : isAutoGrow() ? inner.LabelMode.LaddTop : inner.LabelMode.Labs), disp);
+        JmpLabel jmp =
+            JmpLabel(
+                size_,
+                jmpSize,
+                (relative ? inner.LabelMode.LasIs : isAutoGrow() ? inner.LabelMode.LaddTop : inner.LabelMode.Labs),
+                disp
+            );
+
         labelMgr_.addUndefinedLabel(label, jmp);
     }
     void opMovxx(Reg reg, Operand op, uint8_t code)
@@ -3568,7 +3628,14 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             scope Reg index = regExp.getIndex();
             if (BIT == 64 && addr.is32bit()) db(0x67);
             int disp8N = 0;
-            if ((type & (T_MUST_EVEX|T_MEM_EVEX)) || r.hasEvex() || (p1 && p1.hasEvex()) || addr.isBroadcast() || addr.getOpmaskIdx() || addr.hasRex2()) {
+            if ((type & (T_MUST_EVEX | T_MEM_EVEX)) ||
+                r.hasEvex() ||
+                (p1 && p1.hasEvex()) ||
+                addr.isBroadcast() ||
+                addr.getOpmaskIdx() ||
+                addr.hasRex2()
+                )
+            {
                 int aaa = addr.getOpmaskIdx();
                 if (aaa && !(type & T_M_K)) {
                     mixin(XBYAK_THROW(ERR.INVALID_OPMASK_WITH_MEMORY));
@@ -3647,7 +3714,10 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     // (x, x/m), (x, y/m256), (y, z/m)
     void checkCvt2(Xmm x, Operand op)
     {
-        if (!(x.isXMM() && op.isKind(Kind.XMM | Kind.YMM | Kind.MEM)) && !(x.isYMM() && op.isKind(Kind.ZMM | Kind.MEM))) {
+        if (!(x.isXMM() && op.isKind(Kind.XMM | Kind.YMM | Kind.MEM)) &&
+            !(x.isYMM() && op.isKind(Kind.ZMM | Kind.MEM))
+            )
+        {
             mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
         }
     }
@@ -3673,7 +3743,9 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     // (x, x/y/xword/yword), (y, z/m)
     void checkCvt4(Xmm x, Operand op) const
     {
-        if (!(x.isXMM() && op.isKind(Kind.XMM | Kind.YMM | Kind.MEM) && op.isBit(128|256)) && !(x.isYMM() && op.isKind(Kind.ZMM | Kind.MEM)))
+        if (!(x.isXMM() && op.isKind(Kind.XMM | Kind.YMM | Kind.MEM) && op.isBit(128|256)) &&
+            !(x.isYMM() && op.isKind(Kind.ZMM | Kind.MEM))
+            )
         {
             mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
         }
@@ -3693,7 +3765,9 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         const int b1 = x1.getBit();
         const int b2 = x2.getBit();
         const int b3 = op.getBit();
-        if ((b1 == 128 && (b2 == 128 || b2 == 256) && (b2 == b3 || op.isMEM())) || (b1 == 256 && b2 == 512 && (b3 == b2 || op.isMEM())))
+        if ((b1 == 128 && (b2 == 128 || b2 == 256) && (b2 == b3 || op.isMEM())) ||
+            (b1 == 256 && b2 == 512 && (b3 == b2 || op.isMEM()))
+            )
         {
             opVex(x1, x2, op, type, code);
             return;
@@ -3814,7 +3888,18 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         }
         opVex(x, null, addr, type, code);
     }
-    void opEncoding(Xmm x1, Xmm x2, Operand op, uint64_t type, int code, PreferredEncoding encoding, int imm = NONE, uint64_t typeVex = 0, uint64_t typeEvex = 0, int sel = 0)
+    void opEncoding(
+        Xmm x1,
+        Xmm x2,
+        Operand op,
+        uint64_t type,
+        int code,
+        PreferredEncoding encoding,
+        int imm = NONE,
+        uint64_t typeVex = 0,
+        uint64_t typeEvex = 0,
+        int sel = 0
+        )
     {
         opAVX_X_X_XM(x1, x2, op, type | orEvexIf(encoding, typeVex, typeEvex, sel), code, imm);
     }
@@ -3839,7 +3924,8 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     uint64_t orEvexIf(PreferredEncoding enc, uint64_t typeVex, uint64_t typeEvex, int sel)
     {
         enc = getEncoding(enc, sel);
-        return ((sel == 0 && enc == VexEncoding) || (sel == 1 && enc != AVX10v2Encoding)) ? typeVex : (T_MUST_EVEX | typeEvex);
+        return ((sel == 0 && enc == VexEncoding) || 
+                (sel == 1 && enc != AVX10v2Encoding)) ? typeVex : (T_MUST_EVEX | typeEvex);
     }
     void opInOut(Reg a, Reg d, uint8_t code)
     {
@@ -3882,7 +3968,15 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         uint32_t immBit = getImmBit(op, imm);
         uint32_t opBit = op.getBit();
         int tmp = immBit < min(opBit, 32U) ? 2 : 0;
-        opROO(Reg(15 - dfv, Kind.REG, opBit), op, Reg(15, Kind.REG, opBit), T_APX|T_CODE1_IF1, 0x80 | tmp, immBit / 8, sc);
+        opROO(
+            Reg(15 - dfv, Kind.REG, opBit),
+            op,
+            Reg(15, Kind.REG, opBit),
+            T_APX | T_CODE1_IF1,
+            0x80 | tmp,
+            immBit / 8,
+            sc
+        );
         db(imm, immBit / 8);
     }
     void opTesti(Operand op, int imm, int dfv, int sc)
@@ -4443,7 +4537,13 @@ public:
     }
     void mov(Segment seg, Operand op)
     {
-        opRO(Reg8(seg.getIdx()), op.isREG(16|i32e) ? cast(Operand)(op.getReg().cvt32()) : op, T_ALLOW_DIFF_SIZE | T_ALLOW_ABCDH, 0x8E, op.isREG(16|i32e));
+        opRO(
+            Reg8(seg.getIdx()),
+            op.isREG(16|i32e) ? cast(Operand) (op.getReg().cvt32()) : op,
+            T_ALLOW_DIFF_SIZE | T_ALLOW_ABCDH,
+            0x8E,
+            op.isREG(16|i32e)
+        );
     }
   }
     enum { NONE = 256 }
