@@ -137,8 +137,8 @@ enum ERR
     INTERNAL // Put it at last.
 }
 
-
-string ConvertErrorToString(ERR err)
+alias ConvertErrorToString = convertErrorToString;
+string convertErrorToString(ERR err)
 {
     string[] errTbl = [
         "none",
@@ -204,20 +204,25 @@ string ConvertErrorToString(ERR err)
 
   version (XBYAK_NO_EXCEPTION)
   {
-    struct local
+    alias local = Local;
+    struct Local
     {
-        static ref int GetErrorRef()
+        alias GetErrorRef = getErrorRef;
+        static ref int getErrorRef()
         {
             static int err = 0;
             return err;
         }
-        static void SetError(int err) {
+        alias SetError = setError;
+        static void setError(int err) {
             if (local.GetErrorRef()) return; // keep the first err code
             local.GetErrorRef() = err;
         }
     } // local
-    void ClearError() { local.GetErrorRef() = 0; }
-    int GetError() { return local.GetErrorRef(); }
+    alias ClearError = clearError;
+    void clearError() { local.GetErrorRef() = 0; }
+    alias GetError = getError;
+    int getError() { return local.GetErrorRef(); }
     string XBYAK_THROW(ERR err)
     {
         return "local.SetError(" ~ typeof(err).stringof ~ "." ~ to!string(err) ~ "); return;";
@@ -251,12 +256,15 @@ string ConvertErrorToString(ERR err)
             return ConvertErrorToString(err_);
         }
     }
-    string ConvertErrorToString(XError err) {
+    alias ConvertErrorToString = convertErrorToString;
+    string convertErrorToString(XError err) {
         return err.what();
     }
     // dummy functions
-    void ClearError() { }
-    int GetError() { return 0; }
+    alias ClearError = clearError;
+    void clearError() { }
+    alias GetError = getError;
+    int getError() { return 0; }
 
 
     string XBYAK_THROW(ERR err)
@@ -278,11 +286,13 @@ string ConvertErrorToString(ERR err)
     @nogc nothrow pure private extern(C) void* _aligned_malloc(size_t, size_t);
     @nogc nothrow pure private extern(C) void _aligned_free(void* memblock);
     
-    void* AlignedMalloc(size_t size, size_t alignment)
+    alias AlignedMalloc = alignedMalloc;
+    void* alignedMalloc(size_t size, size_t alignment)
     {
         return _aligned_malloc(size, alignment);
     }
-    void AlignedFree(void* p)
+    alias AlignedFree = alignedFree;
+    void alignedFree(void* p)
     {
         _aligned_free(p);
     }
@@ -292,25 +302,29 @@ string ConvertErrorToString(ERR err)
   {
     import core.sys.posix.stdlib : posix_memalign;
 
-    void* AlignedMalloc(size_t size, size_t alignment)
+    alias AlignedMalloc = alignedMalloc;
+    void* alignedMalloc(size_t size, size_t alignment)
     {
         void* p;
         int ret = posix_memalign(&p, alignment, size);
         return (ret == 0) ? p : null;
     }
-    void AlignedFree(void* p)
+    alias AlignedFree = alignedFree;
+    void alignedFree(void* p)
     {
         free(p);
     }
   }
 
 
-To CastTo(To, From)(From p)
+alias CastTo = castTo;
+To castTo(To, From)(From p)
 {
     return cast(const To)cast(size_t)(p);
 }
 
-struct inner
+alias inner = Inner;
+struct Inner
 {
 static:
     size_t getPageSize()
@@ -332,11 +346,13 @@ static:
         return pageSize;
     }
     
-    
-    bool IsInDisp8(uint32_t x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
-    bool IsInInt32(uint64_t x) { return ~uint64_t(0x7fffffffu) <= x || x <= 0x7FFFFFFFu; }
+    alias IsInDisp8 = isInDisp8;
+    bool isInDisp8(uint32_t x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
+    alias IsInInt32 = isInInt32;
+    bool isInInt32(uint64_t x) { return ~uint64_t(0x7fffffffu) <= x || x <= 0x7FFFFFFFu; }
 
-    uint32_t VerifyInInt32(uint64_t x)
+    alias VerifyInInt32 = verifyInInt32;
+    uint32_t verifyInInt32(uint64_t x)
     {
         version (XBYAK64)
         {
@@ -504,10 +520,17 @@ struct ApxFlagZU
 }
 
 // dfv (default flags value) is or operation of these flags
-static const int T_of = 8;
-static const int T_sf = 4;
-static const int T_zf = 2;
-static const int T_cf = 1;
+alias T_of = t_of;
+static const int t_of = 8;
+
+alias T_sf = t_sf;
+static const int t_sf = 4;
+
+alias T_zf = t_zf;
+static const int t_zf = 2;
+
+alias T_cf = t_cf;
+static const int t_cf = 1;
 
 
 enum Kind
