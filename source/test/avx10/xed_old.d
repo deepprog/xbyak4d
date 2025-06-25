@@ -24,7 +24,7 @@ version (XBYAK64)
         scope Code c = new Code();
     }
 
-    class Code : CodeGenerator
+    class TestCode : CodeGenerator
     {
         TestCount testCount;
 
@@ -51,18 +51,25 @@ version (XBYAK64)
             return;
         }
 
-        ~this()
-        {
-            testCount.end("xed_old");
-        }
-
         this()
         {
             testCount.reset();
 
             super(4096 * 8);
             setDefaultEncodingAVX10(AVX10v2Encoding);
+        }
 
+        ~this()
+        {
+            testCount.end(__FILE__);
+        }
+
+    }
+
+    class Code : TestCode
+    {
+        this()
+        {
             v4fmaddps(zmm1, zmm8, ptr[rdx + 64]);
             sdump("62F23F489A4A04");
             v4fmaddss(xmm15, xmm8, ptr[rax + 64]);

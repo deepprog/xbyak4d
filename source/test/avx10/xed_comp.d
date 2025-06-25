@@ -26,7 +26,7 @@ version (XBYAK64)
         scope c = new Code();
     }
 
-    class Code : CodeGenerator
+    class TestCode : CodeGenerator
     {
         TestCount testCount;
 
@@ -53,17 +53,25 @@ version (XBYAK64)
             return;
         }
 
-        ~this()
-        {
-            testCount.end("xed_comp");
-        }
-
         this()
         {
             testCount.reset();
 
             super(4096 * 8);
             setDefaultEncodingAVX10(AVX10v2Encoding);
+        }
+
+        ~this()
+        {
+            testCount.end(__FILE__);
+        }
+
+    }
+
+    class Code : TestCode
+    {
+        this()
+        {
             vcomxsd(xm1, xm2 | T_sae);
             sdump("62F1FF182FCA");
             vcomxsd(xm1, ptr[rax + 128]);

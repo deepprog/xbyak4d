@@ -25,7 +25,7 @@ version (XBYAK64)
         scope Code c = new Code();
     }
 
-    class Code : CodeGenerator
+    class TestCode : CodeGenerator
     {
         TestCount testCount;
 
@@ -52,17 +52,25 @@ version (XBYAK64)
             return;
         }
 
-        ~this()
-        {
-            testCount.end("xed_misc");
-        }
-
         this()
         {
             testCount.reset();
+
             super(4096 * 8);
             setDefaultEncodingAVX10(AVX10v2Encoding);
+        }
 
+        ~this()
+        {
+            testCount.end(__FILE__);
+        }
+
+    }
+
+    class Code : TestCode
+    {
+        this()
+        {
             // AVX10 integer and FP16 VNNI, media and zero-extending
             vdpphps(xm1, xm2, xm3);
             sdump("62F26C0852CB");

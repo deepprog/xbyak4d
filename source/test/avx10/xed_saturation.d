@@ -25,7 +25,7 @@ version (XBYAK64)
         scope Code c = new Code();
     }
 
-    class Code : CodeGenerator
+    class TestCode : CodeGenerator
     {
         TestCount testCount;
 
@@ -52,18 +52,25 @@ version (XBYAK64)
             return;
         }
 
-        ~this()
-        {
-            testCount.end("xed_saturation");
-        }
-
         this()
         {
             testCount.reset();
 
             super(4096 * 8);
             setDefaultEncodingAVX10(AVX10v2Encoding);
+        }
 
+        ~this()
+        {
+            testCount.end(__FILE__);
+        }
+
+    }
+
+    class Code : TestCode
+    {
+        this()
+        {
             //
             vcvtbf162ibs(xm1, xm2);
             sdump("62F57F0869CA");

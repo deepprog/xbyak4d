@@ -26,7 +26,7 @@ version (XBYAK64)
         scope c = new Code();
     }
 
-    class Code : CodeGenerator
+    class TestCode : CodeGenerator
     {
         TestCount testCount;
 
@@ -53,17 +53,25 @@ version (XBYAK64)
             return;
         }
 
-        ~this()
-        {
-            testCount.end("xed_amx");
-        }
-
         this()
         {
             testCount.reset();
 
             super(4096 * 8);
             setDefaultEncodingAVX10(AVX10v2Encoding);
+        }
+
+        ~this()
+        {
+            testCount.end(__FILE__);
+        }
+
+    }
+
+    class Code : TestCode
+    {
+        this()
+        {
             ldtilecfg(ptr[rax + rcx * 4 + 64]);
             sdump("C4E27849448840");
             ldtilecfg(ptr[r30 + r29 * 4 + 0x12]);
