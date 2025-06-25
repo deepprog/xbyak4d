@@ -1548,7 +1548,13 @@ class CodeArray
 
         uint64_t getVal(uint8_t* top) const
         {
-            uint64_t disp = (mode == inner.LabelMode.LaddTop) ? jmpAddr + cast(size_t) top : (mode == inner.LabelMode.LasIs) ? jmpAddr : jmpAddr - cast(size_t) top;
+            uint64_t disp =
+                (mode == inner.LabelMode.LaddTop) ?
+                    jmpAddr + cast(size_t) top :
+                    (mode == inner.LabelMode.LasIs) ?
+                        jmpAddr :
+                        jmpAddr - cast(size_t) top;
+            
             if (jmpSize == 4) { disp = inner.VerifyInInt32(disp); }
             return disp;
         }
@@ -1612,10 +1618,16 @@ public:
     
     this(size_t maxSize, void* userPtr = null, Allocator allocator = null)
     {
-        type_ = (userPtr == AutoGrow ? Type.AUTO_GROW : (userPtr == null || userPtr == DontSetProtectRWE) ? Type.ALLOC_BUF : Type.USER_BUF);
-        alloc_  = allocator ? allocator : defaultAllocator_;
+        type_ =
+            (userPtr == AutoGrow) ?
+                Type.AUTO_GROW :
+                (userPtr == null || userPtr == DontSetProtectRWE) ?
+                    Type.ALLOC_BUF :
+                    Type.USER_BUF;
+
+        alloc_ = allocator ? allocator : defaultAllocator_;
         maxSize_ = maxSize;
-        top_ = type_ == Type.USER_BUF ? cast(uint8_t*)userPtr: alloc_.alloc(max(maxSize, 1));
+        top_ = type_ == Type.USER_BUF ? cast(uint8_t*) userPtr : alloc_.alloc(max(maxSize, 1));
         size_ = 0;
         isCalledCalcJmpAddress_ = false;
 
@@ -2782,11 +2794,19 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     // Allow YMM embedded rounding for AVX10.2 to minimize flag modifications
     bool verifySAE(Reg r, Reg b, uint64_t type) const
     {
-        if (((type & T_SAE_X) && (r.isYMM() && b.isXMM())) || ((type & T_SAE_Y) && b.isXMM()) || ((type & T_SAE_Z) && b.isYMM()))
+        if (
+            ((type & T_SAE_X) && (r.isYMM() && b.isXMM())) ||
+            ((type & T_SAE_Y) && b.isXMM()) ||
+            ((type & T_SAE_Z) && b.isYMM())
+            )
         {
             return true;
         }
-        if (((type & T_SAE_X) && b.isXMM()) || ((type & T_SAE_Y) && b.isYMM()) || ((type & T_SAE_Z) && b.isZMM()))
+        if (
+            ((type & T_SAE_X) && b.isXMM()) ||
+            ((type & T_SAE_Y) && b.isYMM()) ||
+            ((type & T_SAE_Z) && b.isZMM())
+            )
         {
             return false;
         }
@@ -2795,11 +2815,20 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     bool verifyER(Reg r, Reg b, uint64_t type) const
     {
         if ((type & T_ER_R) && b.isREG(32|64)) return false;
-        if (((type & T_ER_X) && (r.isYMM() && b.isXMM())) || ((type & T_ER_Y) && b.isXMM()) || ((type & T_ER_Z) && b.isYMM()))
+
+        if (
+            ((type & T_ER_X) && (r.isYMM() && b.isXMM())) ||
+            ((type & T_ER_Y) && b.isXMM()) ||
+            ((type & T_ER_Z) && b.isYMM())
+            )
         {
             return true;
         }
-        if (((type & T_ER_X) && b.isXMM()) || ((type & T_ER_Y) && b.isYMM()) || ((type & T_ER_Z) && b.isZMM()))
+        if (
+            ((type & T_ER_X) && b.isXMM()) ||
+            ((type & T_ER_Y) && b.isYMM()) ||
+            ((type & T_ER_Z) && b.isZMM())
+            )
         {
             return false;
         }
@@ -3462,7 +3491,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             }
             return;
         }
-        db(cast(uint64_t)0, jmpSize);
+        db(cast(uint64_t) 0, jmpSize);
         JmpLabel jmp = JmpLabel(size_, jmpSize, (relative ? inner.LabelMode.LasIs : isAutoGrow() ? inner.LabelMode.LaddTop : inner.LabelMode.Labs), disp);
         labelMgr_.addUndefinedLabel(label, jmp);
     }
