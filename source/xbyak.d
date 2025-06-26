@@ -5018,9 +5018,11 @@ void crc32(Reg32e r, Operand op)
         mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
     }
     int code = 0xF0 | (op.isBit(8) ? 0 : 1);
-    uint64_t type = op.isBit(16) ? T_66:0; type |= T_ALLOW_DIFF_SIZE;
-    if (opROO(Reg(), op, cast(Reg)(r), T_APX|type, code)) return;
-    opRO(r, op, T_F2|T_0F38|type, code);
+    uint64_t type = op.isBit(16) ? T_66 : 0;
+    type |= T_ALLOW_DIFF_SIZE;
+    if (opROO(Reg(), op, cast(Reg)(r), T_APX | type, code))
+        return;
+    opRO(r, op, T_F2 | T_0F38 | type, code);
 }
 void ctesta(Operand op, Reg r, int dfv = 0) { opCcmp(op, r, dfv, 0x84, 7); }
 void ctesta(Operand op, int imm, int dfv = 0) { opTesti(op, imm, dfv, 7); }
@@ -5288,7 +5290,12 @@ void hsubps(Xmm xmm, Operand op) { opSSE(xmm, op, T_F2|T_0F|T_YMM, 0x7D, &isXMM_
 void idiv(Operand op) { opRext(op, 0, 7, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
 void imul(Operand op) { opRext(op, 0, 5, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
 void imul(Reg d, Reg reg, Operand op) { opROO(d, op, reg, T_APX|T_ND1|T_NF, 0xAF); }
-void imul(Reg reg, Operand op) { if (opROO(Reg(), op, reg, T_APX|T_NF, 0xAF)) return; opRO(reg, op, T_0F, 0xAF, reg.getKind() == op.getKind()); }
+void imul(Reg reg, Operand op)
+{
+    if (opROO(Reg(), op, reg, T_APX | T_NF, 0xAF))
+        return;
+    opRO(reg, op, T_0F, 0xAF, reg.getKind() == op.getKind());
+}
 void in_(Reg a, Reg d) { opInOut(a, d, 0xEC); }
 void in_(Reg a, uint8_t v) { opInOut(a, 0xE4, v); }
 void inc(Operand op) { opIncDec(Reg(), op, 0); }
@@ -5517,6 +5524,12 @@ void movntq(Address addr, Mmx mmx)
     if (!mmx.isMMX())
         mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
     opSSE(mmx, addr, T_0F, 0xE7);
+}
+void movq(Address addr, Mmx mmx)
+{
+    if (mmx.isXMM())
+        db(0x66);
+    opSSE(mmx, addr, T_0F | T_ALLOW_DIFF_SIZE, mmx.isXMM() ? 0xD6 : 0x7F);
 }
 void movq(Mmx mmx, Operand op)
 {
