@@ -4332,12 +4332,21 @@ public:
     void pop(Operand op) { opPushPop(op, 0x8F, 0, 0x58); }
     void push(AddressFrame af, uint32_t imm)
     {
-        if (af.bit_ == 8) {
-            db(0x6A); db(imm);
-        } else if (af.bit_ == 16) {
-            db(0x66); db(0x68); dw(imm);
-        } else {
-            db(0x68); dd(imm);
+        if (af.bit_ == 8)
+        {
+            db(0x6A);
+            db(imm);
+        }
+        else if (af.bit_ == 16)
+        {
+            db(0x66);
+            db(0x68);
+            dw(imm);
+        }
+        else
+        {
+            db(0x68);
+            dd(imm);
         }
     }
     // use "push(word, 4)" if you want "push word 4"
@@ -4615,10 +4624,15 @@ public:
     {
         int idx = r.getIdx();
         uint8_t rex = (r.isREG(64) ? 8 : 0) | ((idx & 8) ? 1 : 0);
-        if (idx >= 16) {
-            db(0xD5); db((1<<7) | (idx & 16) | rex);
-        } else {
-            if (rex) db(0x40 | rex);
+        if (idx >= 16)
+        {
+            db(0xD5);
+            db((1 << 7) | (idx & 16) | rex);
+        }
+        else
+        {
+            if (rex)
+                db(0x40 | rex);
             db(0x0F);
         }
         db(0xC8 + (idx & 7));
@@ -5721,12 +5735,14 @@ void rdmsr() { db(0x0F); db(0x32); }
 void rdpmc() { db(0x0F); db(0x33); }
 void rdrand(Reg r)
 {
-    if (r.isBit(8)) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
+    if (r.isBit(8))
+        mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
     opRR(Reg(6, Kind.REG, r.getBit()), r, T_0F, 0xC7);
 }
 void rdseed(Reg r)
 {
-    if (r.isBit(8)) mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
+    if (r.isBit(8))
+        mixin(XBYAK_THROW(ERR.BAD_SIZE_OF_REGISTER));
     opRR(Reg(7, Kind.REG, r.getBit()), r, T_0F, 0xC7);
 }
 void rdtsc() { db(0x0F); db(0x31); }
@@ -5856,8 +5872,11 @@ void sysexit() { db(0x0F); db(0x35); }
 void tpause(Reg32 r)
 {
     int idx = r.getIdx();
-    if (idx > 7) mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
-    db(0x66); db(0x0F); db(0xAE);
+    if (idx > 7)
+        mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
+    db(0x66);
+    db(0x0F);
+    db(0xAE);
     setModRM(3, 6, idx);
 }
 void tzcnt(Reg reg, Operand op)
@@ -5924,6 +5943,7 @@ void vbcstnebf162ps(Xmm x, Address addr) { opVex(x, null, addr, T_F3|T_0F38|T_W0
 void vbcstnesh2ps(Xmm x, Address addr) { opVex(x, null, addr, T_66|T_0F38|T_W0|T_YMM|T_B16, 0xB1); }
 void vblendpd(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_W0|T_YMM, 0x0D, imm); }
 void vblendps(Xmm x1, Xmm x2, Operand op, uint8_t imm) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_W0|T_YMM, 0x0C, imm); }
+void vblendvpd(Xmm x1, Xmm x2, Operand op, Xmm x4)
 {
     opAVX_X_X_XM(x1, x2, op, T_0F3A | T_66 | T_YMM, 0x4B, x4.getIdx() << 4);
 }
@@ -6084,20 +6104,44 @@ void vcmpunordsd(Xmm x1, Xmm x2, Operand op) { vcmpsd(x1, x2, op, 3); }
 void vcmpunordss(Xmm x1, Xmm x2, Operand op) { vcmpss(x1, x2, op, 3); }
 void vcomisd(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_N8|T_66|T_0F|T_EW1|T_EVEX|T_SAE_X, 0x2F); }
 void vcomiss(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_N4|T_0F|T_W0|T_EVEX|T_SAE_X, 0x2F); }
-void vcvtdq2pd(Xmm x, Operand op) { checkCvt1(x, op); opVex(x, null, op, T_0F | T_F3 | T_YMM | T_EVEX | T_W0 | T_B32 | T_N8 | T_N_VL, 0xE6); }
+void vcvtdq2pd(Xmm x, Operand op)
+{
+    checkCvt1(x, op);
+    opVex(x, null, op, T_0F | T_F3 | T_YMM | T_EVEX | T_W0 | T_B32 | T_N8 | T_N_VL, 0xE6);
+}
 void vcvtdq2ps(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_0F|T_W0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0x5B); }
 void vcvtneebf162ps(Xmm x, Address addr) { opVex(x, null, addr, T_F3|T_0F38|T_W0|T_YMM, 0xB0); }
 void vcvtneeph2ps(Xmm x, Address addr) { opVex(x, null, addr, T_66|T_0F38|T_W0|T_YMM, 0xB0); }
 void vcvtneobf162ps(Xmm x, Address addr) { opVex(x, null, addr, T_F2|T_0F38|T_W0|T_YMM, 0xB0); }
 void vcvtneoph2ps(Xmm x, Address addr) { opVex(x, null, addr, T_0F38|T_W0|T_YMM, 0xB0); }
-void vcvtneps2bf16(Xmm x, Operand op, PreferredEncoding encoding = DefaultEncoding) { opCvt2(x, op, T_F3|T_0F38|T_W0|T_YMM|T_SAE_Z|T_B32|orEvexIf(encoding, 0, T_MUST_EVEX, 0), 0x72); }
+void vcvtneps2bf16(Xmm x, Operand op, PreferredEncoding encoding = DefaultEncoding)
+{
+    opCvt2(x, op, T_F3 | T_0F38 | T_W0 | T_YMM | T_SAE_Z | T_B32 | orEvexIf(encoding, 0, T_MUST_EVEX, 0), 0x72);
+}
 void vcvtpd2dq(Xmm x, Operand op) { opCvt2(x, op, T_0F | T_F2 | T_YMM | T_EVEX | T_EW1 | T_B64 | T_ER_Z, 0xE6); }
 void vcvtpd2ps(Xmm x, Operand op) { opCvt2(x, op, T_0F | T_66 | T_YMM | T_EVEX | T_EW1 | T_B64 | T_ER_Z, 0x5A); }
-void vcvtph2ps(Xmm x, Operand op) { checkCvt1(x, op); opVex(x, null, op, T_0F38 | T_66 | T_W0 | T_EVEX | T_N8 | T_N_VL | T_SAE_Y, 0x13); }
+void vcvtph2ps(Xmm x, Operand op)
+{
+    checkCvt1(x, op);
+    opVex(x, null, op, T_0F38 | T_66 | T_W0 | T_EVEX | T_N8 | T_N_VL | T_SAE_Y, 0x13);
+}
 void vcvtps2dq(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F|T_W0|T_YMM|T_EVEX|T_ER_Z|T_B32, 0x5B); }
-void vcvtps2pd(Xmm x, Operand op) { checkCvt1(x, op); opVex(x, null, op, T_0F | T_YMM | T_EVEX | T_W0 | T_B32 | T_N8 | T_N_VL | T_SAE_Y, 0x5A); }
-void vcvtps2ph(Operand op, Xmm x, uint8_t imm) { checkCvt1(x, op); opVex(x, null, op, T_0F3A | T_66 | T_W0 | T_EVEX | T_N8 | T_N_VL | T_SAE_Y | T_M_K, 0x1D, imm); }
-void vcvtsd2si(Reg32 r, Operand op) { opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W0 | T_EVEX | T_N4 | T_ER_X, 0x2D); }
+void vcvtps2pd(Xmm x, Operand op)
+{
+    checkCvt1(x, op);
+    opVex(x, null, op, T_0F | T_YMM | T_EVEX | T_W0 | T_B32 | T_N8 | T_N_VL | T_SAE_Y, 0x5A);
+}
+
+void vcvtps2ph(Operand op, Xmm x, uint8_t imm)
+{
+    checkCvt1(x, op);
+    opVex(x, null, op, T_0F3A | T_66 | T_W0 | T_EVEX | T_N8 | T_N_VL | T_SAE_Y | T_M_K, 0x1D, imm);
+}
+
+void vcvtsd2si(Reg32 r, Operand op)
+{
+    opAVX_X_X_XM(Xmm(r.getIdx()), xm0, op, T_0F | T_F2 | T_W0 | T_EVEX | T_N4 | T_ER_X, 0x2D);
+}
 void vcvtsd2ss(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N8|T_F2|T_0F|T_EW1|T_EVEX|T_ER_X, 0x5A); }
 void vcvtsi2sd(Xmm x1, Xmm x2, Operand op) { opCvt3(x1, x2, op, T_0F | T_F2 | T_EVEX, T_W1 | T_EW1 | T_ER_X | T_N8, T_W0 | T_N4, 0x2A); }
 void vcvtsi2ss(Xmm x1, Xmm x2, Operand op) { opCvt3(x1, x2, op, T_0F | T_F3 | T_EVEX | T_ER_X, T_W1 | T_EW1 | T_N8, T_W0 | T_N4, 0x2A); }
@@ -6296,7 +6340,22 @@ void vmovntdqa(Xmm x, Address addr) { opVex(x, null, addr, T_0F38 | T_66 | T_YMM
 void vmovntpd(Address addr, Xmm x) { opVex(x, null, addr, T_0F | T_66 | T_YMM | T_EVEX | T_EW1, 0x2B); }
 void vmovntps(Address addr, Xmm x) { opVex(x, null, addr, T_0F | T_YMM | T_EVEX | T_W0, 0x2B); }
 void vmovq(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, T_0F | T_66 | T_EVEX | T_EW1 | T_N8, x.getIdx() < 16 ? 0xD6 : 0x7E); }
-void vmovq(Xmm x, Address addr) { uint64_t type; uint8_t code; if (x.getIdx() < 16) { type = T_0F | T_F3; code = 0x7E; } else { type = T_0F | T_66 | T_EVEX | T_EW1 | T_N8; code = 0x6E; } opAVX_X_X_XM(x, xm0, addr, type, code); }
+void vmovq(Xmm x, Address addr)
+{
+    uint64_t type;
+    uint8_t code;
+    if (x.getIdx() < 16)
+    {
+        type = T_0F | T_F3;
+        code = 0x7E;
+    }
+    else
+    {
+        type = T_0F | T_66 | T_EVEX | T_EW1 | T_N8;
+        code = 0x6E;
+    }
+    opAVX_X_X_XM(x, xm0, addr, type, code);
+}
 void vmovq(Xmm x1, Xmm x2) { opAVX_X_X_XM(x1, xm0, x2, T_0F | T_F3 | T_EVEX | T_EW1 | T_N8, 0x7E); }
 void vmovsd(Address addr, Xmm x) { opAVX_X_X_XM(x, xm0, addr, T_N8|T_F2|T_0F|T_EW1|T_EVEX | T_M_K, 0x11); }
 void vmovsd(Xmm x, Address addr) { opAVX_X_X_XM(x, xm0, addr, T_N8|T_F2|T_0F|T_EW1|T_EVEX, 0x10); }
@@ -7342,11 +7401,22 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
         if (!op.isXMM() && !op.isMEM())
             mixin(XBYAK_THROW(ERR.BAD_MEM_SIZE));
         opVex(x, null, op, T_N4 | T_N_VL | T_MAP5 | T_W0 | T_YMM | T_SAE_X | T_MUST_EVEX | T_B16, 0x5A);
+    }
+    void vcvtph2psx(Xmm x, Operand op)
+    {
+        checkCvt1(x, op);
+        opVex(x, null, op, T_N8 | T_N_VL | T_66 | T_MAP6 | T_W0 | T_YMM | T_SAE_Y | T_MUST_EVEX | T_B16, 0x13);
+    }
     void vcvtph2qq(Xmm x, Operand op)
     {
         if (!op.isXMM() && !op.isMEM())
             mixin(XBYAK_THROW(ERR.BAD_MEM_SIZE));
         opVex(x, null, op, T_N4 | T_N_VL | T_66 | T_MAP5 | T_W0 | T_YMM | T_ER_X | T_MUST_EVEX | T_B16, 0x7B);
+    }
+    void vcvtph2udq(Xmm x, Operand op)
+    {
+        checkCvt1(x, op);
+        opVex(x, null, op, T_N8 | T_N_VL | T_MAP5 | T_W0 | T_YMM | T_ER_Y | T_MUST_EVEX | T_B16, 0x79);
     }
     void vcvtph2uqq(Xmm x, Operand op)
     {
@@ -7379,7 +7449,11 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
         opVex(x1, x2, op, type, 0x2A);
     }
     void vcvtss2sh(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N4|T_MAP5|T_W0|T_ER_X|T_MUST_EVEX, 0x1D); }
-    void vcvtss2usi(Reg32e r, Operand op) { uint64_t type = (T_N4|T_F3|T_0F|T_ER_X|T_MUST_EVEX) | (r.isREG(64) ? T_EW1 : T_W0); opVex(r, xm0, op, type, 0x79); }
+    void vcvtss2usi(Reg32e r, Operand op)
+    {
+        uint64_t type = (T_N4 | T_F3 | T_0F | T_ER_X | T_MUST_EVEX) | (r.isREG(64) ? T_EW1 : T_W0);
+        opVex(r, xm0, op, type, 0x79);
+    }
     void vcvttbf162ibs(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x68); }
     void vcvttbf162iubs(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x6A); }
     void vcvttpd2dqs(Xmm x, Operand op) { opCvt2(x, op, T_MAP5|T_EW1|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B64, 0x6D); }
@@ -7689,7 +7763,10 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vmovsh(Address addr, Xmm x) { opAVX_X_XM_IMM(x, addr, T_N2|T_F3|T_MAP5|T_W0|T_MUST_EVEX|T_M_K, 0x11); }
     void vmovsh(Xmm x, Address addr) { opAVX_X_X_XM(x, xm0, addr, T_N2|T_F3|T_MAP5|T_W0|T_MUST_EVEX, 0x10); }
     void vmovsh(Xmm x1, Xmm x2, Xmm x3) { opAVX_X_X_XM(x1, x2, x3, T_N2|T_F3|T_MAP5|T_W0|T_MUST_EVEX, 0x10); }
-    void vmpsadbw(Xmm x1, Xmm x2, Operand op, uint8_t imm, PreferredEncoding encoding = DefaultEncoding) { opEncoding(x1, x2, op, T_0F3A|T_YMM, 0x42, encoding, imm, T_66|T_W0|T_YMM, T_F3|T_0F3A|T_W0|T_B32, 1); }
+    void vmpsadbw(Xmm x1, Xmm x2, Operand op, uint8_t imm, PreferredEncoding encoding = DefaultEncoding)
+    {
+        opEncoding(x1, x2, op, T_0F3A | T_YMM, 0x42, encoding, imm, T_66 | T_W0 | T_YMM, T_F3 | T_0F3A | T_W0 | T_B32, 1);
+    }
     void vmulbf16(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x59); }
     void vmulph(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_W0 | T_YMM | T_MUST_EVEX | T_ER_Z | T_B16, 0x59); }
     void vmulsh(Xmm xmm, Operand op1, Operand op2 = Operand()) { opAVX_X_X_XM(xmm, op1, op2, T_MAP5 | T_F3 | T_W0 | T_MUST_EVEX | T_ER_X | T_N2, 0x59); }
