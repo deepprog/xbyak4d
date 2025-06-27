@@ -1658,7 +1658,7 @@ public:
             mixin(XBYAK_THROW(ERR.CANT_ALLOC));
         }
         if ((type_ == Type.ALLOC_BUF && userPtr != DontSetProtectRWE && alloc_.useProtect()) &&
-            !setProtectMode(ProtectMode.PROTECT_RWE, false)
+            !this.setProtectMode(ProtectMode.PROTECT_RWE, false)
             )
         {
             alloc_.free(top_);
@@ -4563,8 +4563,8 @@ public:
     {
         super(maxSize, userPtr, allocator);
         this.isDefaultJmpNEAR_ = false;
-        setDefaultEncoding();
-        setDefaultEncodingAVX10();
+        this.setDefaultEncoding();
+        this.setDefaultEncodingAVX10();
         
         labelMgr_.reset();
         labelMgr_.set(this);
