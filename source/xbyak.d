@@ -360,7 +360,7 @@ static:
                 mixin(XBYAK_THROW_RET(ERR.OFFSET_IS_TOO_BIG, "0"));
             }
         }
-        return cast(uint32_t)x;
+        return cast(uint32_t) x;
     }
 
     enum LabelMode
@@ -382,11 +382,11 @@ class Allocator
     {
         void* p = AlignedMalloc(size, inner.getPageSize());
         GC.addRange(p, (p is null ? 0 : size));
-        return cast(uint8_t*)p;
+        return cast(uint8_t*) p;
     }
     void free(uint8_t* p)
     {
-        GC.removeRange(cast(void*)p);
+        GC.removeRange(cast(void*) p);
         AlignedFree(p);
     } 
     /* override to return false if you call protect() manually */
@@ -454,7 +454,7 @@ class Allocator
                 mixin(XBYAK_THROW_RET(ERR.CANT_ALLOC, "0"));
             }
             assert(p);
-            uintptr_t uip = cast(uintptr_t)p;
+            uintptr_t uip = cast(uintptr_t) p;
             allocList_[uip] = Allocation();
             Allocation* alloc = &allocList_[uip];
             alloc.size = size;
@@ -464,19 +464,19 @@ class Allocator
             alloc.fd = fd;
       }
             GC.addRange(p, (p is null ? 0 : size));
-            return cast(uint8_t*)p;
+            return cast(uint8_t*) p;
         }
 
         override void free(uint8_t* p)
         {
             if (p == null) return;
-            uintptr_t uip = cast(uintptr_t)p;
+            uintptr_t uip = cast(uintptr_t) p;
             if (null == (uip in allocList_)) {
                 mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
             }
             
-            GC.removeRange(cast(void*)p);
-            if (munmap(cast(void*)uip, allocList_[uip].size) < 0) {
+            GC.removeRange(cast(void*) p);
+            if (munmap(cast(void*) uip, allocList_[uip].size) < 0) {
                 mixin(XBYAK_THROW(ERR.MUNMAP));
             }
 
@@ -617,7 +617,7 @@ public:
 
     this(int idx, int kind, int bit, bool ext8bit = false)
     {
-        idx_ = cast(uint8_t)(idx | (ext8bit ? EXT8BIT : 0));
+        idx_ = cast(uint8_t) (idx | (ext8bit ? EXT8BIT : 0));
         kind_ = kind;
         bit_  = bit;
         zero_ = false;
@@ -646,9 +646,9 @@ public:
         return new Operand();
     }
 
-    int getKind() const { return cast(Kind)kind_; }
+    int getKind() const { return cast(Kind) kind_; }
     int getIdx () const { return idx_ & (EXT8BIT - 1); }
-    bool hasIdxBit(int bit) const { return cast(bool)(idx_ & (1<<bit)); }
+    bool hasIdxBit(int bit) const { return cast(bool) (idx_ & (1<<bit)); }
     bool isNone () const {return this.kind_ == 0; }
     bool isMMX  () const { return isKind(Kind.MMX); }
     bool isXMM  () const { return isKind(Kind.XMM); }
@@ -670,7 +670,7 @@ public:
     bool hasEvex() const { return isZMM() || isExtIdx2() || getOpmaskIdx() || getRounding(); }
     bool hasRex() const { return isExt8bit() || isREG(64) || isExtIdx(); }
     bool hasRex2() const {
-        return (isREG() && isExtIdx2()) || (isMEM() && (cast(Address)this).hasRex2());
+        return (isREG() && isExtIdx2()) || (isMEM() && (cast(Address) this).hasRex2());
     }     
     bool hasRex2NF() const { return hasRex2() || NF_; }
     bool hasRex2NFZU() const { return hasRex2() || NF_ || ZU_; }
@@ -743,7 +743,7 @@ public:
     }
     void setOpmaskIdx(int idx, bool /*ignore_idx0*/ = true)
     {
-        if (mask_ && (mask_ != idx))
+        if (mask_ && (mask_ != cast(uint) idx))
         {
             mixin(XBYAK_THROW(ERR.OPMASK_IS_ALREADY_SET));
         }
@@ -751,7 +751,7 @@ public:
     }
     void setRounding(int idx)
     {
-        if (rounding_ && (rounding_ != idx))
+        if (rounding_ && (rounding_ != cast(uint) idx))
         {
             mixin(XBYAK_THROW(ERR.ROUNDING_IS_ALREADY_SET));
         }
@@ -790,22 +790,23 @@ public:
                 ["al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
                  "r8b", "r9b", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b",
                  "r16b", "r17b", "r18b", "r19b", "r20b", "r21b", "r22b", "r23b",
-                 "r24b","r25b", "r26b", "r27b", "r28b", "r29b", "r30b", "r31b"],
-
+                 "r24b","r25b", "r26b", "r27b", "r28b", "r29b", "r30b", "r31b"
+                ],
                 ["ax", "cx", "dx", "bx", "sp", "bp", "si", "di",
                  "r8w", "r9w", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w",
                  "r16w", "r17w", "r18w", "r19w", "r20w", "r21w", "r22w", "r23w",
-                 "r24w", "r25w", "r26w", "r27w", "r28w", "r29w", "r30w", "r31w"],
-                
+                 "r24w", "r25w", "r26w", "r27w", "r28w", "r29w", "r30w", "r31w"
+                ],
                 ["eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi",
                  "r8d", "r9d", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d",
                  "r16d", "r17d", "r18d", "r19d", "r20d", "r21d", "r22d", "r23d",
-                 "r24d", "r25d", "r26d", "r27d", "r28d", "r29d", "r30d", "r31d"],
-                
+                 "r24d", "r25d", "r26d", "r27d", "r28d", "r29d", "r30d", "r31d"
+                ],
                 ["rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi",
                  "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
                  "r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
-                 "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"],
+                 "r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"
+                ],
             ];
             return tbl[bit_ == 8 ? 0 : bit_ == 16 ? 1 : bit_ == 32 ? 2 : 3][idx];
         } else if (isOPMASK()) {
@@ -864,13 +865,16 @@ public:
     override bool opEquals(Object o) const
     {
         scope Operand rhs = cast(Operand) o;
-        if (this.isMEM() && rhs.isMEM()) return this.getAddress() == rhs.getAddress();
+        if (this.isMEM() && rhs.isMEM())
+        {
+            return this.getAddress() == rhs.getAddress();
+        }
         return isEqualIfNotInherited(rhs);
     }
     Address getAddress() const
     {
         assert(isMEM());
-        return cast(Address)this;
+        return cast(Address) this;
     }
     Address getAddress(int immSize) const
     {
@@ -897,7 +901,7 @@ public:
     }
     this(Reg r)
     {
-        super(cast(Operand)r);
+        super(cast(Operand) r);
     }
     static Reg opCall()
     {
@@ -917,7 +921,8 @@ public:
     }
     Reg8 cvt8()
     {
-        Reg r = this.changeBit(8); return new Reg8(r.getIdx(), r.isExt8bit());
+        Reg r = this.changeBit(8);
+        return new Reg8(r.getIdx(), r.isExt8bit());
     }
     Reg16 cvt16()
     {
@@ -952,7 +957,7 @@ public:
     override Reg getReg() const
     {
         assert(!isMEM());
-        Reg r = new Reg(cast(Reg)this);
+        Reg r = new Reg(cast(Reg) this);
         return r;
     }
 
@@ -1040,7 +1045,7 @@ public:
     }
     this(Mmx m)
     {
-        super(cast(Reg)m);
+        super(cast(Reg) m);
     }
     static Mmx opCall(int idx)
     {
@@ -1444,8 +1449,8 @@ public:
         return Base_ && Index_ && Dsip_ && Scale_;
     }
     
-    Reg getBase() const { return cast(Reg)base_; }
-    Reg getIndex() const { return cast(Reg)index_; }
+    Reg getBase() const { return cast(Reg)  base_; }
+    Reg getIndex() const { return cast(Reg) index_; }
     int getScale() const { return scale_; }
     size_t getDisp() const { return disp_; }
     
@@ -1539,8 +1544,8 @@ private:
 }
 
 // 2nd parameter for constructor of CodeArray(maxSize, userPtr, alloc)
-enum AutoGrow = cast(void*)1; 
-enum DontSetProtectRWE = cast(void*)2;
+enum AutoGrow = cast(void*) 1; 
+enum DontSetProtectRWE = cast(void*) 2;
 
 class CodeArray
 {
@@ -1701,7 +1706,7 @@ public:
                 mixin(XBYAK_THROW(ERR.CODE_IS_TOO_BIG));
             }
         }
-        top_[size_++] = cast(uint8_t)code;
+        top_[size_++] = cast(uint8_t) code;
     }
     void db(uint8_t* code, size_t codeSize)
     {
@@ -1712,7 +1717,7 @@ public:
         if (codeSize > 8) {
             mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
         }
-        for (size_t i = 0; i < codeSize; i++) db( cast(uint8_t)(code >> (i * 8)));
+        for (size_t i = 0; i < codeSize; i++) db( cast(uint8_t) (code >> (i * 8)));
     }
     void dw(uint32_t code) { db(code, 2); } 
     void dd(uint32_t code) { db(code, 4); }
@@ -1770,7 +1775,7 @@ public:
         }
         uint8_t* data = top_ + offset;
         for (size_t i = 0; i < size; i++) {
-            data[i] = cast(uint8_t)(disp >> (i * 8));
+            data[i] = cast(uint8_t) (disp >> (i * 8));
         }
     }
     void save(size_t offset, size_t val, int size, inner.LabelMode mode)
@@ -1819,9 +1824,9 @@ public:
       version (Posix)
       {
         size_t pageSize = sysconf(_SC_PAGESIZE);
-        size_t iaddr = cast(size_t)(addr);
-        size_t roundAddr = iaddr & ~(pageSize - cast(size_t)(1));
-        return mprotect(cast(void*)(roundAddr), size + (iaddr - roundAddr), mode) == 0;
+        size_t iaddr = cast(size_t) addr;
+        size_t roundAddr = iaddr & ~(pageSize - cast(size_t) 1);
+        return mprotect(cast(void*) roundAddr, size + (iaddr - roundAddr), mode) == 0;
       }
       else
       {
@@ -2633,7 +2638,7 @@ private:
         if (r.hasIdxBit(bit)) v |= 4;
         if (x.hasIdxBit(bit)) v |= 2;
         if (b.hasIdxBit(bit)) v |= 1;
-        return cast(uint8_t)v;
+        return cast(uint8_t) v;
     }
     void rex2(int bit3, int rex4bit, Reg r, Reg b, Reg x = Reg())
     {
@@ -2986,7 +2991,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     }
     void setModRM(int mod, int r1, int r2)
     {
-        db(cast(uint8_t)((mod << 6) | ((r1 & 7) << 3) | (r2 & 7)));
+        db(cast(uint8_t) ((mod << 6) | ((r1 & 7) << 3) | (r2 & 7)));
     }
     void setSIB(RegExp e, int reg, int disp8N = 0)
     {
@@ -3010,7 +3015,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         }
       }
   }
-        uint32_t disp = cast(uint32_t)(disp64);
+        uint32_t disp = cast(uint32_t) disp64;
         Reg base = e.getBase();
         Reg index = e.getIndex();
         int baseIdx = base.getIdx();
@@ -3029,7 +3034,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
                 }
             } else {
                 // disp must be casted to signed
-                uint32_t t = cast(uint32_t)(cast(int)(disp) / disp8N);
+                uint32_t t = cast(uint32_t)(cast(int) disp / disp8N);
                 if ((disp % disp8N) == 0 && inner.IsInDisp8(t)) {
                     disp = t;
                     mod = mod01;
@@ -3238,7 +3243,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
                     if (isAutoGrow()) {
                         mixin(XBYAK_THROW(ERR.INVALID_RIP_IN_AUTO_GROW));
                     }
-                    disp -= cast(size_t)getCurr() + 4 + addr.immSize;
+                    disp -= cast(size_t) getCurr() + 4 + addr.immSize;
                 }
                 dd(inner.VerifyInInt32(disp));
             }
@@ -3327,7 +3332,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             mixin(XBYAK_THROW_RET(ERR.BAD_COMBINATION, "false"));
         }
         if (p2.isMEM()) {
-            scope Reg r = cast(Reg)(p1);
+            scope Reg r = cast(Reg) p1;
             scope Address addr = p2.getAddress();
             RegExp e = addr.getRegExp();
             evexLeg(r, e.getBase(), e.getIndex(), d, type, sc);
@@ -3335,7 +3340,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             addr.immSize = immSize;
             opAddr(addr, r.getIdx());
         } else {
-            evexLeg(cast(Reg)op2, cast(Reg)op1, Reg(), d, type, sc);
+            evexLeg(cast(Reg) op2, cast(Reg) op1, Reg(), d, type, sc);
             writeCode(type, d, code);
             setModRM(3, op2.getIdx(), op1.getIdx());
         }
@@ -3434,7 +3439,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             }
             opMR(op2.getAddress(), op1.getReg(), 0, code | 2);
         } else {
-            opRO(cast(Reg)(op2), op1, 0, code, op1.getKind() == op2.getKind());
+            opRO(cast(Reg) op2, op1, 0, code, op1.getKind() == op2.getKind());
         }
     }
     bool isInDisp16(uint32_t x) const { return 0xFFFF8000 <= x || x <= 0x7FFF; }
@@ -3486,7 +3491,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
   }
   else
   {
-        cast(void)d;
+        cast(void) d;
   }
         verifyMemHasSize(op);
   version (XBYAK64)
@@ -3504,7 +3509,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     void opPushPop(Operand op, int code, int ext, int alt)
     {
         if (op.isREG() && op.hasRex2()) {
-            Reg r = cast(Reg)op;
+            Reg r = cast(Reg) op;
             rex2(0, rexRXB(3, 0, Reg(), r), Reg(), r);
             db(alt | (r.getIdx() & 7));
             return;
@@ -3560,7 +3565,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             if (relative) {
                 db(inner.VerifyInInt32(offset + disp - size_ - jmpSize), jmpSize);
             } else if (isAutoGrow()) {
-                db(cast(uint64_t)0, jmpSize);
+                db(cast(uint64_t) 0, jmpSize);
                 save(size_ - jmpSize, offset, jmpSize, inner.LabelMode.LaddTop);
             } else {
                 db(cast(size_t) top_ + offset, jmpSize);
@@ -3685,7 +3690,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     }
     void opAVX_X_X_XM(Xmm x1, Operand op1, Operand op2, uint64_t type, int code0, int imm8 = NONE)
     {
-        scope Xmm x2 = cast(Xmm)op1;
+        scope Xmm x2 = cast(Xmm) op1;
         scope Operand op = op2;
         if (op2.isNone()) { // (x1, op1) -> (x1, x1, op1)
             x2 = x1;
@@ -4009,7 +4014,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             uint64_t type = dBit > 0 ? (T_MUST_EVEX|T_NF) : T_MUST_EVEX;
             opROO(d, op2, op1, type, code);
         } else {
-            opROO(d, op1, cast(Reg)op2|T_nf, T_MUST_EVEX|T_NF, code);
+            opROO(d, op1, cast(Reg) op2|T_nf, T_MUST_EVEX|T_NF, code);
         }
     }
   version (XBYAK64)
@@ -4052,7 +4057,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         scope Operand p2 = op;
         if (code == 0x93) { swap(p1, p2); }
         if (opROO(Reg(), p2, p1, T_APX|type, code)) return;
-        opVex(cast(Reg)p1, null, p2, type, code);
+        opVex(cast(Reg) p1, null, p2, type, code);
     }
     void opEncodeKey(Reg32 r1, Reg32 r2, uint8_t code1, uint8_t code2)
     {
@@ -4090,14 +4095,14 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         enc = getEncoding(enc, 1);
         int sel = -1;
         if (p1.isXMM() || (p1.isMEM() && enc == AVX10v2Encoding)) {
-            sel = 2 + cast(int)rev;
+            sel = 2 + cast(int) rev;
         } else if (p1.isREG(bit) || p1.isMEM()) {
             sel = cast(int)rev;
         }
         if (sel == -1) {
             mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
         }
-        opAVX_X_X_XM(cast(Xmm)p2, xm0, p1, typeTbl[sel], codeTbl[sel]);
+        opAVX_X_X_XM(cast(Xmm) p2, xm0, p1, typeTbl[sel], codeTbl[sel]);
     }
 public:
     size_t getVersion() const { return xbyak.VERSION; }
@@ -4323,7 +4328,7 @@ public:
     {
         int s = inner.IsInDisp8(imm) ? 1 : 0;
         int immSize = s ? 1 : reg.isREG(16) ? 2 : 4;
-        uint8_t code = cast(uint8_t)(0x69 | (s << 1));
+        uint8_t code = cast(uint8_t) (0x69 | (s << 1));
         if (!opROO(Reg(), op, reg, T_APX|T_NF|T_ZU, code, immSize)) {
             opRO(reg, op, 0, code, reg.getKind() == op.getKind(), immSize);
         }
@@ -4439,7 +4444,7 @@ public:
             verifyMemHasSize(op);
             int immSize = op.getBit() / 8;
             if (immSize <= 4) {
-                int64_t s = cast(int64_t)imm >> (immSize * 8);
+                int64_t s = cast(int64_t) imm >> (immSize * 8);
                 if (s != 0 && s != -1) {
                     mixin(XBYAK_THROW(ERR.IMM_IS_TOO_BIG));
                 }
@@ -4494,7 +4499,7 @@ public:
             return;
         }
         if (p1.isREG() && p2.isREG()) swap(p1, p2); // adapt to NASM 2.16.03 behavior to pass tests
-        opRO(cast(Reg)p1, p2, 0, 0x86 | (p1.isBit(8) ? 0 : 1), (p1.isREG() && (p1.getBit() == p2.getBit())));
+        opRO(cast(Reg) p1, p2, 0, 0x86 | (p1.isBit(8) ? 0 : 1), (p1.isREG() && (p1.getBit() == p2.getBit())));
     }
 
   version (XBYAK_DISABLE_SEGMENT)
@@ -4714,7 +4719,7 @@ public:
         if (isAutoGrow() && inner.getPageSize() % x != 0) {
             mixin(XBYAK_THROW(ERR.BAD_ALIGN));
         }
-        size_t remain = cast(size_t)(getCurr()) % x;
+        size_t remain = cast(size_t) getCurr() % x;
         if (remain) {
             nop(x - remain, useMultiByteNop);
         }
@@ -4780,8 +4785,8 @@ void aor(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38|T_F2, 0x0FC, T_APX|T
 void axor(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38|T_F3, 0x0FC, T_APX|T_F3); }
 
 void bextr(Reg32e r1, Operand op, Reg32e r2) { opRRO(r1, r2, op, T_APX|T_0F38|T_NF, 0xf7); }
-void blendpd(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0D, &isXMM_XMMorMEM, cast(uint8_t)imm); }
-void blendps(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0C, &isXMM_XMMorMEM, cast(uint8_t)imm); }
+void blendpd(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0D, &isXMM_XMMorMEM, cast(uint8_t) imm); }
+void blendps(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0C, &isXMM_XMMorMEM, cast(uint8_t) imm); }
 void blendvpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38, 0x15, &isXMM_XMMorMEM, NONE); }
 void blendvps(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38, 0x14, &isXMM_XMMorMEM, NONE); }
 void blsi(Reg32e r, Operand op) { opRRO(Reg32e(3, r.getBit()), r, op, T_APX|T_0F38|T_NF, 0xf3); }
@@ -5021,7 +5026,7 @@ void crc32(Reg32e r, Operand op)
     }
     int code = 0xF0 | (op.isBit(8) ? 0 : 1);
     uint64_t type = op.isBit(16) ? T_66:0; type |= T_ALLOW_DIFF_SIZE;
-    if (opROO(Reg(), op, cast(Reg)(r), T_APX|type, code)) return;
+    if (opROO(Reg(), op, cast(Reg) r, T_APX|type, code)) return;
     opRO(r, op, T_F2|T_0F38|type, code);
 }
 void ctesta(Operand op, Reg r, int dfv = 0) { opCcmp(op, r, dfv, 0x84, 7); }
@@ -5112,8 +5117,8 @@ void divpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x5E, &isXMM_XMMor
 void divps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x5E, &isXMM_XMMorMEM); }
 void divsd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_F2, 0x5E, &isXMM_XMMorMEM); }
 void divss(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_F3, 0x5E, &isXMM_XMMorMEM); }
-void dppd(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x41, &isXMM_XMMorMEM, cast(uint8_t)imm); }
-void dpps(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x40, &isXMM_XMMorMEM, cast(uint8_t)imm); }
+void dppd(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x41, &isXMM_XMMorMEM, cast(uint8_t) imm); }
+void dpps(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x40, &isXMM_XMMorMEM, cast(uint8_t) imm); }
 
 void emms() { db(0x0F); db(0x77); }
 void endbr32() { db(0xF3); db(0x0F); db(0x1E); db(0xFB); }
@@ -5454,7 +5459,12 @@ void loopne(ref Label label) { opJmp(label, T_SHORT, 0xE0, 0, 0); }
 void loopne(const char* label) { loopne(to!string(label)); }
 void loopne(string label) { opJmp(label, T_SHORT, 0xE0, 0, 0); }
 void lss(Reg reg, Address addr) { opLoadSeg(addr, reg, T_0F, 0xB2); }
-void lzcnt(Reg reg, Operand op) { if (opROO(Reg(), op, reg, T_APX|T_NF, 0xF5)) return; opCnt(reg, op, 0xBD); }
+void lzcnt(Reg reg, Operand op)
+{
+    if (opROO(Reg(), op, reg, T_APX|T_NF, 0xF5))
+        return;
+    opCnt(reg, op, 0xBD);
+}
 
 void maskmovdqu(Xmm reg1, Xmm reg2) { opSSE(reg1, reg2, T_66|T_0F, 0xF7); }
 void maskmovq(Mmx reg1, Mmx reg2) { opSSE(reg1, reg2, T_0F, 0xF7); }
@@ -5561,7 +5571,7 @@ void movupd(Xmm xmm, Operand op) { opMMX(xmm, op, 0x10, T_0F, T_66); }
 void movups(Address addr, Xmm xmm) { opSSE(xmm, addr, T_0F|T_NONE, 0x11); }
 void movups(Xmm xmm, Operand op) { opMMX(xmm, op, 0x10, T_0F, T_NONE); }
 void movzx(Reg reg, Operand op) { opMovxx(reg, op, 0xB6); }
-void mpsadbw(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x42, &isXMM_XMMorMEM, cast(uint8_t)imm); }
+void mpsadbw(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x42, &isXMM_XMMorMEM, cast(uint8_t) imm); }
 void mul(Operand op) { opRext(op, 0, 4, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
 void mulpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x59, &isXMM_XMMorMEM); }
 void mulps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x59, &isXMM_XMMorMEM); }
@@ -5603,19 +5613,19 @@ void paddsw(Mmx mmx, Operand op) { opMMX(mmx, op, 0xED); }
 void paddusb(Mmx mmx, Operand op) { opMMX(mmx, op, 0xDC); }
 void paddusw(Mmx mmx, Operand op) { opMMX(mmx, op, 0xDD); }
 void paddw(Mmx mmx, Operand op) { opMMX(mmx, op, 0xFD); }
-void palignr(Mmx mmx, Operand op, int imm) { opMMX(mmx, op, 0x0F, T_0F3A, T_66, cast(uint8_t)imm); }
+void palignr(Mmx mmx, Operand op, int imm) { opMMX(mmx, op, 0x0F, T_0F3A, T_66, cast(uint8_t) imm); }
 void pand(Mmx mmx, Operand op) { opMMX(mmx, op, 0xDB); }
 void pandn(Mmx mmx, Operand op) { opMMX(mmx, op, 0xDF); }
 void pause() { db(0xF3); db(0x90); }
 void pavgb(Mmx mmx, Operand op) { opMMX(mmx, op, 0xE0); }
 void pavgw(Mmx mmx, Operand op) { opMMX(mmx, op, 0xE3); }
 void pblendvb(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38, 0x10, &isXMM_XMMorMEM, NONE); }
-void pblendw(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0E, &isXMM_XMMorMEM, cast(uint8_t)imm); }
+void pblendw(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0E, &isXMM_XMMorMEM, cast(uint8_t) imm); }
 void pclmulhqhqdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x11); }
 void pclmulhqlqdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x01); }
 void pclmullqhqdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x10); }
 void pclmullqlqdq(Xmm xmm, Operand op) { pclmulqdq(xmm, op, 0x00); }
-void pclmulqdq(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x44, &isXMM_XMMorMEM, cast(uint8_t)imm); }
+void pclmulqdq(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x44, &isXMM_XMMorMEM, cast(uint8_t) imm); }
 void pcmpeqb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x74); }
 void pcmpeqd(Mmx mmx, Operand op) { opMMX(mmx, op, 0x76); }
 void pcmpeqq(Xmm xmm, Operand op) { opSSE(xmm, op, T_66 | T_0F38, 0x29, &isXMM_XMMorMEM); }
@@ -5796,8 +5806,8 @@ void ror(Reg d, Operand op, int imm) { opShift(op, imm, 9, d); }
 void rorx(Reg32e r, Operand op, uint8_t imm) { opRRO(r, Reg32e(0, r.getBit()), op, T_0F3A|T_F2|T_APX, 0xF0, imm); }
 void roundpd(Xmm xmm, Operand op, uint8_t imm) { opSSE(xmm, op, T_66|T_0F3A|T_YMM, 0x09, &isXMM_XMMorMEM, imm); }
 void roundps(Xmm xmm, Operand op, uint8_t imm) { opSSE(xmm, op, T_66|T_0F3A|T_YMM, 0x08, &isXMM_XMMorMEM, imm); }
-void roundsd(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0B, &isXMM_XMMorMEM, cast(uint8_t)imm); }
-void roundss(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0A, &isXMM_XMMorMEM, cast(uint8_t)imm); }
+void roundsd(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0B, &isXMM_XMMorMEM, cast(uint8_t) imm); }
+void roundss(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x0A, &isXMM_XMMorMEM, cast(uint8_t) imm); }
 void rsqrtps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x52, &isXMM_XMMorMEM); }
 void rsqrtss(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_F3, 0x52, &isXMM_XMMorMEM); }
 
