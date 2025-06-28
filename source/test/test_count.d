@@ -28,6 +28,11 @@ struct TestCount
         }
     }
 
+    void TEST_ASSERT(bool x, string file = __FILE__, size_t line = __LINE__ )
+    {
+        this.test(x, "TEST_ASSERT", x.stringof, file, line);
+    }
+
     void TEST_EQUAL(T)(T x, T y, string file = __FILE__, size_t line = __LINE__)
     {
         auto isEqual = (x == y);
@@ -39,9 +44,12 @@ struct TestCount
         }
     }
 
+
+
     void end(string name = "")
     {
         writeln(name, " OK:", okCount_, " NG:", ngCount_);
+        writeln();
         assert(ngCount_ == 0);
     }
 

@@ -1419,7 +1419,6 @@ void testAssige(size_t line = __LINE__)
 @("doubleDefine")
 unittest
 {
-	writefln("%s(%d) : doubleDefine", __FILE__, __LINE__);
 	doubleDefine();
 }
 
@@ -1440,13 +1439,15 @@ void doubleDefine(size_t line = __LINE__)
 		
 	class Code2 : CodeGenerator
 	{	
-		this()
+		this(ref TestCount tc)
 		{
 			super();
 			Label label;
 			jmp(label);
 			
+		//	tc.TEST_ASSERT( hasUndefinedLabel() );
 			assert( hasUndefinedLabel() );
+
 			writeln("OK 2:hasUndefinedLabel()");
 		}
 	}
@@ -1481,10 +1482,20 @@ void doubleDefine(size_t line = __LINE__)
 		}
 	}
 
+	TestCount tc;
+	tc.reset();
+	
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("doubleDefine");
+	}
+
 	scope Code1 code1 = new Code1();
 	auto f1 = code1.getCode();
-	scope Code2 code2 = new Code2();
+	scope Code2 code2 = new Code2(tc);
 	auto f2 = code2.getCode();
+
 	scope Code3 code3 = new Code3();
 	auto f3 = code3.getCode();
 	scope Code4 code4 = new Code4();
@@ -1494,35 +1505,26 @@ void doubleDefine(size_t line = __LINE__)
 
 class GetAddressCode1 : CodeGenerator
 {	
-	void test()
+	void test(ref TestCount tc)
 	{
 		Label L1, L2, L3;
 		nop();
 	L(L1);
 		uint8_t* p1 = getCurr();
-		bool eq1 = L1.getAddress() == p1;
-		writeln(eq1);
-		assert(eq1);
+		tc.TEST_EQUAL(L1.getAddress(), p1);
 
 		nop();
 		jmp(L2);
 		nop();
 		jmp(L3);
 	L(L2);
-		bool eq2 = L2.getAddress() == getCurr();
-		writeln(eq2);
-		assert(eq2);
-	
+		tc.TEST_EQUAL(L2.getAddress(), getCurr());
 		// L3 is not defined
-		bool eq3 = L3.getAddress() == null;
-		writeln(eq3);
-		assert(eq3);
+		tc.TEST_EQUAL(L3.getAddress(), null);
 
 		// L3 is set by L1
 		assignL(L3, L1);
-		bool eq4 = L3.getAddress() == p1;
-		writeln(eq4);
-		assert(eq4);
+		tc.TEST_EQUAL(L3.getAddress(), p1);
 	}
 }
 
@@ -1530,14 +1532,22 @@ class GetAddressCode1 : CodeGenerator
 @("getAddress1")
 unittest
 {
-	writefln("%s(%d) : getAddress1", __FILE__, __LINE__);
 	getAddress1();
 }
 
 void getAddress1(size_t line = __LINE__)
 {
-	GetAddressCode1 c = new GetAddressCode1();
-	c.test();
+	TestCount tc;
+	tc.reset();
+
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("getAddress1");
+	}	
+	
+	scope c = new GetAddressCode1();
+	c.test(tc);
 }
 
 class CodeLabelTable : CodeGenerator
@@ -1592,18 +1602,25 @@ version (XBYAK64)
 	@("LabelTable")
 	unittest
 	{
-		writefln("%s(%d) : LabelTable", __FILE__, __LINE__);
 		LabelTable();
 	}
 
 	void LabelTable(size_t line = __LINE__)
 	{
+		TestCount tc;
+		tc.reset();
+
+		scope (exit)
+		{
+			writef("%s(%d) : ", __FILE__, line);
+			tc.end("LabelTable");
+		}
+
 		scope c = new CodeLabelTable();
-		auto fn = cast(int function(int)) c.getCode();
-		c.dump();
-		assert(fn(0) == c.ret0);
-		assert(fn(1) == c.ret1);
-		assert(fn(2) == c.ret2);
+		auto fn = c.getCode!(int function(int));
+		tc.TEST_EQUAL(fn(0), c.ret0);
+		tc.TEST_EQUAL(fn(1), c.ret1);
+		tc.TEST_EQUAL(fn(2), c.ret2);
 	}
 
 	class GetAddressCode2 : CodeGenerator
@@ -1652,13 +1669,20 @@ version (XBYAK64)
 	@("testGetAddressCode2")
 	unittest
 	{
-		writefln("%s(%d) : testGetAddressCode2", __FILE__, __LINE__);
 		testGetAddressCode2();
 	}
 
 	void testGetAddressCode2(size_t line = __LINE__)
 	{
+		TestCount tc;
+		tc.reset();
 
+		scope (exit)
+		{
+			writef("%s(%d) : ", __FILE__, line);
+			tc.end("testGetAddressCode2");
+		}
+		
 		int[] sizeTbl = [
 			2, 128, // grow
 			4096 // not grow
@@ -1671,21 +1695,15 @@ version (XBYAK64)
 			c.readyRE();
 			uint8_t* p = c.getCode();
 
-			auto tmp1 = c.L1.getAddress() == p + c.a1;
-			assert(tmp1);
-
-			auto tmp2 = c.L3.getAddress() == p + c.a3;
-			assert(tmp2);
-
-			auto tmp3 = c.L2.getAddress() == p + c.a1;
-			assert(tmp3);
+			tc.TEST_EQUAL(c.L1.getAddress(), p + c.a1);
+			tc.TEST_EQUAL(c.L3.getAddress(), p + c.a3);
+			tc.TEST_EQUAL(c.L2.getAddress(), p + c.a1);
 		}
 	}
 
 	@("testrip")
 	unittest
 	{
-		writefln("%s(%d) : testrip", __FILE__, __LINE__);
 		testrip();
 	}
 
@@ -1719,15 +1737,21 @@ version (XBYAK64)
 				assertThrown!XError(rip + label1 + label2);
 			}
 		}
+		
+		TestCount tc;
+		tc.reset();
+
+		scope (exit)
+		{
+			writef("%s(%d) : ", __FILE__, line);
+			tc.end("testrip");
+		}
 
 		scope code = new Code(a, b);
-		code.dump;
-		auto fn = cast(int function()) code.getCode();
+		auto fn = code.getCode!(int function());
 		int ret = fn();
 		int sum = a[0] + a[1] + b[0] + b[1];
-		writeln(ret);
-		writeln(sum);
-		assert(ret == sum);
+		tc.TEST_EQUAL(ret, sum);
 	}
 
 	int ret1234()
@@ -1765,13 +1789,20 @@ version (XBYAK64)
 			}
 		}
 
+		TestCount tc;
+		tc.reset();
+
+		scope (exit)
+		{
+			writef("%s(%d) : ", __FILE__, line);
+			tc.end("rip_jmp");
+		}
+
 		scope code = new Code();
-		auto fn = cast(int function()) code.getCode();
+		auto fn = code.getCode!(int function());
 		int ret = fn();
 		int sum = ret1234() + ret9999();
-		writeln(ret);
-		writeln(sum);
-		assert(ret == sum);
+		tc.TEST_EQUAL(ret,  sum);
 	}
 
 	version (none)
@@ -1815,7 +1846,6 @@ version (XBYAK64)
 		@("rip_addr_with_fixed_buf")
 		unittest
 		{
-			writefln("%s(%d) : rip_addr_with_fixed_buf", __FILE__, __LINE__);
 			rip_addr_with_fixed_buf();
 		}
 
@@ -1838,14 +1868,23 @@ version (XBYAK64)
 				}
 			}
 
+           	TestCount tc;
+			tc.reset();
+
+			scope (exit)
+			{
+				writef("%s(%d) : ", __FILE__, line);
+				tc.end("rip_addr_with_fixed_buf");
+			}
+
 			scope code = new Code();
 			code.setProtectModeRE();
-			auto fn = cast(void function()) code.getCode();
+			auto fn = code.getCode!(void function());
 			fn();
 
-			assert(*x0 == 123);
-			assert(*x1 == 456);
-			assert(buf[8] == 99);
+			tc.TEST_EQUAL(*x0, 123);
+			tc.TEST_EQUAL(*x1, 456);
+			tc.TEST_EQUAL(buf[8], 99);
 			code.setProtectModeRW();
 		}
 	}
@@ -1869,12 +1908,20 @@ class ReleaseTestCode : CodeGenerator
 @("release_label_after_code")
 unittest
 {
-	writefln("%s(%d) : release_label_after_code", __FILE__, __LINE__);
 	release_label_after_code();
 }
 
 void release_label_after_code(size_t line = __LINE__)
 {
+	TestCount tc;
+	tc.reset();
+
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("release_label_after_code");
+	}
+	
 	puts("---");
 	{
 		Label L1, L2, L3, L4, L5;
@@ -1891,36 +1938,27 @@ void release_label_after_code(size_t line = __LINE__)
 			scope code = new ReleaseTestCode(L1, L2, L3);
 		}
 
-			auto L1_getId = L1.getId();
-			assert(L1.getId > 0);
-			auto L1_getAddress = L1.getAddress();
-			assert(L1_getAddress != null);
-			
-			auto L2_getId = L2.getId();
-			assert(L2.getId > 0);
-			auto L2_getAddress = L2.getAddress();
-			assert(L2_getAddress != null);
-
-			auto L3_getId = L3.getId();
-			assert(L3.getId > 0);
-			auto L3_getAddress = L3.getAddress();
-			assert(L3_getAddress == null); // L3 is not assigned
-
+			tc.TEST_ASSERT(L1.getId > 0);
+			tc.TEST_ASSERT(L1.getAddress() != null);
+			tc.TEST_ASSERT(L2.getId > 0);
+			tc.TEST_ASSERT(L2.getAddress() != null);
+			tc.TEST_ASSERT(L3.getId > 0);
+			tc.TEST_ASSERT(L3.getAddress() == null); // L3 is not assigned
 			code.assignL(L4, L1);
 			L5 = L1;
 			writefln("id=%d %d %d %d %d", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
 		}
 		puts("code is released");
-		assert(L1.getId() == 0);
-		assert(L1.getAddress() == null);
-		assert(L2.getId() == 0);
-		assert(L2.getAddress() == null);
-//		assert(L3.getId() == 0); // L3 is not assigned so not cleared
-		assert(L3.getAddress() == null);
-		assert(L4.getId() == 0);
-		assert(L4.getAddress() == null);
-		assert(L5.getId() == 0);
-		assert(L5.getAddress() == null);
+		tc.TEST_ASSERT(L1.getId() == 0);
+		tc.TEST_ASSERT(L1.getAddress() == null);
+		tc.TEST_ASSERT(L2.getId() == 0);
+		tc.TEST_ASSERT(L2.getAddress() == null);
+//		tc.TEST_ASSERT(L3.getId() == 0); // L3 is not assigned so not cleared
+		tc.TEST_ASSERT(L3.getAddress() == null);
+		tc.TEST_ASSERT(L4.getId() == 0);
+		tc.TEST_ASSERT(L4.getAddress() == null);
+		tc.TEST_ASSERT(L5.getId() == 0);
+		tc.TEST_ASSERT(L5.getAddress() == null);
 		writef("id=%d %d %d %d %d\n", L1.getId(), L2.getId(), L3.getId(), L4.getId(), L5.getId());
 	}
 }
