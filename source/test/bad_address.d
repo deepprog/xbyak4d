@@ -34,9 +34,10 @@ unittest
 {
     scope Code c = new Code();
   
-    write("bad_address test:", testCount_);
+    write(__FILE__, " testException:", testCount_);
     write(" ok:", okCount_);
     writeln(" ng:", ngCount_);
+    writeln();
 
     if(ngCount_ != 0) {
         assert(0, "test error is bad_address");

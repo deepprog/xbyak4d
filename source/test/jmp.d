@@ -1445,8 +1445,8 @@ void doubleDefine(size_t line = __LINE__)
 			Label label;
 			jmp(label);
 			
-		//	tc.TEST_ASSERT( hasUndefinedLabel() );
-			assert( hasUndefinedLabel() );
+			tc.TEST_ASSERT( hasUndefinedLabel() );
+		//	assert( hasUndefinedLabel() );
 
 			writeln("OK 2:hasUndefinedLabel()");
 		}
@@ -1493,13 +1493,18 @@ void doubleDefine(size_t line = __LINE__)
 
 	scope Code1 code1 = new Code1();
 	auto f1 = code1.getCode();
+	tc.set(true);
+
 	scope Code2 code2 = new Code2(tc);
 	auto f2 = code2.getCode();
 
 	scope Code3 code3 = new Code3();
 	auto f3 = code3.getCode();
+	tc.set(true);
+
 	scope Code4 code4 = new Code4();
 	auto f4 = code4.getCode();
+	tc.set(true);
 }
 
 
@@ -1996,12 +2001,20 @@ class JmpTypeCode : CodeGenerator
 @("setDefaultJmpNEAR")
 unittest
 {
-	writefln("%s(%d) : setDefaultJmpNEAR", __FILE__, __LINE__);
 	setDefaultJmpNEAR();
 }
 
 void setDefaultJmpNEAR(size_t line = __LINE__)
 {
+	TestCount tc;
+	tc.reset();
+
+	scope (exit)
+	{
+		writef("%s(%d) : ", __FILE__, line);
+		tc.end("setDefaultJmpNEAR");
+	}
+	
 	alias LabelType = CodeGenerator.LabelType;
 
 	struct TBL{
@@ -2038,13 +2051,12 @@ void setDefaultJmpNEAR(size_t line = __LINE__)
 		code1 = new JmpTypeCode();
 		code2 = new JmpTypeCode();
 		code2.setDefaultJmpNEAR(true);
-		writeln("\ni:", i);
+		// writeln("\ni:", i);
 		if (tbl[i].expect1) {
 			size_t size = code1.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
 			auto exp1 = tbl[i].expect1;
-			writeln("size:", size);
-			writeln("exp1:", exp1);
-		//	code1.dump;
+			// writeln("size:", size);
+			// writeln("exp1:", exp1);
 			assert(size == exp1);
 		} else {
 			bool ret = false;
@@ -2052,7 +2064,7 @@ void setDefaultJmpNEAR(size_t line = __LINE__)
 				 code1.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
 			}
 			catch (Exception e) {
-        		writeln("code1 catch");
+        		// writeln("code1 catch");
 				ret = true;
 			}
 			if (ret) assert(ret);
@@ -2067,11 +2079,13 @@ void setDefaultJmpNEAR(size_t line = __LINE__)
 				 code2.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
 			}
 			catch (Exception e) {
-        		writeln("code2 catch");
+        		// writeln("code2 catch");
 				ret = true;
      		}
 			if (ret) assert(ret);
 		}
+
+		tc.set(true);
 	}
 }
 
@@ -2079,7 +2093,6 @@ void setDefaultJmpNEAR(size_t line = __LINE__)
 @("ambiguousFarJmp")
 unittest
 {
-	writefln("%s(%d) : ambiguousFarJmp", __FILE__, __LINE__);
 	ambiguousFarJmp();
 }
 
@@ -2094,9 +2107,55 @@ version(XBYAK32){
 		void genJmp() { jmp(ptr[rax], T_FAR); }
 		void genCall() { call(ptr[rax], T_FAR); }
 }
-	} 
-	
+	}
+
+	testCount_ = 0; 
+	okCount_ = 0;
+	ngCount_ = 0;
+
 	scope code = new Code();
-	assertThrown!Exception(code.genJmp());
-	assertThrown!Exception(code.genCall());
+	testException!({ code.genJmp(); }, Exception);
+	testException!({ code.genCall(); }, Exception);
+
+	write(__FILE__, "(", line, ") testException:", testCount_);
+    write(" OK:", okCount_);
+    writeln(" NG:", ngCount_);
+
+    if(ngCount_ != 0) {
+        assert(0, "test error is ambiguousFarJmp");
+    }
+	writeln();
+}
+
+static testCount_ = 0; 
+static okCount_ = 0;
+static ngCount_ = 0;
+
+void testException(alias statement, exception)(string file = __FILE__, size_t line = __LINE__)
+{
+    testCount_++;
+    int ret_ = 0;
+    try {
+        statement();
+        ret_ = 1;
+    } catch (exception ex) {
+        // ret_ = 0;
+    } catch (Throwable t) {
+        ret_ = 2;
+    }
+
+    if(ret_ == 0) {
+        okCount_++;
+        return;
+    }
+
+    if (ret_ != 0) {
+        ngCount_++;
+        writeln("testEXCEPTION: Failure in ", file, " line ", line);
+        if (ret_ == 1) {
+            writeln("test: no exception");
+        } else {
+            writeln("test: unexpected exception");
+        }
+    }
 }
