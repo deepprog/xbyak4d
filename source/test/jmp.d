@@ -2109,53 +2109,16 @@ version(XBYAK32){
 }
 	}
 
-	testCount_ = 0; 
-	okCount_ = 0;
-	ngCount_ = 0;
+	TestCount tc;
+	tc.reset();
 
+	scope (exit)
+    {
+        writef("%s(%d) : ", __FILE__, line);
+        tc.end("ambiguousFarJmp");
+    }
+	
 	scope code = new Code();
-	testException!({ code.genJmp(); }, Exception);
-	testException!({ code.genCall(); }, Exception);
-
-	write(__FILE__, "(", line, ") testException:", testCount_);
-    write(" OK:", okCount_);
-    writeln(" NG:", ngCount_);
-
-    if(ngCount_ != 0) {
-        assert(0, "test error is ambiguousFarJmp");
-    }
-	writeln();
-}
-
-static testCount_ = 0; 
-static okCount_ = 0;
-static ngCount_ = 0;
-
-void testException(alias statement, exception)(string file = __FILE__, size_t line = __LINE__)
-{
-    testCount_++;
-    int ret_ = 0;
-    try {
-        statement();
-        ret_ = 1;
-    } catch (exception ex) {
-        // ret_ = 0;
-    } catch (Throwable t) {
-        ret_ = 2;
-    }
-
-    if(ret_ == 0) {
-        okCount_++;
-        return;
-    }
-
-    if (ret_ != 0) {
-        ngCount_++;
-        writeln("testEXCEPTION: Failure in ", file, " line ", line);
-        if (ret_ == 1) {
-            writeln("test: no exception");
-        } else {
-            writeln("test: unexpected exception");
-        }
-    }
+	tc.TEST_EXCEPTION!Exception({ code.genJmp(); });
+	tc.TEST_EXCEPTION!Exception({ code.genCall(); });
 }

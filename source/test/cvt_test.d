@@ -1,61 +1,11 @@
 module cvt_test;
-import std.stdio;
-
-import xbyak;
-import test.test_count;
-
-static testCount_ = 0;
-static okCount_ = 0;
-static ngCount_ = 0;
-
-void reset_count()
-{
-    testCount_ = 0;
-    okCount_ = 0;
-    ngCount_ = 0;
-}
-
-void testException(alias statement, exception)(string file = __FILE__, size_t line = __LINE__)
-{
-    testCount_++;
-    int ret_ = 0;
-    try
-    {
-        statement();
-        ret_ = 1;
-    }
-    catch (exception ex)
-    {
-        // ret_ = 0;
-    }
-    catch (Throwable t)
-    {
-        ret_ = 2;
-    }
-
-    if (ret_ == 0)
-    {
-        okCount_++;
-        return;
-    }
-
-    if (ret_ != 0)
-    {
-        ngCount_++;
-        writeln("testEXCEPTION: Failure in ", file, " line ", line);
-        if (ret_ == 1)
-        {
-            writeln("test: no exception");
-        }
-        else
-        {
-            writeln("test: unexpected exception");
-        }
-    }
-}
 
 version (X86) version = XBYAK32;
 version (X86_64) version = XBYAK64;
+
+import std.stdio;
+import xbyak;
+import test.test_count;
 
 version (XBYAK64)
 {
@@ -122,22 +72,11 @@ unittest
 
 void cvt(size_t line = __LINE__)
 {
-    reset_count();
-
     TestCount tc;
     tc.reset();
 
     scope (exit)
     {
-        write(__FILE__, "(", line, ") : cvt testException:", testCount_);
-        write(" OK:", okCount_);
-        writeln(" NG:", ngCount_);
-
-        if (ngCount_ != 0)
-        {
-            assert(0, "test error is cvt");
-        }
-
         writef("%s(%d) : ", __FILE__, line);
         tc.end("cvt");
     }
@@ -207,7 +146,7 @@ void cvt(size_t line = __LINE__)
         Reg8[] errTbl = [ah, bh, ch, dh];
         for (size_t i = 0; i < errTbl.length; i++)
         {
-            testException!({ errTbl[i].cvt16(); }, Exception);
+            tc.TEST_EXCEPTION!Exception({ errTbl[i].cvt16(); });
         }
     }
     version (XBYAK32)
@@ -216,7 +155,7 @@ void cvt(size_t line = __LINE__)
             Reg16[] errTbl = [si, di, bp, sp];
             for (size_t i = 0; i < errTbl.length; i++)
             {
-                testException!({ errTbl[i].cvt8(); }, Exception);
+                tc.TEST_EXCEPTION!Exception({ errTbl[i].cvt8(); });
             }
         }
     }
@@ -230,22 +169,11 @@ unittest
 
 void changeBit(size_t line = __LINE__)
 {
-    reset_count();
-
     TestCount tc;
     tc.reset();
 
     scope (exit)
     {
-        write(__FILE__, "(", line, ") : changeBit testException:", testCount_);
-        write(" OK:", okCount_);
-        writeln(" NG:", ngCount_);
-
-        if (ngCount_ != 0)
-        {
-            assert(0, "test error is changeBit");
-        }
-
         writef("%s(%d) : ", __FILE__, line);
         tc.end("changeBit");
     }
@@ -301,7 +229,7 @@ void changeBit(size_t line = __LINE__)
                 }
                 else
                 {
-                    testException!({ r1.changeBit(bitTbl[k]); }, Exception);
+                    tc.TEST_EXCEPTION!Exception({ r1.changeBit(bitTbl[k]); });
                 }
             }
         }
@@ -312,7 +240,7 @@ void changeBit(size_t line = __LINE__)
         Reg8[] special8bitTbl = [ah, bh, ch, dh];
         for (size_t i = 0; i < special8bitTbl.length; i++)
         {
-            testException!({ special8bitTbl[i].changeBit(16); }, Exception);
+            tc.TEST_EXCEPTION!Exception({ special8bitTbl[i].changeBit(16); });
         }
     }
 }
