@@ -2,6 +2,15 @@ xbyak
 =====================================================
 xbyak for the D programming language
 -----------------------------------------------------
+Details
+----
+xbyak D language port of Xbyak 7.260 (equivalent).
+Version: 0.7260 or later (tag v0.1.1)
+
+
+v0.1.1 Unit test created
+v0.7260
+    dub test
 
 I will port the test program and fix bugs little by little.
 v0.7250 scope added unittest 10% shorter
@@ -13,6 +22,21 @@ v0.7242
     dub test
     worked.
 
+Original Library
+------------
+Xbyak([https://github.com/herumi/xbyak](https://github.com/herumi/xbyak))  
+
+
+
+
+詳細
+----
+xbyak Xbyak 7.260（同等）のD言語移植版。
+バージョン: 0.7260 以降 (タグ v0.1.1)
+
+v0.1.1 ユニットテスト作成
+v0.7260
+    dub test
 
 テストプログラム移植とバグ修正を少しずつします
 v0.7250 scope 追加　unittest 10%短縮
@@ -24,10 +48,6 @@ v0.7242
     dub test
     で動作しました。
 
-詳細
-----
- xbyak Xbyak 7.250（相当）のＤ言語版。
- Version: 0.7250 以降
 
 動作環境
 --------
@@ -40,8 +60,3 @@ v0.7242
 Windows
  ldc2
  vscode code-d
-
-
-Original Library
-------------
-Xbyak([https://github.com/herumi/xbyak](https://github.com/herumi/xbyak))  
