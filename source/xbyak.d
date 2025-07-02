@@ -5497,7 +5497,7 @@ void movd(Operand op, Mmx mmx)
 }
 void movddup(Xmm xmm, Operand op)
 {
-    opSSE(xmm, op, T_DUP|T_F2|T_0F|T_EW1|T_YMM|T_EVEX|T_ER_X|T_ER_Y|T_ER_Z, 0x12, &isXMM_XMMorMEM, NONE);
+    opSSE(xmm, op, T_DUP|T_F2|T_0F|T_EW1|T_YMM|T_EVEX, 0x12, &isXMM_XMMorMEM, NONE);
 }
 void movdir64b(Reg reg, Address addr) { opMR(addr, reg.cvt32(), T_66|T_0F38, 0xF8, T_APX|T_66); }
 void movdiri(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38, 0xF9, T_APX); }
@@ -6399,7 +6399,7 @@ void vmovapd(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F|T_EW1|T_YMM|
 void vmovaps(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, T_0F|T_W0|T_YMM|T_EVEX|T_M_K, 0x29); }
 void vmovaps(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_0F|T_W0|T_YMM|T_EVEX, 0x28); }
 void vmovddup(Xmm xm, Operand op)
- { opAVX_X_XM_IMM(xm, op, T_DUP | T_F2 | T_0F | T_EW1 | T_YMM | T_EVEX | T_ER_X | T_ER_Y | T_ER_Z, 0x12); }
+ { opAVX_X_XM_IMM(xm, op, T_DUP | T_F2 | T_0F | T_EW1 | T_YMM | T_EVEX, 0x12); }
 void vmovdqa(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, T_66|T_0F|T_YMM, 0x7F); }
 void vmovdqa(Xmm xm, Operand op) { opAVX_X_XM_IMM(xm, op, T_66|T_0F|T_YMM, 0x6F); }
 void vmovdqu(Address addr, Xmm xmm) { opAVX_X_XM_IMM(xmm, addr, T_F3|T_0F|T_YMM, 0x7F); }
@@ -8181,29 +8181,29 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vminsh(Xmm xmm, Operand op1, Operand op2 = Operand())
      { opAVX_X_X_XM(xmm, op1, op2, T_MAP5|T_F3|T_W0|T_MUST_EVEX|T_SAE_X|T_N2, 0x5D); }
     void vmovdqa32(Address addr, Xmm x)
-     { opAVX_X_XM_IMM(x, addr, T_66|T_0F|T_W0|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_M_K, 0x7F); }
+     { opAVX_X_XM_IMM(x, addr, T_66|T_0F|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x7F); }
     void vmovdqa32(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_66|T_0F|T_W0|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX, 0x6F); }
+     { opAVX_X_XM_IMM(x, op, T_66|T_0F|T_W0|T_YMM|T_MUST_EVEX, 0x6F); }
     void vmovdqa64(Address addr, Xmm x)
-     { opAVX_X_XM_IMM(x, addr, T_66|T_0F|T_EW1|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_M_K, 0x7F); }
+     { opAVX_X_XM_IMM(x, addr, T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x7F); }
     void vmovdqa64(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_66|T_0F|T_EW1|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX, 0x6F); }
+     { opAVX_X_XM_IMM(x, op, T_66|T_0F|T_EW1|T_YMM|T_MUST_EVEX, 0x6F); }
     void vmovdqu16(Address addr, Xmm x)
-     { opAVX_X_XM_IMM(x, addr, T_F2|T_0F|T_EW1|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_M_K, 0x7F); }
+     { opAVX_X_XM_IMM(x, addr, T_F2|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x7F); }
     void vmovdqu16(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_F2|T_0F|T_EW1|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX, 0x6F); }
+     { opAVX_X_XM_IMM(x, op, T_F2|T_0F|T_EW1|T_YMM|T_MUST_EVEX, 0x6F); }
     void vmovdqu32(Address addr, Xmm x)
-     { opAVX_X_XM_IMM(x, addr, T_F3|T_0F|T_W0|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_M_K, 0x7F); }
+     { opAVX_X_XM_IMM(x, addr, T_F3|T_0F|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x7F); }
     void vmovdqu32(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_F3|T_0F|T_W0|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX, 0x6F); }
+     { opAVX_X_XM_IMM(x, op, T_F3|T_0F|T_W0|T_YMM|T_MUST_EVEX, 0x6F); }
     void vmovdqu64(Address addr, Xmm x)
-     { opAVX_X_XM_IMM(x, addr, T_F3|T_0F|T_EW1|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_M_K, 0x7F); }
+     { opAVX_X_XM_IMM(x, addr, T_F3|T_0F|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x7F); }
     void vmovdqu64(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_F3|T_0F|T_EW1|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX, 0x6F); }
+     { opAVX_X_XM_IMM(x, op, T_F3|T_0F|T_EW1|T_YMM|T_MUST_EVEX, 0x6F); }
     void vmovdqu8(Address addr, Xmm x)
-     { opAVX_X_XM_IMM(x, addr, T_F2|T_0F|T_W0|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_M_K, 0x7F); }
+     { opAVX_X_XM_IMM(x, addr, T_F2|T_0F|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x7F); }
     void vmovdqu8(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_F2|T_0F|T_W0|T_YMM|T_ER_X|T_ER_Y|T_ER_Z|T_MUST_EVEX, 0x6F); }
+     { opAVX_X_XM_IMM(x, op, T_F2|T_0F|T_W0|T_YMM|T_MUST_EVEX, 0x6F); }
     void vmovsh(Address addr, Xmm x)
      { opAVX_X_XM_IMM(x, addr, T_N2|T_F3|T_MAP5|T_W0|T_MUST_EVEX|T_M_K, 0x11); }
     void vmovsh(Xmm x, Address addr)
