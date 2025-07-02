@@ -76,10 +76,14 @@ version (XBYAK64)
             sdump("C4E27849448840");
             ldtilecfg(ptr[r30 + r29 * 4 + 0x12]);
             sdump("629A78084944AE12");
+            ldtilecfg(ptr[rax]);
+            sdump("C4E2784900");
             sttilecfg(ptr[rsp + rax * 8 + 128]);
             sdump("C4E2794984C480000000");
             sttilecfg(ptr[r30 + r29 * 4 + 0x12]);
             sdump("629A79084944AE12");
+            sttilecfg(ptr[r30]);
+            sdump("62DA7D084906");
             tileloadd(tmm3, ptr[rdi + rdx * 2 + 8]);
             sdump("C4E27B4B5C5708");
             tileloadd(tmm2, ptr[r30 + r29 * 4 + 0x12]);
