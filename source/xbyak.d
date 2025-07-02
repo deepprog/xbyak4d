@@ -2819,48 +2819,33 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         }
         db(code);
     }
-    // Allow YMM embedded rounding for AVX10.2 to minimize flag modifications
-    bool verifySAE(Reg r, Reg b, uint64_t type) const
-    {
-        if (
-            ((type & T_SAE_X) && (r.isYMM() && b.isXMM())) ||
-            ((type & T_SAE_Y) && b.isXMM()) ||
-            ((type & T_SAE_Z) && b.isYMM())
-            )
-        {
-            return true;
-        }
-        if (
-            ((type & T_SAE_X) && b.isXMM()) ||
-            ((type & T_SAE_Y) && b.isYMM()) ||
-            ((type & T_SAE_Z) && b.isZMM())
-            )
-        {
-            return false;
-        }
-        mixin(XBYAK_THROW_RET(ERR.SAE_IS_INVALID, "false"));
-    }
-    bool verifyER(Reg r, Reg b, uint64_t type) const
-    {
-        if ((type & T_ER_R) && b.isREG(32|64)) return false;
 
-        if (
-            ((type & T_ER_X) && (r.isYMM() && b.isXMM())) ||
-            ((type & T_ER_Y) && b.isXMM()) ||
-            ((type & T_ER_Z) && b.isYMM())
+    void verifySAE(Reg r, uint64_t type) const
+    {
+        if (((type & T_SAE_X) && r.isXMM()) ||
+            ((type & T_SAE_Y) && r.isYMM()) ||
+            ((type & T_SAE_Z) && r.isZMM())
             )
         {
-            return true;
+            return;
         }
-        if (
-            ((type & T_ER_X) && b.isXMM()) ||
-            ((type & T_ER_Y) && b.isYMM()) ||
-            ((type & T_ER_Z) && b.isZMM())
+        mixin(XBYAK_THROW(ERR.SAE_IS_INVALID));
+    }
+
+    void verifyER(Reg r, uint64_t type) const
+    {
+        if ((type & T_ER_R) && r.isREG(32 | 64))
+        {
+            return;
+        }
+        if (((type & T_ER_X) && r.isXMM()) ||
+            ((type & T_ER_Y) && r.isYMM()) ||
+            ((type & T_ER_Z) && r.isZMM())
             )
         {
-            return false;
+            return;
         }
-        mixin(XBYAK_THROW_RET(ERR.ER_IS_INVALID, "false"));
+        mixin(XBYAK_THROW(ERR.ER_IS_INVALID));
     }
     // (a, b, c) contains non zero two or three values then err
     int verifyDuplicate(int a, int b, int c, ERR err)
@@ -2912,11 +2897,12 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         if (rounding) {
             bool isUzero = false;
             if (rounding == EvexModifierRounding.T_SAE) {
-                isUzero = verifySAE(reg, base, type); LL = 0;
+                verifySAE(base, type);
+                LL = 0;
             } else {
-                isUzero = verifyER(reg, base, type); LL = rounding - 1;
+                verifyER(base, type);
+                LL = rounding - 1;
             }
-            if (isUzero) U = 0; // avx10.2 Evex.U
             b = true;
         } else {
             if (v) VL = max(VL, v.getBit());
@@ -4017,20 +4003,28 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             opROO(d, op1, cast(Reg) op2|T_nf, T_MUST_EVEX|T_NF, code);
         }
     }
-  version (XBYAK64)
-  {
-    void opAMX(Tmm t1, Address addr, uint64_t type, int code)
+
+    version (XBYAK64)
     {
-        // require both base and index
-        scope Address addr2 = addr.cloneNoOptimize();
-        RegExp exp = addr2.getRegExp();
-        if (exp.getBase().getBit() == 0 || exp.getIndex().getBit() == 0) {
-            mixin(XBYAK_THROW(ERR.NOT_SUPPORTED));
+        void opAMX(Tmm t1, Address addr, uint64_t type, int code)
+        {
+            // require both base and index
+            scope Address addr2 = addr.cloneNoOptimize();
+            // require both base and index for all but opcode 0x49 (ldtilecfg/sttilecfg)
+            if (code != 0x49)
+            {
+                RegExp exp = addr2.getRegExp();
+                if (exp.getBase().getBit() == 0 || exp.getIndex().getBit() == 0)
+                {
+                    mixin(XBYAK_THROW(ERR.NOT_SUPPORTED));
+                }
+            }
+            if (opROO(Reg(), addr2, t1, T_APX | type, code))
+                return;
+            opVex(t1, tmm0, addr2, type, code);
         }
-        if (opROO(Reg(), addr2, t1, T_APX|type, code)) return;
-        opVex(t1, tmm0, addr2, type, code);
     }
-  }
+
     // (reg32e/mem, k) if rev else (k, k/mem/reg32e)
     // size = 8, 16, 32, 64
     void opKmov(Opmask k, Operand op, bool rev, int size)
@@ -7590,7 +7584,7 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vcvt2ph2hf8s(Xmm x1, Xmm x2, Operand op)
      { opAVX_X_X_XM(x1, x2, op, T_N1|T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x1B); }
     void vcvt2ps2phx(Xmm x1, Xmm x2, Operand op)
-     { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_YMM|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_B32, 0x67); }
+     { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B32, 0x67); }
     void vcvtbf162ibs(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x69); }
     void vcvtbf162iubs(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x6B); }
     void vcvtbiasph2bf8(Xmm x1, Xmm x2, Operand op) { opCvt6(x1, x2, op, T_0F38|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x74); }
@@ -7623,9 +7617,9 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vcvtph2hf8(Xmm x, Operand op) { opCvt2(x, op, T_F3|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x18); }
     void vcvtph2hf8s(Xmm x, Operand op) { opCvt2(x, op, T_F3|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x1B); }
     void vcvtph2ibs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_B16, 0x69); }
+     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B16, 0x69); }
     void vcvtph2iubs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_B16, 0x6B); }
+     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B16, 0x6B); }
     void vcvtph2pd(Xmm x, Operand op)
     {
         if (!op.isXMM() && !op.isMEM())
@@ -7657,9 +7651,9 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vcvtph2uw(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B16, 0x7D); }
     void vcvtph2w(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B16, 0x7D); }
     void vcvtps2ibs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_B32, 0x69); }
+     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B32, 0x69); }
     void vcvtps2iubs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_B32, 0x6B); }
+     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B32, 0x6B); }
     void vcvtps2phx(Xmm x, Operand op)
     {
         checkCvt4(x, op);
@@ -7714,27 +7708,27 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     }
     void vcvttbf162ibs(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x68); }
     void vcvttbf162iubs(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x6A); }
-    void vcvttpd2dqs(Xmm x, Operand op) { opCvt2(x, op, T_MAP5|T_EW1|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B64, 0x6D); }
+    void vcvttpd2dqs(Xmm x, Operand op) { opCvt2(x, op, T_MAP5|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B64, 0x6D); }
     void vcvttpd2qq(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_0F|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B64, 0x7A); }
     void vcvttpd2qqs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_EW1|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B64, 0x6D); }
+     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B64, 0x6D); }
     void vcvttpd2udq(Xmm x, Operand op)
      { opCvt2(x, op, T_0F|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B64, 0x78); }
     void vcvttpd2udqs(Xmm x, Operand op)
-     { opCvt2(x, op, T_MAP5|T_EW1|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B64, 0x6C); }
+     { opCvt2(x, op, T_MAP5|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B64, 0x6C); }
     void vcvttpd2uqq(Xmm x, Operand op)
      { opAVX_X_XM_IMM(x, op, T_66|T_0F|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B64, 0x78); }
     void vcvttpd2uqqs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_EW1|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B64, 0x6C); }
+     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B64, 0x6C); }
     void vcvttph2dq(Xmm x, Operand op)
     {
         checkCvt1(x, op);
         opVex(x, null, op, T_N8|T_N_VL|T_F3|T_MAP5|T_W0|T_YMM|T_SAE_Y|T_MUST_EVEX|T_B16, 0x5B);
     }
     void vcvttph2ibs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_B16, 0x68); }
+     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B16, 0x68); }
     void vcvttph2iubs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_B16, 0x6A); }
+     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B16, 0x6A); }
     void vcvttph2qq(Xmm x, Operand op)
     {
         if (!op.isXMM() && !op.isMEM())
@@ -7755,11 +7749,11 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vcvttph2uw(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B16, 0x7C); }
     void vcvttph2w(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B16, 0x7C); }
     void vcvttps2dqs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B32, 0x6D); }
+     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B32, 0x6D); }
     void vcvttps2ibs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_B32, 0x68); }
+     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B32, 0x68); }
     void vcvttps2iubs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_ER_Y|T_ER_Z|T_MUST_EVEX|T_B32, 0x6A); }
+     { opAVX_X_XM_IMM(x, op, T_66|T_MAP5|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B32, 0x6A); }
     void vcvttps2qq(Xmm x, Operand op)
     {
         checkCvt1(x, op);
@@ -7768,12 +7762,12 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vcvttps2qqs(Xmm x, Operand op)
     {
         checkCvt1(x, op);
-        opVex(x, null, op, T_N8|T_N_VL|T_66|T_MAP5|T_W0|T_YMM|T_SAE_X|T_SAE_Y|T_MUST_EVEX|T_B32, 0x6D);
+        opVex(x, null, op, T_N8|T_N_VL|T_66|T_MAP5|T_W0|T_YMM|T_SAE_Y|T_MUST_EVEX|T_B32, 0x6D);
     }
     void vcvttps2udq(Xmm x, Operand op)
      { opAVX_X_XM_IMM(x, op, T_0F|T_W0|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B32, 0x78); }
     void vcvttps2udqs(Xmm x, Operand op)
-     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B32, 0x6C); }
+     { opAVX_X_XM_IMM(x, op, T_MAP5|T_W0|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B32, 0x6C); }
     void vcvttps2uqq(Xmm x, Operand op)
     {
         checkCvt1(x, op);
@@ -7782,7 +7776,7 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vcvttps2uqqs(Xmm x, Operand op)
     {
         checkCvt1(x, op);
-        opVex(x, null, op, T_N8|T_N_VL|T_66|T_MAP5|T_W0|T_YMM|T_SAE_X|T_SAE_Y|T_MUST_EVEX|T_B32, 0x6C);
+        opVex(x, null, op, T_N8|T_N_VL|T_66|T_MAP5|T_W0|T_YMM|T_SAE_Y|T_MUST_EVEX|T_B32, 0x6C);
     }
     void vcvttsd2sis(Reg32e r, Operand op)
     {
@@ -8171,11 +8165,11 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vminmaxbf16(Xmm x1, Xmm x2, Operand op, uint8_t imm)
      { opAVX_X_X_XM(x1, x2, op, T_F2|T_0F3A|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x52, imm); }    
     void vminmaxpd(Xmm x1, Xmm x2, Operand op, uint8_t imm)
-     { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_EW1|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B64, 0x52, imm); }
+     { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_EW1|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B64, 0x52, imm); }
     void vminmaxph(Xmm x1, Xmm x2, Operand op, uint8_t imm)
-     { opAVX_X_X_XM(x1, x2, op, T_0F3A|T_W0|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B16, 0x52, imm); }
+     { opAVX_X_X_XM(x1, x2, op, T_0F3A|T_W0|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B16, 0x52, imm); }
     void vminmaxps(Xmm x1, Xmm x2, Operand op, uint8_t imm)
-     { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_W0|T_YMM|T_SAE_Y|T_SAE_Z|T_MUST_EVEX|T_B32, 0x52, imm); }
+     { opAVX_X_X_XM(x1, x2, op, T_66|T_0F3A|T_W0|T_YMM|T_SAE_Z|T_MUST_EVEX|T_B32, 0x52, imm); }
     void vminmaxsd(Xmm x1, Xmm x2, Operand op, uint8_t imm)
      { opAVX_X_X_XM(x1, x2, op, T_N8|T_66|T_0F3A|T_EW1|T_SAE_X|T_MUST_EVEX, 0x53, imm); }
     void vminmaxsh(Xmm x1, Xmm x2, Operand op, uint8_t imm)

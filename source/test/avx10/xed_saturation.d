@@ -165,8 +165,6 @@ version (XBYAK64)
 
             vcvttpd2qqs(ym1, ym2);
             sdump("62F5FD286DCA");
-            vcvttpd2qqs(ym1, ym2 | T_sae);
-            sdump("62F5F9186DCA");
             vcvttpd2qqs(ym1, ptr[rax + 128]);
             sdump("62F5FD286D4804");
             vcvttpd2qqs(ym1, ptr_b[rax + 128]);
@@ -190,8 +188,6 @@ version (XBYAK64)
 
             vcvttpd2uqqs(ym1, ym2);
             sdump("62F5FD286CCA");
-            vcvttpd2uqqs(ym1, ym2 | T_sae);
-            sdump("62F5F9186CCA");
             vcvttpd2uqqs(ym1, ptr[rax + 128]);
             sdump("62F5FD286C4804");
             vcvttpd2uqqs(ym1, ptr_b[rax + 128]);
@@ -215,8 +211,6 @@ version (XBYAK64)
 
             vcvtph2ibs(ym1, ym2);
             sdump("62F57C2869CA");
-            vcvtph2ibs(ym1, ym2 | T_rd_sae);
-            sdump("62F5783869CA");
             vcvtph2ibs(ym1, ptr[rax + 128]);
             sdump("62F57C28694804");
             vcvtph2ibs(ym1, ptr_b[rax + 128]);
@@ -240,8 +234,6 @@ version (XBYAK64)
 
             vcvtph2iubs(ym1, ym2);
             sdump("62F57C286BCA");
-            vcvtph2iubs(ym1, ym2 | T_rd_sae);
-            sdump("62F578386BCA");
             vcvtph2iubs(ym1, ptr[rax + 128]);
             sdump("62F57C286B4804");
             vcvtph2iubs(ym1, ptr_b[rax + 128]);
@@ -265,8 +257,6 @@ version (XBYAK64)
 
             vcvttph2ibs(ym1, ym2);
             sdump("62F57C2868CA");
-            vcvttph2ibs(ym1, ym2 | T_rd_sae);
-            sdump("62F5783868CA");
             vcvttph2ibs(ym1, ptr[rax + 128]);
             sdump("62F57C28684804");
             vcvttph2ibs(ym1, ptr_b[rax + 128]);
@@ -290,8 +280,6 @@ version (XBYAK64)
 
             vcvttph2iubs(ym1, ym2);
             sdump("62F57C286ACA");
-            vcvttph2iubs(ym1, ym2 | T_rd_sae);
-            sdump("62F578386ACA");
             vcvttph2iubs(ym1, ptr[rax + 128]);
             sdump("62F57C286A4804");
             vcvttph2iubs(ym1, ptr_b[rax + 128]);
@@ -315,8 +303,6 @@ version (XBYAK64)
 
             vcvttps2dqs(ym1, ym2);
             sdump("62F57C286DCA");
-            vcvttps2dqs(ym1, ym2 | T_sae);
-            sdump("62F578186DCA");
             vcvttps2dqs(ym1, ptr[rax + 128]);
             sdump("62F57C286D4804");
             vcvttps2dqs(ym1, ptr_b[rax + 128]);
@@ -340,8 +326,6 @@ version (XBYAK64)
 
             vcvtps2ibs(ym1, ym2);
             sdump("62F57D2869CA");
-            vcvtps2ibs(ym1, ym2 | T_rd_sae);
-            sdump("62F5793869CA");
             vcvtps2ibs(ym1, ptr[rax + 128]);
             sdump("62F57D28694804");
             vcvtps2ibs(ym1, ptr_b[rax + 128]);
@@ -365,8 +349,6 @@ version (XBYAK64)
 
             vcvtps2iubs(ym1, ym2);
             sdump("62F57D286BCA");
-            vcvtps2iubs(ym1, ym2 | T_rd_sae);
-            sdump("62F579386BCA");
             vcvtps2iubs(ym1, ptr[rax + 128]);
             sdump("62F57D286B4804");
             vcvtps2iubs(ym1, ptr_b[rax + 128]);
@@ -390,8 +372,6 @@ version (XBYAK64)
 
             vcvttps2ibs(ym1, ym2);
             sdump("62F57D2868CA");
-            vcvttps2ibs(ym1, ym2 | T_rd_sae);
-            sdump("62F5793868CA");
             vcvttps2ibs(ym1, ptr[rax + 128]);
             sdump("62F57D28684804");
             vcvttps2ibs(ym1, ptr_b[rax + 128]);
@@ -415,8 +395,6 @@ version (XBYAK64)
 
             vcvttps2iubs(ym1, ym2);
             sdump("62F57D286ACA");
-            vcvttps2iubs(ym1, ym2 | T_rd_sae);
-            sdump("62F579386ACA");
             vcvttps2iubs(ym1, ptr[rax + 128]);
             sdump("62F57D286A4804");
             vcvttps2iubs(ym1, ptr_b[rax + 128]);
@@ -440,8 +418,6 @@ version (XBYAK64)
 
             vcvttps2udqs(ym1, ym2);
             sdump("62F57C286CCA");
-            vcvttps2udqs(ym1, ym2 | T_sae);
-            sdump("62F578186CCA");
             vcvttps2udqs(ym1, ptr[rax + 128]);
             sdump("62F57C286C4804");
             vcvttps2udqs(ym1, ptr_b[rax + 128]);
@@ -466,8 +442,6 @@ version (XBYAK64)
 
             vcvttpd2dqs(xm1 | k1 | T_z, ym2);
             sdump("62F5FCA96DCA");
-            vcvttpd2dqs(xm1 | k1 | T_z, ym2 | T_sae);
-            sdump("62F5F8996DCA");
             vcvttpd2dqs(xm1 | k1 | T_z, yword[rax + 128]);
             sdump("62F5FCA96D4804");
             vcvttpd2dqs(xm1 | k1 | T_z, yword_b[rax + 128]);
@@ -492,8 +466,6 @@ version (XBYAK64)
 
             vcvttpd2udqs(xm1 | k1 | T_z, ym2);
             sdump("62F5FCA96CCA");
-            vcvttpd2udqs(xm1 | k1 | T_z, ym2 | T_sae);
-            sdump("62F5F8996CCA");
             vcvttpd2udqs(xm1 | k1 | T_z, yword[rax + 128]);
             sdump("62F5FCA96C4804");
             vcvttpd2udqs(xm1 | k1 | T_z, yword_b[rax + 128]);
@@ -517,8 +489,6 @@ version (XBYAK64)
 
             vcvttps2qqs(ym1 | k1 | T_z, xm2);
             sdump("62F57DA96DCA");
-            vcvttps2qqs(ym1 | k1 | T_z, xm2 | T_sae);
-            sdump("62F579996DCA");
             vcvttps2qqs(ym1 | k1 | T_z, ptr[rax + 128]);
             sdump("62F57DA96D4808");
             vcvttps2qqs(ym1 | k1 | T_z, ptr_b[rax + 128]);
@@ -545,8 +515,6 @@ version (XBYAK64)
 
             vcvttps2uqqs(ym1 | k1 | T_z, xm2);
             sdump("62F57DA96CCA");
-            vcvttps2uqqs(ym1 | k1 | T_z, xm2 | T_sae);
-            sdump("62F579996CCA");
             vcvttps2uqqs(ym1 | k1 | T_z, ptr[rax + 128]);
             sdump("62F57DA96C4808");
             vcvttps2uqqs(ym1 | k1 | T_z, ptr_b[rax + 128]);
