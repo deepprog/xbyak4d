@@ -511,6 +511,75 @@ version (XBYAK64)
             pop(r31);
             sdump("D5115F");
 
+            movrs(rcx, ptr[rax]);
+            sdump("480F388B08");
+            movrs(ecx, ptr[rax]);
+            sdump("0F388B08");
+            movrs(cx, ptr[rax]);
+            sdump("660F388B08");
+            movrs(cl, ptr[rax+rdx*4]);
+            sdump("0F388A0C90");
+
+            prefetchnta(ptr[rcx]);
+            sdump("0F1801");
+            prefetcht0(ptr[rcx]);
+            sdump("0F1809");
+            prefetcht1(ptr[rcx]);
+            sdump("0F1811");
+            prefetcht2(ptr[rcx]);
+            sdump("0F1819");
+            prefetchit1(ptr[rip+64]);
+            sdump("0F183540000000");
+            prefetchit0(ptr[rip+64]);
+            sdump("0F183D40000000");
+            prefetchrst2(ptr[rcx]);
+            sdump("0F1821");
+
+            vmovrsb(xm1|k1|T_z, ptr[rax+128]);
+            sdump("62F57F896F4808");
+            vmovrsb(ym1|k1|T_z, ptr[rax+128]);
+            sdump("62F57FA96F4804");
+            vmovrsb(zm1|k1|T_z, ptr[rax+128]);
+            sdump("62F57FC96F4802");
+
+            vmovrsd(xm1|k1|T_z, ptr[rax+128]);
+            sdump("62F57E896F4808");
+            vmovrsd(ym1|k1|T_z, ptr[rax+128]);
+            sdump("62F57EA96F4804");
+            vmovrsd(zm1|k1|T_z, ptr[rax+128]);
+            sdump("62F57EC96F4802");
+
+            vmovrsq(xm1|k1|T_z, ptr[rax+128]);
+            sdump("62F5FE896F4808");
+            vmovrsq(ym1|k1|T_z, ptr[rax+128]);
+            sdump("62F5FEA96F4804");
+            vmovrsq(zm1|k1|T_z, ptr[rax+128]);
+            sdump("62F5FEC96F4802");
+
+            vmovrsw(xm1|k1|T_z, ptr[rax+128]);
+            sdump("62F5FF896F4808");
+            vmovrsw(ym1|k1|T_z, ptr[rax+128]);
+            sdump("62F5FFA96F4804");
+            vmovrsw(zm1|k1|T_z, ptr[rax+128]);
+            sdump("62F5FFC96F4802");
+
+            vcvtsd2si(esp, xmm4|T_rd_sae); sdump("62F17F382DE4");
+            vcvtsd2si(r8, xmm4|T_rd_sae); sdump("6271FF382DC4");
+            vcvtsd2usi(ecx, xmm4|T_rd_sae); sdump("62F17F3879CC");
+            vcvtsd2usi(r14, xmm4|T_rd_sae); sdump("6271FF3879F4");
+            vcvtss2si(ecx, xmm4|T_rd_sae); sdump("62F17E382DCC");
+            vcvtss2si(r13, xmm4|T_rd_sae); sdump("6271FE382DEC");
+            vcvtss2usi(esi, xmm4|T_rd_sae); sdump("62F17E3879F4");
+            vcvtss2usi(r10, xmm4|T_rd_sae); sdump("6271FE3879D4");
+
+            vcvttsd2si(ecx, xmm25|T_sae); sdump("62917F182CC9");
+            vcvttsd2si(r12, xmm25|T_sae); sdump("6211FF182CE1");
+            vcvttsd2usi(edx, xmm25|T_sae); sdump("62917F1878D1");
+            vcvttsd2usi(rbp, xmm25|T_sae); sdump("6291FF1878E9");
+            vcvttss2si(esp, xmm25|T_sae); sdump("62917E182CE1");
+            vcvttss2si(r11, xmm25|T_sae); sdump("6211FE182CD9");
+            vcvttss2usi(edi, xmm25|T_sae); sdump("62917E1878F9");
+            vcvttss2usi(r14, xmm25|T_sae); sdump("6211FE1878F1");
         }
     }
 }
