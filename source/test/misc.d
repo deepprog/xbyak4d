@@ -7,6 +7,7 @@ import std.stdint;
 import std.exception;
 
 import xbyak;
+import xbyak_util;
 import test.test_count;
 
 version (X86) version = XBYAK32;
@@ -127,7 +128,6 @@ unittest
 void mov_const()
 {
 	scope tc = TestCount(__FUNCTION__);
-
 	class Code : CodeGenerator
 	{
 		this()
@@ -248,15 +248,12 @@ void mov_const()
 @("RegExp")
 unittest
 {
-	//	using namespace Xbyak::util;
-	//	Address defaultAddr; // default constructor
-	with (CodeGenerator)
-	{
-		int x = 0;
-		eax + 0;
-		0 + eax;
-		eax + &x;
-	}
+	Address defaultAddr; // default constructor
+	auto a = defaultAddr;
+	int x = 0;
+	eax + 0;
+	0 + eax;
+	eax + &x;
 }
 
 version (XBYAK64)
@@ -270,7 +267,6 @@ version (XBYAK64)
 	void mov_8byte()
 	{
 		scope tc = TestCount(__FUNCTION__);
-
 		class Code : CodeGenerator
 		{
 			this()
@@ -315,7 +311,6 @@ unittest
 void const_addressing()
 {
 	scope tc = TestCount(__FUNCTION__);
-
 	class Code : CodeGenerator
 	{
 		this()
@@ -2430,6 +2425,9 @@ void misc()
 
 void cpu()
 {
+	scope tc = TestCount(__FUNCTION__);
+	Cpu cpu = new Cpu();
+	tc.TEST_EQUAL(cpu.has(Cpu.tINTEL) && cpu.has(Cpu.tAMD), cpu.has(Cpu.tINTEL | Cpu.tAMD));
 }
 
 @("minmax") unittest
@@ -2439,6 +2437,9 @@ void cpu()
 
 void minmax()
 {
+	scope tc = TestCount(__FUNCTION__);
+	tc.TEST_EQUAL(min(3, 4), local_min_(3, 4));
+	tc.TEST_EQUAL(max(3, 4), local_max_(3, 4));
 }
 
 @("rao_int") unittest
