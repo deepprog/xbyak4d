@@ -101,6 +101,8 @@ version (XBYAK64)
 
             vminmaxpd(ym1 | k3 | T_z, ym2, ym3, 5);
             sdump("62F3EDAB52CB05");
+        //    vminmaxpd(ym1 | k3 | T_z, ym2, ym3 | T_sae, 5);
+        //    sdump("62F3E99B52CB05");
             vminmaxpd(ym1 | k3 | T_z, ym2, ptr[rax + 128], 5);
             sdump("62F3EDAB52480405");
             vminmaxpd(ym1 | k3 | T_z, ym2, ptr_b[rax + 128], 5);
@@ -126,6 +128,8 @@ version (XBYAK64)
 
             vminmaxph(ym1 | k3 | T_z, ym2, ym3, 5);
             sdump("62F36CAB52CB05");
+        //    vminmaxph(ym1 | k3 | T_z, ym2, ym3 | T_sae, 5);
+        //    sdump("62F3689B52CB05");
             vminmaxph(ym1 | k3 | T_z, ym2, ptr[rax + 128], 5);
             sdump("62F36CAB52480405");
             vminmaxph(ym1 | k3 | T_z, ym2, ptr_b[rax + 128], 5);
@@ -149,6 +153,8 @@ version (XBYAK64)
 
             vminmaxps(ym1 | k3 | T_z, ym2, ym3, 5);
             sdump("62F36DAB52CB05");
+        //    vminmaxps(ym1 | k3 | T_z, ym2, ym3 | T_sae, 5);
+        //    sdump("62F3699B52CB05");
             vminmaxps(ym1 | k3 | T_z, ym2, ptr[rax + 128], 5);
             sdump("62F36DAB52480405");
             vminmaxps(ym1 | k3 | T_z, ym2, ptr_b[rax + 128], 5);
