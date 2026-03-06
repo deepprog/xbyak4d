@@ -4,6 +4,20 @@ import std.stdio;
 
 struct TestCount
 {
+    this(string name, string file = __FILE__, size_t line = __LINE__)
+    {
+        reset();
+        name_ = name;
+        file_ = file;
+        line_ = line;
+    }
+    
+    ~this()
+    {
+        writef("%s(%d) : ", file_, line_);
+        end(name_);
+    }
+    
     void reset()
     {
         okCount_ = 0;
@@ -97,12 +111,16 @@ struct TestCount
         {
             writeln(" Throw_OK:", okThrowCount_, " Throw_NG:", ngThrowCount_);
         }
-        writeln();
+    ////    writeln();
         assert(ngCount_ == 0);
         assert(ngThrowCount_ == 0);
     }
 
 private:
+    string name_;
+    string file_;
+    size_t line_;
+
     int okCount_;
     int ngCount_;
 
