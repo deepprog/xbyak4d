@@ -17,7 +17,6 @@ version(X86_64) version = XBYAK64;
 version(XBYAK64)
 {
 
-
 class Code : CodeGenerator
 {
     this()
@@ -264,10 +263,12 @@ void verify(uint8_t* _f, int pNum)
 @("param")
 unittest
 {
-    TestCount testCount;
-    testCount.reset();
-    scope(exit) testCount.end("param");
-    
+    param();
+}
+
+void param()
+{
+    scope tc = TestCount(__FUNCTION__);
     scope Code2 code = new Code2;
     for (int stackSize = 0; stackSize < 32; stackSize += 7) {
         for (int pNum = 0; pNum < 4; pNum++) {
@@ -298,7 +299,7 @@ unittest
                         scope Code2 c2 = new Code2();
                         c2.gen2(pNum, tNum | opt, stackSize);
                         uint64_t addr = cast(uint64_t) c2.getCode!(uint64_t* function())();
-                        testCount.TEST_EQUAL(addr % 16, 0);
+                        tc.TEST_EQUAL(addr % 16, 0);
                     }
                 }
             }
@@ -306,76 +307,78 @@ unittest
     }
 }
 
-@("args")
+@("test_args")
 unittest
 {
-    TestCount testCount;
-    testCount.reset();
-    scope(exit) testCount.end("args");
-    
+    test_args();
+}
+
+void test_args()
+{
+    scope tc = TestCount(__FUNCTION__);
     scope Code code = new Code();
     auto f1 = code.getCurr!(int function(int))();
     code.gen1();
-    testCount.TEST_EQUAL(5, f1(5));
+    tc.TEST_EQUAL(5, f1(5));
 
     auto f2 = code.getCurr!(int function(int, int))();
     code.gen2();
-    testCount.TEST_EQUAL(9, f2(3, 6));
+    tc.TEST_EQUAL(9, f2(3, 6));
 
     auto f3 = code.getCurr!(int function(int, int, int))();
     code.gen3();
-    testCount.TEST_EQUAL(14, f3(1, 4, 9));
+    tc.TEST_EQUAL(14, f3(1, 4, 9));
 
     auto f4  = code.getCurr!(int function(int, int, int, int))();
     code.gen4();
-    testCount.TEST_EQUAL(30, f4(1, 4, 9, 16));
+    tc.TEST_EQUAL(30, f4(1, 4, 9, 16));
 
     auto f5 = code.getCurr!(int function(int, int, int, int))();
     code.gen5();
-    testCount.TEST_EQUAL(23, f5(2, 5, 7, 9));
+    tc.TEST_EQUAL(23, f5(2, 5, 7, 9));
 
     auto f6 = code.getCurr!(int function(int, int, int, int))();
     code.gen6();
-    testCount.TEST_EQUAL(18, f6(3, 4, 5, 6));
+    tc.TEST_EQUAL(18, f6(3, 4, 5, 6));
 
     auto f7 = code.getCurr!(int function(int, int, int))();
     code.gen7();
-    testCount.TEST_EQUAL(12, f7(3, 4, 5));
+    tc.TEST_EQUAL(12, f7(3, 4, 5));
 
     auto f8 = code.getCurr!(int function(int, int, int))();
     code.gen8();
-    testCount.TEST_EQUAL(23, f8(5, 8, 10));
+    tc.TEST_EQUAL(23, f8(5, 8, 10));
  
     auto f9 = code.getCurr!(int function(int, int, int))();
     code.gen9();
-    testCount.TEST_EQUAL(60, f9(10, 20, 30));
+    tc.TEST_EQUAL(60, f9(10, 20, 30));
 
     auto f10 = code.getCurr!(int function(int, int, int, int))();
     code.gen10();
-    testCount.TEST_EQUAL(100, f10(10, 20, 30, 40));
+    tc.TEST_EQUAL(100, f10(10, 20, 30, 40));
 
     auto f11 = code.getCurr!(int function())();
     code.gen11();
-    testCount.TEST_EQUAL(3, f11());
+    tc.TEST_EQUAL(3, f11());
 
     auto f12 = code.getCurr!(int function(int, int, int, int))();
     code.gen12();
-    testCount.TEST_EQUAL(24, f12(3, 5, 7, 9));
+    tc.TEST_EQUAL(24, f12(3, 5, 7, 9));
 
     {
         const int64_t[] tbl = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ];
         auto f13 = code.getCurr!(int64_t function(const int64_t*))();
         code.gen13();
-        testCount.TEST_EQUAL(91, f13(&tbl[0]));
+        tc.TEST_EQUAL(91, f13(&tbl[0]));
 
         auto f14 = code.getCurr!(int64_t function(const int64_t*))();
         code.gen14();
-        testCount.TEST_EQUAL(91, f14(&tbl[0]));
+        tc.TEST_EQUAL(91, f14(&tbl[0]));
     }
 
     auto f15 = code.getCurr!(int function())();
     code.gen15();
-    testCount.TEST_EQUAL((1 << 15) - 1, f15());
+    tc.TEST_EQUAL((1 << 15) - 1, f15());
 }
 
 
@@ -394,13 +397,15 @@ void verifyPack(Pack p, int[] tbl, size_t tblNum, ref TestCount tc)
     }
 }
 
-
 @("pack")
 unittest
 {
-    TestCount testCount;
-    testCount.reset();
-    scope(exit) testCount.end("pack");
+    pack();
+}
+
+void pack()
+{
+    scope tc = TestCount(__FUNCTION__);
 
     const int N = 10;
     Reg64[N] regTbl;
@@ -439,9 +444,9 @@ unittest
     for (size_t i = 0; i < tbl.length; i++) {
         const int pos = tbl[i].pos;
         const int num = tbl[i].num;
-        verifyPack(p.sub(pos, num), tbl[i].tbl, num, testCount) ;
+        verifyPack(p.sub(pos, num), tbl[i].tbl, num, tc) ;
         if (pos + num == N) {
-            verifyPack(p.sub(pos), tbl[i].tbl, num, testCount);
+            verifyPack(p.sub(pos), tbl[i].tbl, num, tc);
         }
     }
 }
@@ -482,22 +487,22 @@ class CloseCode : CodeGenerator
 }
 
 
-@("close")
+@("Close")
 unittest
 {
-    TestCount testCount;
-    testCount.reset();
-    scope(exit) testCount.end("close");
-
+    Close();
+}
+    
+void Close()
+{
+    scope tc = TestCount(__FUNCTION__);
     const size_t[] expectedTbl = [
         1, 1, 2,
     ];
     for (size_t i = 0; i < expectedTbl.length; i++) {
         scope CloseCode c = new CloseCode(i);
-        testCount.TEST_EQUAL(c.getSize(), expectedTbl[i]);
+        tc.TEST_EQUAL(c.getSize(), expectedTbl[i]);
     }
 }
 
-
-
-}
+} //version(XBYAK64)
