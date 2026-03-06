@@ -70,16 +70,9 @@ unittest
     cvt();
 }
 
-void cvt(size_t line = __LINE__)
+void cvt()
 {
-    TestCount tc;
-    tc.reset();
-
-    scope (exit)
-    {
-        writef("%s(%d) : ", __FILE__, line);
-        tc.end("cvt");
-    }
+    scope tc = TestCount(__FUNCTION__);
 
     for (size_t i = 0; i < tbl.length; i++)
     {
@@ -167,17 +160,9 @@ unittest
     changeBit();
 }
 
-void changeBit(size_t line = __LINE__)
+void changeBit()
 {
-    TestCount tc;
-    tc.reset();
-
-    scope (exit)
-    {
-        writef("%s(%d) : ", __FILE__, line);
-        tc.end("changeBit");
-    }
-
+    scope tc = TestCount(__FUNCTION__);
     version (XBYAK64)
     {
         const size_t N = 7;
