@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.7350
- * Date: 2026/03/05
+ * Version: 0.7352
+ * Date: 2026/03/06
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright (c) 2019 deepprog
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -55,7 +55,7 @@ import std.string;
   }
 
 size_t DEFAULT_MAX_CODE_SIZE = 4096 * 8;
-size_t VERSION = 0x07350;  // 0xABCD = A.BC(D)
+size_t VERSION = 0x07352;  // 0xABCD = A.BC(D)
 
 
   version (MIE_INTEGER_TYPE_DEFINED)
@@ -135,7 +135,7 @@ enum ERR
     BAD_ENCODING_MODE,
     CANT_USE_ABCDH,
     ERR_CANT_INIT_CPUTOPOLOGY,
-	ERR_INVALID_CPUMASK_INDEX,
+    ERR_INVALID_CPUMASK_INDEX,
     INTERNAL // Put it at last.
 }
 
@@ -198,7 +198,7 @@ string convertErrorToString(ERR err)
         "bad encoding mode",
         "can't use [abcd]h with rex",
         "can't init CpuTopology",
-		"invalid cpumask index",
+        "invalid cpumask index",
         "internal error"
     ];
     
@@ -369,11 +369,11 @@ static:
 
     enum AddressMode
     {
-	    M_none,
-	    M_ModRM,
-	    M_64bitDisp,
-	    M_rip,
-	    M_ripAddr
+        M_none,
+        M_ModRM,
+        M_64bitDisp,
+        M_rip,
+        M_ripAddr
     }
 }// inner
 
@@ -982,6 +982,11 @@ public:
         return this * scale;
     }
 
+    RegExp opBinary(string op : "+")(const void* addr)
+    {
+        return RegExp(this) + addr;
+    }
+
     RegExp opBinary(string op : "+")(size_t disp)
     {
         return RegExp(this) + disp;
@@ -992,12 +997,7 @@ public:
         return RegExp(this) + disp;
     }
 
-    RegExp opBinary(string op : "+")(const void* addr)
-    {
-        return RegExp(this) + addr;
-    }
-
-    RegExp opBinary(string op : "-")(size_t disp)
+     RegExp opBinary(string op : "-")(size_t disp)
     {
         return RegExp(this) - disp;
     }
@@ -1354,12 +1354,12 @@ public class Reg32 : Reg32e
   }
 
 /*
-	pattern
-	[base]? [+index[*scale]]? [+/-disp]* [+label]?
-	rip [+/-disp]* [+label]?
-	  rip+disp if backward reference then use label.getAddress()
-	  rip+label if forward reference
-	[&var]?[+/-disp]*
+    pattern
+    [base]? [+index[*scale]]? [+/-disp]* [+label]?
+    rip [+/-disp]* [+label]?
+      rip+disp if backward reference then use label.getAddress()
+      rip+label if forward reference
+    [&var]?[+/-disp]*
 */
 struct RegExp
 {
@@ -1401,30 +1401,30 @@ public:
         }
     }
 
-	this(const void* addr)
-    {
-		scale_ = 0;
-		disp_ = cast(size_t)addr;
-		label_ = null;
-		rip_ = false;
-		asPtr_ = addr != null; // treat zero as an integer
-    }
-
     this(ref Label label)
     {
-	    scale_ = 1;
-	    disp_ = 0;
-	    label_ = &label;
-	    rip_ = false;
-	    asPtr_ = true;
+        scale_ = 1;
+        disp_ = 0;
+        label_ = &label;
+        rip_ = false;
+        asPtr_ = true;
 
         const uint8_t* addr = label.getAddress();
-	    if (addr) {
-		    disp_ = cast(size_t)addr;
-		    label_ = null;
-	    } else {
-		    label_ = &label;
-	    }
+        if (addr) {
+            disp_ = cast(size_t)addr;
+            label_ = null;
+        } else {
+            label_ = &label;
+        }
+    }
+    // can't use constexpr to const void *
+    this(const void* addr)
+    {
+        scale_ = 0;
+        disp_ = cast(size_t)addr;
+        label_ = null;
+        rip_ = false;
+        asPtr_ = true;
     }
 
 version(XBYAK64)
@@ -1433,10 +1433,10 @@ version(XBYAK64)
     {
         RegExp re;
         re.scale_ = 0;
-		re.disp_ = 0;
-		re.label_ = null;
-		re.rip_ = true;
-		re.asPtr_ = false;
+        re.disp_ = 0;
+        re.label_ = null;
+        re.rip_ = true;
+        re.asPtr_ = false;
         return re;
     }
 }
@@ -1504,7 +1504,7 @@ version(XBYAK64)
         }
         RegExp ret = this;
         if (ret.label_ == null) ret.label_ = b.label_;
-	    if (ret.asPtr_ == 0) ret.asPtr_ = b.asPtr_;
+        if (ret.asPtr_ == 0) ret.asPtr_ = b.asPtr_;
 
         if (!ret.index_.getBit())
         {
@@ -1556,12 +1556,18 @@ version(XBYAK64)
         return RegExp(label) + this;
     }
 
-    // backward compatibility for eax+0
+    // backward compatibility for eax+&x (pointer address)
     RegExp opBinary(string op : "+")(const void* b)
     {
         return this + RegExp(b);
     }
 
+    // overload for integer literals (e.g. eax+0) to avoid ambiguity with the void* overload
+    RegExp  opBinary(string op : "+")(int disp)
+    {
+        return this + cast(size_t)disp;
+    }
+    
     RegExp opBinary(string op : "+")(size_t disp)
     {
         RegExp ret = this;
@@ -1897,12 +1903,12 @@ class Address : Operand
 public:
     this()
     {
-	    super(0, Kind.MEM, 0);
+        super(0, Kind.MEM, 0);
         e_ = RegExp(0);
         label_ = null;
         mode_ = inner.AddressMode.M_ModRM;
         immSize = 0;
-		disp8N = 0;
+        disp8N = 0;
         permitVsib = false;
         broadcast_ = false;
         optimize_ = true;
@@ -1935,7 +1941,7 @@ public:
         optimize_ = true;
         
         if (e.rip_) {
-			mode_ = (e.label_ || e.asPtr_) ? inner.AddressMode.M_ripAddr : inner.AddressMode.M_rip;
+            mode_ = (e.label_ || e.asPtr_) ? inner.AddressMode.M_ripAddr : inner.AddressMode.M_rip;
             e_.verify();
             return;
         }
@@ -2010,14 +2016,14 @@ public:
     }
 
     Address opIndex(const void* addr) const
-	{
-		return opIndex(RegExp(addr));
-	}
+    {
+        return opIndex(RegExp(addr));
+    }
 
     Address opIndex(size_t offset) const
-	{
-		return opIndex(RegExp(offset));
-	}
+    {
+        return opIndex(RegExp(offset));
+    }
 
     Address opIndex(Reg reg) const
     {
@@ -2419,9 +2425,9 @@ struct LabelManager
                     mixin(XBYAK_THROW(ERR.LABEL_IS_TOO_FAR));
                 }
             }
-	        if (jmp.mode != inner.LabelMode.LasIs) {
-				disp += jmp.disp;
-			}
+            if (jmp.mode != inner.LabelMode.LasIs) {
+                disp += jmp.disp;
+            }
             if (base_.isAutoGrow) {
                 base_.save(offset, disp, jmp.jmpSize, jmp.mode);
             } else {
@@ -2881,15 +2887,15 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
 
     void verifySAE(Reg r, uint64_t type) const
     {
-    	if (((type & T_SAE_X) && r.isXMM()) || ((type & T_SAE_Y) && r.isYMM()) || ((type & T_SAE_Z) && r.isZMM())) return;
-		mixin(XBYAK_THROW(ERR.SAE_IS_INVALID));
+        if (((type & T_SAE_X) && r.isXMM()) || ((type & T_SAE_Y) && r.isYMM()) || ((type & T_SAE_Z) && r.isZMM())) return;
+        mixin(XBYAK_THROW(ERR.SAE_IS_INVALID));
     }
 
     void verifyER(Reg r, uint64_t type) const
     {
         if ((type & T_ER_R) && r.isREG(32|64)) return;
-		if (((type & T_ER_X) && r.isXMM()) || ((type & T_ER_Y) && r.isYMM()) || ((type & T_ER_Z) && r.isZMM())) return;
-		mixin(XBYAK_THROW(ERR.ER_IS_INVALID));
+        if (((type & T_ER_X) && r.isXMM()) || ((type & T_ER_Y) && r.isYMM()) || ((type & T_ER_Z) && r.isZMM())) return;
+        mixin(XBYAK_THROW(ERR.ER_IS_INVALID));
     }
     // (a, b, c) contains non zero two or three values then err
     int verifyDuplicate(int a, int b, int c, ERR err)
@@ -3025,8 +3031,8 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     void setSIB(Address addr, int reg)
     {
         RegExp e = addr.getRegExp();
-		Label* label = e.getLabel();
-		int disp8N = addr.disp8N;
+        Label* label = e.getLabel();
+        int disp8N = addr.disp8N;
         uint64_t disp64 = e.getDisp();
   version (XBYAK64)
   {
@@ -3057,10 +3063,10 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             mod00 = 0, mod01 = 1, mod10 = 2
         }
         int mod = mod10; // disp32
-		if (!baseBit || ((baseIdx & 7) != Operand.EBP && (label == null && disp == 0))) {
+        if (!baseBit || ((baseIdx & 7) != Operand.EBP && (label == null && disp == 0))) {
             mod = mod00;
-		} else if (label) {
-			// always disp32
+        } else if (label) {
+            // always disp32
         } else {
             if (disp8N == 0) {
                 if (inner.IsInDisp8(disp)) {
@@ -3095,11 +3101,11 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         if (mod == mod01) {
             db(disp);
         } else if (mod == mod10 || (mod == mod00 && !baseBit)) {
-			if (label) {
-				putL_inner(label, false, e.getDisp() - addr.immSize, 4);
-			} else {
-				dd(disp);
-			}
+            if (label) {
+                putL_inner(label, false, e.getDisp() - addr.immSize, 4);
+            } else {
+                dd(disp);
+            }
         }
     }
     LabelManager labelMgr_;
@@ -4062,10 +4068,10 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     void opAMX(Tmm t1, Address addr, uint64_t type, int code)
     {
         scope Address addr2 = addr.cloneNoOptimize();
-	    // require both base and index for all but opcode 0x49 (ldtilecfg/sttilecfg)
+        // require both base and index for all but opcode 0x49 (ldtilecfg/sttilecfg)
         if (code != 0x49) {
             RegExp exp = addr2.getRegExp();
-			if (exp.getBase().getBit() == 0 || exp.getIndex().getBit() == 0) {
+            if (exp.getBase().getBit() == 0 || exp.getIndex().getBit() == 0) {
                 mixin(XBYAK_THROW(ERR.NOT_SUPPORTED));
             }
         }
@@ -4415,57 +4421,57 @@ public:
     }
   
     void mov(Operand op1, Operand op2)
-	{
-		scope Reg reg = null;
-		scope Address addr = null;
-		uint8_t code = 0;
-		if (op1.isREG() && op1.getIdx() == 0 && op2.isMEM()) { // mov eax|ax|al, [disp]
-			reg = op1.getReg();
-			addr= op2.getAddress();
-			code = 0xA0;
-		} else
-		if (op1.isMEM() && op2.isREG() && op2.getIdx() == 0) { // mov [disp], eax|ax|al
-			reg = op2.getReg();
-			addr= op1.getAddress();
-			code = 0xA2;
-		}
+    {
+        scope Reg reg = null;
+        scope Address addr = null;
+        uint8_t code = 0;
+        if (op1.isREG() && op1.getIdx() == 0 && op2.isMEM()) { // mov eax|ax|al, [disp]
+            reg = op1.getReg();
+            addr= op2.getAddress();
+            code = 0xA0;
+        } else
+        if (op1.isMEM() && op2.isREG() && op2.getIdx() == 0) { // mov [disp], eax|ax|al
+            reg = op2.getReg();
+            addr= op1.getAddress();
+            code = 0xA2;
+        }
 version(XBYAK64)
 {
-		if (addr && addr.is64bitDisp()) {
-			if (code) {
-				rex(reg);
-				db(op1.isREG(8) ? 0xA0 : op1.isREG() ? 0xA1 : op2.isREG(8) ? 0xA2 : 0xA3);
-				if (addr.getLabel()) {
-					putL_inner(addr.getLabel(), false, addr.getDisp() - addr.immSize, 8);
-				} else {
-					db(addr.getDisp(), 8);
-				}
-			} else {
-				mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
-			}
-		}
+        if (addr && addr.is64bitDisp()) {
+            if (code) {
+                rex(reg);
+                db(op1.isREG(8) ? 0xA0 : op1.isREG() ? 0xA1 : op2.isREG(8) ? 0xA2 : 0xA3);
+                if (addr.getLabel()) {
+                    putL_inner(addr.getLabel(), false, addr.getDisp() - addr.immSize, 8);
+                } else {
+                    db(addr.getDisp(), 8);
+                }
+            } else {
+                mixin(XBYAK_THROW(ERR.BAD_COMBINATION));
+            }
+        }
         else
         {
-			opRO_MR(op1, op2, 0x88);
-		}
+            opRO_MR(op1, op2, 0x88);
+        }
 }
 else
 {
-		if (code && addr.isOnlyDisp()) {
-			rex(reg, addr);
-			db(code | (reg.isBit(8) ? 0 : 1));
-			if (addr.getLabel()) {
-				putL_inner(addr.getLabel(), false, addr.getDisp() - addr.immSize);
-			} else {
-				dd(cast(uint32_t)(addr.getDisp()));
-			}
-		}
+        if (code && addr.isOnlyDisp()) {
+            rex(reg, addr);
+            db(code | (reg.isBit(8) ? 0 : 1));
+            if (addr.getLabel()) {
+                putL_inner(addr.getLabel(), false, addr.getDisp() - addr.immSize);
+            } else {
+                dd(cast(uint32_t)(addr.getDisp()));
+            }
+        }
         else
-		{
-			opRO_MR(op1, op2, 0x88);
-		}
+        {
+            opRO_MR(op1, op2, 0x88);
+        }
 }
-	}
+    }
 
     void mov(Operand op, uint64_t imm)
     {
@@ -4700,9 +4706,9 @@ else
     }
     /*
         useMultiByteNop
-		= 0: use only single byte nop
-		= 1: recommended multi-byte
-		= 2: better for newer CPUs
+        = 0: use only single byte nop
+        = 1: recommended multi-byte
+        = 2: better for newer CPUs
     */
     void nop(size_t size = 1, int useMultiByteNop = 2)
     {
@@ -4729,12 +4735,12 @@ else
             [0x0F, 0x1F, 0x80, 0x00, 0x00, 0x00, 0x00],
             [0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
             [0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00], //9
-			[0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
-			[0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00], // 11
-			[0x66, 0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
-			[0x66, 0x66, 0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
-			[0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
-			[0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
+            [0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
+            [0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00], // 11
+            [0x66, 0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
+            [0x66, 0x66, 0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
+            [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
+            [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x0F, 0x1F, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00],
         ];
         size_t n = useMultiByteNop == 2 ? nopTbl.sizeof / nopTbl[0].sizeof : 9;
         while (size > 0) {
@@ -4773,7 +4779,7 @@ version (XBYAK_DONT_READ_LIST)
 else
 {
 
-string getVersionString() const { return "0.7350"; }
+string getVersionString() const { return "0.7352"; }
 void aadd(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38, 0x0FC, T_APX); }
 void aand(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38|T_66, 0x0FC, T_APX|T_66); }
 void adc(Operand op, uint32_t imm) { opOI(op, imm, 0x10, 2); }
