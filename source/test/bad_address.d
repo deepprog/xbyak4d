@@ -7,6 +7,18 @@ import std.stdio;
 import xbyak;
 import test.test_count;
 
+@("bad_address")
+unittest
+{
+    bad_address();
+}
+
+void bad_address()
+{
+    scope tc = TestCount(__FUNCTION__);
+    scope Code c = new Code(tc);
+}
+
 class Code : CodeGenerator
 {
     this(ref TestCount tc)
@@ -26,24 +38,4 @@ class Code : CodeGenerator
             tc.TEST_EXCEPTION!Exception({ mov(eax, ptr[xmm0 + ymm0]); });
         }
     }
-}
-
-@("bad_address")
-unittest
-{
-    bad_address();
-}
-
-void bad_address(size_t line = __LINE__)
-{
-    TestCount tc;
-    tc.reset();
-
-    scope (exit)
-    {
-        writef("%s(%d) : ", __FILE__, line);
-        tc.end("bad_address");
-    }
-
-    scope Code c = new Code(tc);
 }

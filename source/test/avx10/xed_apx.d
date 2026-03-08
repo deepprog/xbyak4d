@@ -18,60 +18,16 @@ version (XBYAK64)
     @("xed_apx")
     unittest
     {
-        xed_apx();
-    }
-
-    void xed_apx()
-    {
-        scope c = new Code();
-    }
-
-    class TestCode : CodeGenerator
-    {
-        TestCount testCount;
-
-        void sdump(string hexStr, string file = __FILE__, size_t line = __LINE__)
-        {
-            if (hexStr.length == 0)
-            {
-                dump();
-                size_ = 0;
-                return;
-            }
-
-            const size_t n = this.getSize();
-            auto ctbl = this.getCode();
-
-            string hexCode;
-            for (size_t i = 0; i < n; i++)
-            {
-                hexCode ~= format("%02X", ctbl[i]);
-            }
-
-            testCount.TEST_EQUAL(hexCode, hexStr, file, line);
-            size_ = 0;
-            return;
-        }
-
-        this()
-        {
-            testCount.reset();
-
-            super(4096 * 8);
-            setDefaultEncodingAVX10(AVX10v2Encoding);
-        }
-
-        ~this()
-        {
-            testCount.end(__FILE__);
-        }
-
+        scope Code c = new Code("xed_apx");
     }
 
     class Code : TestCode
     {
-        this()
+        this(string name)
         {
+            super(name);
+            setDefaultEncodingAVX10(AVX10v2Encoding);
+
             sal(rax, r8, 1);
             sdump("62D4FC18D1E0");
             sar(rax, r9, 4);
