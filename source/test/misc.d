@@ -31,7 +31,7 @@ void setSize()
 			db(1);
 			size_t size = getSize();
 			tc.TEST_EQUAL(size, 4096u);
-			setSize(size);
+			tc.TEST_NO_EXCEPTION({ setSize(size); });
 			tc.TEST_EXCEPTION!XError({ db(1); });
 		}
 	}
@@ -204,7 +204,7 @@ void mov_const()
 				}
 				else
 				{
-					mov(af[eax], v);
+					tc.TEST_NO_EXCEPTION({ mov(af[eax], v); });
 				}
 			}
 
@@ -217,8 +217,7 @@ void mov_const()
 			version (XBYAK64)
 			{
 				tc.TEST_EXCEPTION!XError({ mov(word[rax], rax); });
-				////	tc.TEST_NO_EXCEPTIONN!XError({ mov(rax, ptr[cast(void*)0x7fffffff])); });
-				mov(rax, ptr[cast(void*) 0x7fffffff]);
+				tc.TEST_NO_EXCEPTION({ mov(rax, ptr[cast(void*)0x7fffffff]); });
 
 				for (int i = 4; i < 8; i++)
 				{
@@ -235,8 +234,8 @@ void mov_const()
 
 				version (XBYAK_OLD_DISP_CHECK)
 				{
-					mov(rax, ptr[cast(void*) 0x80000000]);
-					mov(rax, ptr[cast(void*) 0xffffffff]);
+					tc.TEST_NO_EXCEPTION({ mov(rax, ptr[cast(void*) 0x80000000]); });
+					tc.TEST_NO_EXCEPTION({ mov(rax, ptr[cast(void*) 0xffffffff]); });
 				}
 			} //version(XBYAK64)
 		}
@@ -397,9 +396,9 @@ void kmask()
 				tc.TEST_EXCEPTION!Exception({ kmovb(k1, rax); });
 				tc.TEST_EXCEPTION!Exception({ kmovw(k1, rax); });
 				tc.TEST_EXCEPTION!Exception({ kmovd(k1, rax); });
-				kmovq(k1, rax);
+				tc.TEST_NO_EXCEPTION({ kmovq(k1, rax); });
 			}
-			vmovaps(xm0 | k0, ptr[eax]);
+			tc.TEST_NO_EXCEPTION({ vmovaps(xm0|k0, ptr[eax]); });
 			checkT_z();
 		}
 
@@ -437,24 +436,18 @@ void test_gather()
 	{
 		this()
 		{
-			vgatherdpd(xmm1, ptr[eax + xmm2], xmm3);
-			tc.TEST_EXCEPTION!Exception({
-				vgatherdpd(xmm1, ptr[eax + xmm1], xmm2);
-			});
-			tc.TEST_EXCEPTION!Exception({
-				vgatherdpd(xmm1, ptr[eax + xmm2], xmm1);
-			});
-			tc.TEST_EXCEPTION!Exception({
-				vgatherdpd(xmm2, ptr[eax + xmm1], xmm1);
-			});
+			tc.TEST_NO_EXCEPTION({ vgatherdpd(xmm1, ptr[eax + xmm2], xmm3); });
+			tc.TEST_EXCEPTION!Exception({ vgatherdpd(xmm1, ptr[eax + xmm1], xmm2); });
+			tc.TEST_EXCEPTION!Exception({ vgatherdpd(xmm1, ptr[eax + xmm2], xmm1); });
+			tc.TEST_EXCEPTION!Exception({ vgatherdpd(xmm2, ptr[eax + xmm1], xmm1); });
 
-			vgatherdpd(xmm1 | k2, ptr[eax + xmm2]);
+			tc.TEST_NO_EXCEPTION({ vgatherdpd(xmm1 | k2, ptr[eax + xmm2]); });
 			tc.TEST_EXCEPTION!Exception({ vgatherdpd(xmm1, ptr[eax + xmm2]); });
 			tc.TEST_EXCEPTION!Exception({ vgatherdpd(xmm1 | k2, ptr[eax + xmm1]); });
 
-			vpscatterdd(ptr[eax + xmm2] | k2, xmm1);
-			vpscatterdd(ptr[eax + xmm2], xmm1 | k2);
-			vpscatterdd(ptr[eax + xmm2] | k3, xmm2);
+			tc.TEST_NO_EXCEPTION({ vpscatterdd(ptr[eax + xmm2] | k2, xmm1); });
+			tc.TEST_NO_EXCEPTION({ vpscatterdd(ptr[eax + xmm2], xmm1 | k2); });
+			tc.TEST_NO_EXCEPTION({ vpscatterdd(ptr[eax + xmm2] | k3, xmm2); });
 
 			tc.TEST_EXCEPTION!Exception({ vpscatterdd(ptr[eax + xmm2], xmm1); });
 		}

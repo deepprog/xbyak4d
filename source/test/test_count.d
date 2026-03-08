@@ -11,13 +11,13 @@ struct TestCount
         file_ = file;
         line_ = line;
     }
-    
+
     ~this()
     {
         writef("%s(%d) : ", file_, line_);
         end(name_);
     }
-    
+
     void reset()
     {
         okCount_ = 0;

@@ -10,50 +10,8 @@ version (X86_64) version = XBYAK64;
 
 version (XBYAK32)
 {
-    class TestCode : CodeGenerator
-    {
-        TestCount tc_;
-        string name_;
-
-        this(string name)
-        {
-            this.tc_.reset();
-            name_ = name;
-        }
-
-        ~this()
-        {
-            tc_.end(name_);
-        }
-
-        void sdump(string hexStr, string file = __FILE__, size_t line = __LINE__)
-        {
-            if (hexStr.length == 0)
-            {
-                dump();
-                size_ = 0;
-                return;
-            }
-
-            const size_t n = this.getSize();
-            auto ctbl = this.getCode();
-
-            string hexCode;
-            for (size_t i = 0; i < n; i++)
-            {
-                hexCode ~= format("%02X", ctbl[i]);
-            }
-
-            tc_.TEST_EQUAL(hexCode, hexStr, file, line);
-            size_ = 0;
-            return;
-        }
-
-    }
-
     @("gen_vsib") unittest
     {
-        writef("%s(%d) : ", __FILE__, __LINE__);
         scope gen_vsib = new GenVsib("gen_vsib");
     }
 
