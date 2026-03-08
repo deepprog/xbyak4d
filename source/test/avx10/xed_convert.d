@@ -18,60 +18,16 @@ version (XBYAK64)
     @("xed_convert")
     unittest
     {
-        xed_convert();
-    }
-
-    void xed_convert()
-    {
-        scope Code c = new Code();
-    }
-
-    class TestCode : CodeGenerator
-    {
-        TestCount testCount;
-
-        void sdump(string hexStr, string file = __FILE__, size_t line = __LINE__)
-        {
-            if (hexStr.length == 0)
-            {
-                dump();
-                size_ = 0;
-                return;
-            }
-
-            const size_t n = this.getSize();
-            auto ctbl = this.getCode();
-
-            string hexCode;
-            for (size_t i = 0; i < n; i++)
-            {
-                hexCode ~= format("%02X", ctbl[i]);
-            }
-
-            testCount.TEST_EQUAL(hexCode, hexStr, file, line);
-            size_ = 0;
-            return;
-        }
-
-        this()
-        {
-            testCount.reset();
-
-            super(4096 * 8);
-            setDefaultEncodingAVX10(AVX10v2Encoding);
-        }
-
-        ~this()
-        {
-            testCount.end(__FILE__);
-        }
-
+        scope Code c = new Code("xed_convert");
     }
 
     class Code : TestCode
     {
-        this()
+       this(string name)
         {
+            super(name);
+            setDefaultEncodingAVX10(AVX10v2Encoding);
+
             vcvt2ps2phx(xm1 | k5, xm2, xm3);
             sdump("62F26D0D67CB");
             vcvt2ps2phx(xm1 | k5, xm2, ptr[rax + 128]);
@@ -328,7 +284,7 @@ version (XBYAK64)
             vcvtph2bf8s(ymm1 | k2 | T_z, zword_b[rax + 128]);
             sdump("62F57EDA744840");
 
-            // vcvtph2hf8                                        
+            // vcvtph2hf8
             vcvtph2hf8(xmm1 | k2 | T_z, xmm2);
             sdump("62F57E8A18CA");
             vcvtph2hf8(xmm1 | k2 | T_z, xword[rax + 128]);
@@ -350,7 +306,7 @@ version (XBYAK64)
             vcvtph2hf8(ymm1 | k2 | T_z, zword_b[rax + 128]);
             sdump("62F57EDA184840");
 
-            // vcvtph2hf8s                                      
+            // vcvtph2hf8s
             vcvtph2hf8s(xmm1 | k2 | T_z, xmm2);
             sdump("62F57E8A1BCA");
             vcvtph2hf8s(xmm1 | k2 | T_z, xword[rax + 128]);

@@ -17,60 +17,15 @@ version (XBYAK64)
     @("xed_saturation")
     unittest
     {
-        xed_saturation();
-    }
-
-    void xed_saturation()
-    {
-        scope Code c = new Code();
-    }
-
-    class TestCode : CodeGenerator
-    {
-        TestCount testCount;
-
-        void sdump(string hexStr, string file = __FILE__, size_t line = __LINE__)
-        {
-            if (hexStr.length == 0)
-            {
-                dump();
-                size_ = 0;
-                return;
-            }
-
-            const size_t n = this.getSize();
-            auto ctbl = this.getCode();
-
-            string hexCode;
-            for (size_t i = 0; i < n; i++)
-            {
-                hexCode ~= format("%02X", ctbl[i]);
-            }
-
-            testCount.TEST_EQUAL(hexCode, hexStr, file, line);
-            size_ = 0;
-            return;
-        }
-
-        this()
-        {
-            testCount.reset();
-
-            super(4096 * 8);
-            setDefaultEncodingAVX10(AVX10v2Encoding);
-        }
-
-        ~this()
-        {
-            testCount.end(__FILE__);
-        }
-
+        scope Code c = new Code("xed_saturation");
     }
 
     class Code : TestCode
     {
-        this()
+        this(string name)
         {
+            super(name);
+            setDefaultEncodingAVX10(AVX10v2Encoding);
             //
             vcvtbf162ibs(xm1, xm2);
             sdump("62F57F0869CA");
