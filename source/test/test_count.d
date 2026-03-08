@@ -100,6 +100,19 @@ struct TestCount
         }
     }
 
+    void TEST_NO_EXCEPTION(void delegate() statement, string file = __FILE__, size_t line = __LINE__)
+    {
+        try
+        {
+            statement();
+            set(true);
+        }
+        catch (Throwable t)
+        {
+            test(false, "test: NO_EXCEPTION", "", file, line);
+        }
+    }
+
     void end(string name = "")
     {
         write(name, " OK:", okCount_, " NG:", ngCount_);
@@ -126,4 +139,41 @@ private:
 
     int okThrowCount_ = 0;
     int ngThrowCount_ = 0;
+}
+
+import std.string;
+import xbyak;
+
+class TestCode : CodeGenerator
+{
+    TestCount tc_;
+
+    this(string name, string file = __FILE__, size_t line = __LINE__)
+    {
+        tc_ = TestCount(name, file, line);
+    }
+
+    void sdump(string hexStr, string file = __FILE__, size_t line = __LINE__)
+    {
+        if (hexStr.length == 0)
+        {
+            dump();
+            size_ = 0;
+            return;
+        }
+
+        const size_t n = this.getSize();
+        auto ctbl = this.getCode();
+
+        string hexCode;
+        for (size_t i = 0; i < n; i++)
+        {
+            hexCode ~= format("%02X", ctbl[i]);
+        }
+
+        tc_.TEST_EQUAL(hexCode, hexStr, file, line);
+        size_ = 0;
+        return;
+    }
+
 }
