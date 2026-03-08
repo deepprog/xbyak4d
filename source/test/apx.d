@@ -7,6 +7,7 @@ import std.stdint;
 import std.exception;
 
 import xbyak;
+import test.test_count;
 
 version(X86)    version = XBYAK32;
 version(X86_64) version = XBYAK64;
@@ -22,6 +23,7 @@ unittest
 
 void reg_rm()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -65,14 +67,14 @@ void reg_rm()
 		0xd5, 0x19, 0x29, 0xce, 0xd5, 0x48, 0x33, 0x08, 0xd5, 0x18, 0x31, 0x12, 0xd5, 0x19, 0x31, 0xce,
 		0xd5, 0x4c, 0x03, 0x34, 0x8b, 0xd5, 0x19, 0x03, 0x04, 0x8e, 0xd5, 0x2a, 0x03, 0x04, 0xb3,
 	];
-	
+
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -84,6 +86,7 @@ unittest
 
 void reg64()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -127,11 +130,11 @@ void reg64()
 
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -143,6 +146,7 @@ unittest
 
 void reg32()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -186,11 +190,11 @@ void reg32()
 
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -202,6 +206,7 @@ unittest
 
 void reg16()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -249,11 +254,11 @@ void reg16()
 
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -265,6 +270,7 @@ unittest
 
 void reg8()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -308,11 +314,11 @@ void reg8()
 
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -324,6 +330,7 @@ unittest
 
 void rm()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -370,11 +377,11 @@ void rm()
 
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -386,6 +393,7 @@ unittest
 
 void r3()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -402,11 +410,11 @@ void r3()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -418,6 +426,7 @@ unittest
 
 void rm3()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -438,11 +447,11 @@ void rm3()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -454,6 +463,7 @@ unittest
 
 void rm3_2()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -484,11 +494,11 @@ void rm3_2()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -500,6 +510,7 @@ unittest
 
 void adcx_adox()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -532,11 +543,11 @@ void adcx_adox()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -548,6 +559,7 @@ unittest
 
 void r3_2()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -578,11 +590,11 @@ void r3_2()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -594,6 +606,7 @@ unittest
 
 void NF()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -654,11 +667,11 @@ void NF()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -670,6 +683,7 @@ unittest
 
 void andn_etc()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
 	{
 		this()
@@ -705,11 +719,11 @@ void andn_etc()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -721,6 +735,7 @@ unittest
 
 void bextr_etc()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -819,11 +834,11 @@ void bextr_etc()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -835,6 +850,7 @@ unittest
 
 void bit()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -897,11 +913,11 @@ void bit()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -913,6 +929,7 @@ unittest
 
 void inc_dec()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -958,11 +975,11 @@ void inc_dec()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -974,6 +991,7 @@ unittest
 
 void div_op1()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1079,11 +1097,11 @@ void div_op1()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1095,6 +1113,7 @@ unittest
 
 void imul_2op()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1141,11 +1160,11 @@ void imul_2op()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1157,6 +1176,7 @@ unittest
 
 void imul_zu()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1187,11 +1207,11 @@ void imul_zu()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1203,6 +1223,7 @@ unittest
 
 void lzcnt()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1233,11 +1254,11 @@ void lzcnt()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1249,6 +1270,7 @@ unittest
 
 void shld()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1288,11 +1310,11 @@ void shld()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1304,6 +1326,7 @@ unittest
 
 void base()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1330,11 +1353,11 @@ void base()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1346,6 +1369,7 @@ unittest
 
 void mov_misc()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1421,11 +1445,11 @@ void mov_misc()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1437,6 +1461,7 @@ unittest
 
 void shift_2op()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1588,11 +1613,11 @@ void shift_2op()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1604,6 +1629,7 @@ unittest
 
 void shift_3op()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1762,11 +1788,11 @@ void shift_3op()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1778,6 +1804,7 @@ unittest
 
 void push2_pop2()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1808,11 +1835,11 @@ void push2_pop2()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1824,6 +1851,7 @@ unittest
 
 void ccmp()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1891,11 +1919,11 @@ void ccmp()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1907,6 +1935,7 @@ unittest
 
 void ctestb()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -1969,11 +1998,11 @@ void ctestb()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -1985,6 +2014,7 @@ unittest
 
 void cfcmov()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -2063,11 +2093,11 @@ void cfcmov()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -2079,6 +2109,7 @@ unittest
 
 void evex_misc()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -2104,11 +2135,11 @@ void evex_misc()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -2120,6 +2151,7 @@ unittest
 
 void kmov()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -2155,11 +2187,11 @@ void kmov()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -2171,6 +2203,7 @@ unittest
 
 void amx()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -2188,11 +2221,11 @@ void amx()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -2204,6 +2237,7 @@ unittest
 
 void aeskl()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -2260,11 +2294,11 @@ void aeskl()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -2276,6 +2310,7 @@ unittest
 
 void encodekey()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -2304,11 +2339,11 @@ void encodekey()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -2320,6 +2355,7 @@ unittest
 
 void sha()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -2343,11 +2379,11 @@ void sha()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -2359,6 +2395,7 @@ unittest
 
 void _0x0f_rex2()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -2379,11 +2416,11 @@ void _0x0f_rex2()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
@@ -2395,6 +2432,7 @@ unittest
 
 void rao_int()
 {
+	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator {
 		this()
 		{
@@ -2416,11 +2454,11 @@ void rao_int()
 	];
 	scope Code c = new Code();
 	const size_t n = tbl.length;
-	assert(c.getSize() == n);
+	tc.TEST_EQUAL(c.getSize(), n);
 	auto ctbl = c.getCode();
 	for(int i=0; i < n; i++)
 	{
-		assert(ctbl[i] == tbl[i]);
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
 
