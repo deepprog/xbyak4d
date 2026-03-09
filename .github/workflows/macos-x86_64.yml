@@ -1,1 +1,35 @@
+name: macOS Intel x86_64
 
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15-intel
+
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        compiler: [dmd, ldc, dmd-beta, ldc-beta]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install D compiler
+        run: |
+          source $(curl https://dlang.org/install.sh | bash -s -- ${{ matrix.compiler }} -a)
+
+      - name: Run tests (x86_64)
+        run: |
+          dub test -ax86_64 --parallel -b=unittest-cov
+
+      - name: Upload coverage to Codecov
+        if: ${{ matrix.compiler == 'dmd' }}
+        run: bash <(curl -s https://codecov.io/bash)
