@@ -40,6 +40,29 @@ import std.stdint;
 import std.stdio;
 import std.string;
 
+void mapInsert(K, V)(ref V[K] m, K key, V value) {
+    m[key] = value;
+}
+
+V* mapFind(K, V)(ref V[K] m, K key) {
+    return key in m;
+}
+
+bool mapErase(K, V)(ref V[K] m, K key) {
+    return m.remove(key);
+}
+
+size_t mapSize(K, V)(ref V[K] m) {
+    return m.length;
+}
+
+void mapClear(K, V)(ref V[K] m) {
+    m = V[K].init;
+}
+
+V* mapEnd(K, V)(ref V[K] m) {
+    return null;
+}
 
   version (Windows)
   {
@@ -2400,12 +2423,15 @@ struct LabelManager
     void define_inner(DefList, UndefList, T)(ref DefList deflist, ref UndefList undeflist, T labelId, size_t addrOffset)
     {
         // add label
-        if (labelId in deflist) {
+        if (deflist.mapFind(labelId) != deflist.mapEnd()) {
             mixin(XBYAK_THROW(ERR.LABEL_IS_REDEFINED));
         }
-        deflist[labelId] = typeof(deflist[labelId])(addrOffset);
+        deflist.mapInsert(labelId, typeof(deflist[labelId])(addrOffset));
+
         // search undefined label
-        if (null == (labelId in undeflist)) return;
+        auto itr = undeflist.mapFind(labelId);
+        if (itr == undeflist.mapEnd()) return;
+
         foreach (JmpLabel jmp; undeflist[labelId]) {
             size_t offset = jmp.endOfJmp - jmp.jmpSize;
             size_t disp;
@@ -2428,7 +2454,7 @@ struct LabelManager
             if (jmp.mode != inner.LabelMode.LasIs) {
                 disp += jmp.disp;
             }
-            if (base_.isAutoGrow) {
+            if (base_.isAutoGrow()) {
                 base_.save(offset, disp, jmp.jmpSize, jmp.mode);
             } else {
                 base_.rewrite(offset, disp, jmp.jmpSize);
@@ -2440,10 +2466,8 @@ struct LabelManager
     bool getOffset_inner(DefList, T)(DefList defList, size_t* offset, T label)
     if(is(T == string) || is(T == int))
     {
-        if (null == (label in defList))
-        {
-            return false;
-        }
+        auto i = defList.mapFind(label);
+        if (i == defList.mapEnd()) return false;
         *offset = defList[label].offset;
         return true;
     }
@@ -2455,12 +2479,12 @@ struct LabelManager
     void decRefCount(int id, Label* label)
     {
         labelPtrList_.erase(label);
-
-        if (null == (id in clabelDefList_)) {
+        const i = clabelDefList_.mapFind(id);
+        if (i == clabelDefList_.mapEnd()) {
             return;
         }
         if (clabelDefList_[id].refCount == 1) {
-            clabelDefList_.remove(id);
+            clabelDefList_.mapErase(id);
         } else {
             clabelDefList_[id].refCount -= 1;
         }
@@ -2533,16 +2557,19 @@ public:
     }
     void defineSlabel(ref string label)
     {
-        if ("@b" == label || "@f" == label) {
+        if (label == "@b" || label == "@f") {
             mixin(XBYAK_THROW(ERR.BAD_LABEL_STR));
         }
-        if ("@@" == label) {
-            if ("@f" in stateList_[0].defList) {
-                stateList_[0].defList.remove("@f");
+        if (label == "@@") {
+            SlabelDefList defList = stateList_[0].defList;
+        	auto i = defList.mapFind("@f");
+            if (i != defList.mapEnd()) {
+                stateList_[0].defList.mapErase("@f");
                 label = "@b";
             } else {
-                if ("@b" in stateList_[0].defList) {
-                    stateList_[0].defList.remove("@b");
+                i = defList.mapFind("@b");
+                if (i != defList.mapEnd()) {
+                    stateList_[0].defList.mapErase("@b");
                 }
                 label = "@f";
             }
@@ -2558,25 +2585,27 @@ public:
     }
     void assign(ref Label dst, ref Label src)
     {
-        if(null == (src.id in clabelDefList_)) {
+        const i = clabelDefList_.mapFind(src.id);
+        if(i == clabelDefList_.mapEnd()) {
             mixin(XBYAK_THROW(ERR.LABEL_ISNOT_SET_BY_L));
         }
-        define_inner(clabelDefList_, clabelUndefList_, dst.id, clabelDefList_[src.id].offset);
+        define_inner(clabelDefList_, clabelUndefList_, dst.id, i.offset);
         dst.mgr = &this;
-        Label* dst_ptr = &dst;
-        labelPtrList_.insert(dst_ptr);
+        labelPtrList_.insert(&dst);
     }
     bool getOffset(size_t* offset, ref string label)
     {
-        SlabelDefList df = stateList_[0].defList;
+        SlabelDefList dfList = stateList_[0].defList;
         if (label == "@b") {
-            if ("@f" in df) {
+            if (dfList.mapFind("@f") != dfList.mapEnd()) {
                 label = "@f";
-            } else if (!("@b" in df)) {
+            } else if (dfList.mapFind("@b") == dfList.mapEnd()) {
                 mixin(XBYAK_THROW_RET(ERR.LABEL_IS_NOT_FOUND, "false"));
             }
-        } else if ("@f" == label) {
-            if ("@f" in df) label = "@b";
+        } else if (label == "@f") {
+            if (dfList.mapFind("@f") != dfList.mapEnd()) {
+                label = "@b";
+            }
         }
         SlabelState* st = label[0] == '.' ? &stateList_[$-1] : &stateList_[0];
         return getOffset_inner(st.defList, offset, label);
