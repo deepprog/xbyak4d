@@ -69,19 +69,58 @@ version(XBYAK64)
 			VirtualFree(p, 0, MEM_RELEASE);
 		}
 	}
-  else
+  version (linux)
 	{
-		import core.sys.linux.sys.mman;
-		void* get32bitAddress(uint32_t size)
-		{
-			return mmap(null, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_32BIT, -1, 0);
-		}
+    import core.sys.linux.sys.mman;
 
-		void free32bitAddress(void* p, uint32_t size)
-		{
-			munmap(p, size);
-		}
+    void* get32bitAddress(uint32_t size)
+    {
+        return mmap(null, size,
+            PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT,
+            -1, 0);
+    }
+
+    void free32bitAddress(void* p, uint32_t size)
+    {
+        munmap(p, size);
+    }
 	}
+	
+	version (OSX) // macOS
+	{
+    import core.sys.posix.sys.mman;
+
+    // macOS には MAP_32BIT が無いので、32bit 範囲のアドレスを指定して mmap を試す
+    void* get32bitAddress(uint32_t size)
+    {
+        enum void* BASE_ADDR = cast(void*)0x10000000; // 256MB 付近から試す
+
+        void* p = mmap(BASE_ADDR, size,
+            PROT_READ | PROT_WRITE,
+            MAP_PRIVATE | MAP_ANONYMOUS,
+            -1, 0);
+
+        // macOS は ASLR で別アドレスになる可能性があるためチェック
+        if (p == MAP_FAILED)
+            return null;
+
+        // 32bit 範囲外なら失敗扱いにする
+        if (cast(size_t)p > 0xFFFFFFFF)
+        {
+            munmap(p, size);
+            return null;
+        }
+
+        return p;
+    }
+
+    void free32bitAddress(void* p, uint32_t size)
+    {
+        munmap(p, size);
+    }
+	}
+
 }
 
 version(XBYAK32)
