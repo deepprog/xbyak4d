@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: macos-15-intel
@@ -18,20 +21,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --- DMD 手動インストール ---
-      - name: Install DMD manually
+      # --- 最新 dmd を手動インストール ---
+      - name: Install latest DMD
         if: matrix.compiler == 'dmd'
         run: |
-          curl -fsSL https://downloads.dlang.org/releases/2.x/2.109.1/dmd.2.109.1.osx.tar.xz -o dmd.tar.xz
+          # 最新版に変更したい場合はここを書き換える
+          DMD_VER=2.112.1
+          curl -fsSL https://downloads.dlang.org/releases/2.x/${DMD_VER}/dmd.${DMD_VER}.osx.tar.xz -o dmd.tar.xz
           tar xf dmd.tar.xz
           sudo cp -r dmd2/osx/bin/* /usr/local/bin/
           sudo cp -r dmd2/osx/lib/* /usr/local/lib/
+          sudo cp dmd2/osx/bin/dmd.conf /etc/dmd.conf
+          dmd --version
 
-      # --- LDC は Homebrew で OK ---
+      # --- LDC は Homebrew で安定動作 ---
       - name: Install LDC
         if: matrix.compiler == 'ldc'
         run: |
           brew install ldc
+          ldc2 --version
 
       - name: Run tests
         run: |
