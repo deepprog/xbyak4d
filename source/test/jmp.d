@@ -69,6 +69,7 @@ version(XBYAK64)
 			VirtualFree(p, 0, MEM_RELEASE);
 		}
 	}
+
   version (linux)
 	{
     import core.sys.linux.sys.mman;
