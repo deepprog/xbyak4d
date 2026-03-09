@@ -809,6 +809,11 @@ version(XBYAK32)
 	}
 }
 
+version(OSX)
+{}
+else
+{
+
 version(XBYAK64)
 {
 	@("RegExp_offset")
@@ -892,6 +897,8 @@ version(XBYAK64)
 		free32bitAddress(buf, size);
 	}
 }
+
+} // version(OSX) {} else
 
 @("RegExp_sample")
 unittest
