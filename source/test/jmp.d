@@ -70,22 +70,22 @@ version(XBYAK64)
 		}
 	}
 
-  version (linux)
+	version (linux)
 	{
-    import core.sys.linux.sys.mman;
+		import core.sys.linux.sys.mman;
 
-    void* get32bitAddress(uint32_t size)
-    {
-        return mmap(null, size,
-            PROT_READ | PROT_WRITE,
-            MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT,
-            -1, 0);
-    }
+		void* get32bitAddress(uint32_t size)
+		{
+			return mmap(null, size,
+				PROT_READ | PROT_WRITE,
+				MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT,
+				-1, 0);
+		}
 
-    void free32bitAddress(void* p, uint32_t size)
-    {
-        munmap(p, size);
-    }
+		void free32bitAddress(void* p, uint32_t size)
+		{
+			munmap(p, size);
+		}
 	}
 
 }
@@ -184,8 +184,8 @@ void test1()
 		int[] result;
 		int size;
 	}
-	
-	Tbl[] tbl =[ 
+
+	Tbl[] tbl =[
 		Tbl( 0, true, true, [ 0xeb, 0xfe ], 2 ),
 		Tbl( 1, true, true, [ 0xeb, 0xfd ], 2 ),
 		Tbl( 126, true, true, [ 0xeb, 0x80 ], 2 ),
@@ -222,7 +222,7 @@ unittest
 void testJmpCx()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	class TestJmpCx : CodeGenerator
 	{
 		this(void* p, bool useNewLabel)
@@ -314,7 +314,7 @@ unittest
 void testloop()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	uint8_t[] ok = [
 		// lp:
 		0x31, 0xC0, // xor eax, eax
@@ -418,7 +418,7 @@ void test2()
 				putNop(this, 128);
 			L(".f4");
 				outLocalLabel();
-	
+
 			} else {
 				nop();
 				nop();
@@ -442,7 +442,7 @@ void test2()
 
 	ubyte[1024] ok;
 	ok[] = 0x90;
- 
+
 	ok[0x080] = 0xeb;
 	ok[0x081] = 0x80;
 
@@ -498,13 +498,13 @@ void test2()
 @("badAddress")
 unittest
 {
-    badAddress();
+	badAddress();
 }
 
 void badAddress()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	class Code : CodeGenerator
 	{
 		this(ref TestCount tc)
@@ -607,7 +607,7 @@ void addr_in_2GiB()
 		const int v1 = 10;
 		const int v2 = 100;
 		const int v3 = 1000;
-		
+
 		class Code : CodeGenerator
 		{
 			this(uint8_t* p)
@@ -781,89 +781,89 @@ version(OSX)
 else
 {
 
-version(XBYAK64)
-{
-	@("RegExp_offset")
-	unittest
+	version(XBYAK64)
 	{
-		RegExp_offset();
-	}
-
-	void RegExp_offset()
-	{
-		scope tc = TestCount(__FUNCTION__);
-
-		const uint32_t size = 4096;
-		uint8_t* buf = cast(uint8_t*)get32bitAddress(size);
-		printf("buf=%p\n", buf);
-		tc.TEST_ASSERT(buf != null);
-		tc.TEST_ASSERT(cast(size_t)(buf) < 0x80000000);
+		@("RegExp_offset")
+		unittest
 		{
-			class Code : CodeGenerator
+			RegExp_offset();
+		}
+
+		void RegExp_offset()
+		{
+			scope tc = TestCount(__FUNCTION__);
+
+			const uint32_t size = 4096;
+			uint8_t* buf = cast(uint8_t*)get32bitAddress(size);
+			printf("buf=%p\n", buf);
+			tc.TEST_ASSERT(buf != null);
+			tc.TEST_ASSERT(cast(size_t)(buf) < 0x80000000);
 			{
-				this(uint8_t* p)
+				class Code : CodeGenerator
 				{
-					super(size, p);
+					this(uint8_t* p)
+					{
+						super(size, p);
 
-					printf("p=%p\n", p);
-					const int* large = cast(const int*)(0x123456789abcd);
-					const(const(int)*) g_x = large;
-					Label lp;
+						printf("p=%p\n", p);
+						const int* large = cast(const int*)(0x123456789abcd);
+						const(const(int)*) g_x = large;
+						Label lp;
 
-					mov(eax, ptr[rax+0]); // m64
-					mov(eax, ptr[rax+0+4]); // m64
-					mov(eax, ptr[rax-0-4]); // m64
-					mov(eax, ptr[rax+cast(void*)0x12345678]); // m64
-					mov(eax, ptr[rax+cast(size_t)0x12345678]); // m64 (same as above)
-					mov(eax, ptr[cast(void*)0x12345678]); // m64
-					mov(eax, ptr[cast(void*)0x123456789]); // moffset64
-					mov(eax, ptr[large]); // moffset64
-					mov(eax, ptr[g_x]); // moffset64 (same as above)
-					mov(eax, ptr[cast(size_t)g_x+4]); // moffset64
-					mov(eax, ptr[rip+4]); // offset
-					mov(eax, ptr[rip+0+4]); // offset (same as above)
-					mov(eax, ptr[rip+lp]); // relative to lp
-					mov(eax, ptr[rip+lp+4]); // relative to lp+4
-					mov(eax, ptr[rip+lp+0+4]); // relative to lp+4 (same as above)
-					mov(eax, ptr[rip+p]); // relative to p
-					mov(eax, ptr[rip+p+4]); // relative to p+4
-				L(lp);
+						mov(eax, ptr[rax+0]); // m64
+						mov(eax, ptr[rax+0+4]); // m64
+						mov(eax, ptr[rax-0-4]); // m64
+						mov(eax, ptr[rax+cast(void*)0x12345678]); // m64
+						mov(eax, ptr[rax+cast(size_t)0x12345678]); // m64 (same as above)
+						mov(eax, ptr[cast(void*)0x12345678]); // m64
+						mov(eax, ptr[cast(void*)0x123456789]); // moffset64
+						mov(eax, ptr[large]); // moffset64
+						mov(eax, ptr[g_x]); // moffset64 (same as above)
+						mov(eax, ptr[cast(size_t)g_x+4]); // moffset64
+						mov(eax, ptr[rip+4]); // offset
+						mov(eax, ptr[rip+0+4]); // offset (same as above)
+						mov(eax, ptr[rip+lp]); // relative to lp
+						mov(eax, ptr[rip+lp+4]); // relative to lp+4
+						mov(eax, ptr[rip+lp+0+4]); // relative to lp+4 (same as above)
+						mov(eax, ptr[rip+p]); // relative to p
+						mov(eax, ptr[rip+p+4]); // relative to p+4
+					L(lp);
+					}
+				}
+
+				const uint8_t[] tbl = [
+					0x8b, 0x00, // mov, eax,[rax+0]
+					0x8b, 0x40, 0x04, // mov eax, [rax+0+4]
+					0x8b, 0x40, 0xfc,  // mov eax, [rax-0-4]
+					0x8b, 0x80, 0x78, 0x56, 0x34, 0x12, // mov eax, [rax+cast(void*)0x12345678]
+					0x8b, 0x80, 0x78, 0x56, 0x34, 0x12, // mov eax, [rax+cast(size_t)0x12345678]
+					0x8b, 0x04, 0x25, 0x78, 0x56, 0x34, 0x12,             // mov eax, [cast(void*)0x12345678]
+					0xa1, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00, // mov eax, [cast(void*)0x123456789]
+					0xa1, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, // mov eax, [large]
+					0xa1, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, // mov eax, [g_x]
+					0xa1, 0xd1, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, // mov eax, [cast(size_t)g_x+4]
+					0x8b, 0x05, 0x04, 0x00, 0x00, 0x00, // mov eax, [rip+4]
+					0x8b, 0x05, 0x04, 0x00, 0x00, 0x00, // mov eax, [rip+0+4]
+					0x8b, 0x05, 0x18, 0x00, 0x00, 0x00, // mov eax, [rip+lp]
+					0x8b, 0x05, 0x16, 0x00, 0x00, 0x00, // mov eax, [rip+lp+4]
+					0x8b, 0x05, 0x10, 0x00, 0x00, 0x00, // mov eax, [rip+lp+0+4]
+					0x8b, 0x05, 0x9d, 0xff, 0xff, 0xff, // mov eax, [rip+p]
+					0x8b, 0x05, 0x9b, 0xff, 0xff, 0xff, // mov eax, [rip+p+4]
+				];
+				const size_t n = tbl.length;
+
+				auto c = new Code(buf);
+				tc.TEST_EQUAL(c.getSize(), n);
+				auto ctbl = c.getCode();
+
+				for(int i=0; i < n; i++)
+				{
+					tc.TEST_EQUAL(ctbl[i], tbl[i]);
 				}
 			}
-
-			const uint8_t[] tbl = [
-				0x8b, 0x00, // mov, eax,[rax+0]
-				0x8b, 0x40, 0x04, // mov eax, [rax+0+4]
-				0x8b, 0x40, 0xfc,  // mov eax, [rax-0-4]
-				0x8b, 0x80, 0x78, 0x56, 0x34, 0x12, // mov eax, [rax+cast(void*)0x12345678]
-				0x8b, 0x80, 0x78, 0x56, 0x34, 0x12, // mov eax, [rax+cast(size_t)0x12345678]
-				0x8b, 0x04, 0x25, 0x78, 0x56, 0x34, 0x12,             // mov eax, [cast(void*)0x12345678]
-				0xa1, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x00, 0x00, // mov eax, [cast(void*)0x123456789]
-				0xa1, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, // mov eax, [large]
-				0xa1, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, // mov eax, [g_x]
-				0xa1, 0xd1, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, // mov eax, [cast(size_t)g_x+4]
-				0x8b, 0x05, 0x04, 0x00, 0x00, 0x00, // mov eax, [rip+4]
-				0x8b, 0x05, 0x04, 0x00, 0x00, 0x00, // mov eax, [rip+0+4]
-				0x8b, 0x05, 0x18, 0x00, 0x00, 0x00, // mov eax, [rip+lp]
-				0x8b, 0x05, 0x16, 0x00, 0x00, 0x00, // mov eax, [rip+lp+4]
-				0x8b, 0x05, 0x10, 0x00, 0x00, 0x00, // mov eax, [rip+lp+0+4]
-				0x8b, 0x05, 0x9d, 0xff, 0xff, 0xff, // mov eax, [rip+p]
-				0x8b, 0x05, 0x9b, 0xff, 0xff, 0xff, // mov eax, [rip+p+4]
-			];
-			const size_t n = tbl.length;
-
-			auto c = new Code(buf);
-			tc.TEST_EQUAL(c.getSize(), n);
-			auto ctbl = c.getCode();
-
-			for(int i=0; i < n; i++)
-			{
-				tc.TEST_EQUAL(ctbl[i], tbl[i]);
-			}
+			free32bitAddress(buf, size);
 		}
-		free32bitAddress(buf, size);
 	}
-}
 
 } // version(OSX) {} else
 
@@ -920,7 +920,7 @@ else
 			dd(d4);
 		}
 	}
-	
+
 	auto  c = new Code();
 	auto fn = cast(int32_t function())c.getCode();
 	auto v = fn();
@@ -994,12 +994,12 @@ void test4()
 			}
 		}
 	}
-	
+
 	MyAllocator myAlloc = new MyAllocator();
-	
+
 	for (int i = 0; i < 2; i++) {
 		bool useNewLabel = i == 0;
-	
+
 		scope Test4 fc = new Test4(1024, null, useNewLabel, myAlloc);
 		scope Test4 gc = new Test4(5, AutoGrow, !useNewLabel, myAlloc);
 		gc.ready();
@@ -1008,14 +1008,14 @@ void test4()
 		auto fsize = fc.getSize();
 		auto gcode = gc.getCode();
 		auto gsize = gc.getSize();
-	
+
 		tc.TEST_EQUAL(fsize, gsize);
 		if(fsize != gsize)
 		{
 			writefln("Test4 NG fsize:%d != gsize:%d", fsize, gsize );
 			assert(0);
 		}
-		
+
 		for (auto j = 0; j < fsize; j++)
 		{
 			tc.TEST_EQUAL(fcode[j], gcode[j]);
@@ -1038,7 +1038,7 @@ else
 	void test5()
 	{
 		scope tc = TestCount(__FUNCTION__);
-		
+
 		MyAllocator myAlloc = new MyAllocator();
 
 		class Test5 : CodeGenerator
@@ -1135,7 +1135,7 @@ unittest
 void MovLabel()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	class MovLabelCode : CodeGenerator
 	{
 		this(bool grow, bool useNewLabel)
@@ -1247,7 +1247,7 @@ void MovLabel()
 				uint8_t ok = pk[i].ok;
 				tc.TEST_EQUAL(x, ok);
 			}
-			
+
 			version (XBYAK32)
 			{
 				tc.checkAddr(p, 0x03, 0x001);
@@ -1273,7 +1273,7 @@ unittest
 void testMovLabel2()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	class MovLabel2Code : CodeGenerator
 	{
 		this()
@@ -1456,7 +1456,7 @@ void test6()
 		this(bool grow)
 		{
 			super(grow ? 128 : 4096, grow ? AutoGrow : null);
-	
+
 			xor(eax, eax);
 			inLocalLabel();
 			jmp("start0", T_NEAR);
@@ -1548,7 +1548,7 @@ void test_jcc()
 			ret();
 		}
 	}
-	
+
 	class B : CodeGenerator
 	{
 		this(bool grow, void* p)
@@ -1593,7 +1593,7 @@ void testNewLabel()
 		this(bool grow)
 		{
 			super(grow ? 128 : 4096, grow ? AutoGrow : null);
-		
+
 			xor(eax, eax);
 			{
 				Label label1, label2, label3, label4;
@@ -1732,7 +1732,7 @@ void testAssige()
 		this(bool grow)
 		{
 			super(grow ? 128 : 4096, grow ? AutoGrow : null);
-		
+
 			xor(eax, eax);
 			Label dst, src;
 		L(src);
@@ -1782,7 +1782,7 @@ unittest
 void doubleDefine()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	class Code1 : CodeGenerator
 	{
    		this()
@@ -1792,18 +1792,18 @@ void doubleDefine()
 		L(label);
 			// forbitten double L()
 			assertThrown!XError( L(label) );
-			writeln("OK 1:forbitten double L()");	
+			writeln("OK 1:forbitten double L()");
 		}
-	}			
-		
+	}
+
 	class Code2 : CodeGenerator
-	{	
+	{
 		this(ref TestCount tc)
 		{
 			super();
 			Label label;
 			jmp(label);
-			
+
 			tc.TEST_ASSERT( hasUndefinedLabel() );
 		//	assert( hasUndefinedLabel() );
 
@@ -1812,7 +1812,7 @@ void doubleDefine()
 	}
 
 	class Code3 : CodeGenerator
-	{	
+	{
 		this()
 		{
 			super();
@@ -1821,14 +1821,14 @@ void doubleDefine()
 			jmp(label2);
 			assignL(label2, label1);
 			// forbitten double assignL
-			
+
 			assertThrown!XError( assignL(label2, label1) );
 			writeln("OK 3:forbitten double assignL");
 		}
 	}
 
 	class Code4 : CodeGenerator
-	{	
+	{
 		this()
 		{
 			super();
@@ -1837,7 +1837,7 @@ void doubleDefine()
 			jmp(label2);
 			// forbitten assignment to label1 set by L()
 			assertThrown!XError( assignL(label1, label2) );
-			writeln("OK 4:forbitten assignment to label1 set by L()");			
+			writeln("OK 4:forbitten assignment to label1 set by L()");
 		}
 	}
 
@@ -1859,7 +1859,7 @@ void doubleDefine()
 
 
 class GetAddressCode1 : CodeGenerator
-{	
+{
 	void test(ref TestCount tc)
 	{
 		Label L1, L2, L3;
@@ -1890,7 +1890,7 @@ version(XBYAK64)
 		enum { ret0 = 3 }
 		enum { ret1 = 5 }
 		enum { ret2 = 8 }
-		
+
 		this()
 		{
 			super();
@@ -1958,7 +1958,7 @@ unittest
 void getAddress1()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	scope c = new GetAddressCode1();
 	c.test(tc);
 }
@@ -2016,7 +2016,7 @@ unittest
 void testGetAddressCode2()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	int[] sizeTbl = [
 		2, 128, // grow
 		4096 // not grow
@@ -2040,7 +2040,7 @@ version(XBYAK32)
 {
 	int add5(int x) { return x + 5; }
 	int add2(int x) { return x + 2; }
- 
+
 	@("test3")
 	unittest
 	{
@@ -2061,7 +2061,7 @@ version(XBYAK32)
 				push(eax);
 				call(&add5);
 				add(esp, 4);
-				
+
 				push(eax);
 				call(&add2);
 				add(esp, 4);
@@ -2071,7 +2071,7 @@ version(XBYAK32)
 				}
 			}
 		}
-	
+
 		const size_t maxSize = 40_000;
 		const size_t incSize = 10_000;
 
@@ -2079,13 +2079,13 @@ version(XBYAK32)
 			printf("dummySize=%d ", dummySize);
 			scope Grow g = new Grow(dummySize);
 			g.ready();
-			
+
 			auto f = cast(int function())g.getCode();
 			auto x = f();
-			
+
 			int ok = 107;
 			tc.TEST_EQUAL(x, ok);
-			if(x == ok) printf("test3 OK: %d == %d\n", x, ok); 
+			if(x == ok) printf("test3 OK: %d == %d\n", x, ok);
 			tc.TEST_EQUAL(x, ok);
 		}
 	}
@@ -2102,7 +2102,7 @@ version(XBYAK64)
 	void testrip()
 	{
 		scope tc = TestCount(__FUNCTION__);
-		
+
 		int[] a = [1, 10];
 		int[] b = [100, 1000];
 		class Code : CodeGenerator
@@ -2135,7 +2135,7 @@ version(XBYAK64)
 				tc.TEST_EXCEPTION!XError({ rip + rip; });
 			}
 		}
-		
+
 		scope code = new Code(a, b);
 		auto fn = code.getCode!(int function());
 		int ret = fn();
@@ -2186,7 +2186,7 @@ version(XBYAK64)
 		int sum = ret1234() + ret9999();
 		tc.TEST_EQUAL(ret,  sum);
 	}
-	
+
 	@("rip_addr")
 	unittest
 	{
@@ -2196,7 +2196,7 @@ version(XBYAK64)
 	void rip_addr()
 	{
 		scope tc = TestCount(__FUNCTION__);
-		
+
 		const int v0 = 1;
 		const int v1 = 3;
 		const int v2 = 9;
@@ -2235,14 +2235,14 @@ version(XBYAK64)
 	{
 		@("rip_addr_with_fixed_buf")
 		unittest
-		{			
+		{
 			rip_addr_with_fixed_buf();
 		}
 
 		void rip_addr_with_fixed_buf()
 		{
 			scope tc = TestCount(__FUNCTION__);
-			
+
 			align(4096) static uint8_t[8192] buf;
 			uint8_t* p = buf.ptr + 4096;
 			int* x0 = cast(int*) buf.ptr;
@@ -2254,7 +2254,7 @@ version(XBYAK64)
 					super(4096, p);
 					mov(eax, 123);
 					mov(ptr[rip + x0], eax);
-					mov(dword[rip + x1], 456);	
+					mov(dword[rip + x1], 456);
 					mov(byte_[rip + 1 + x1 + 3], 99);
 					ret();
 				}
@@ -2273,26 +2273,26 @@ version(XBYAK64)
 	}
 
  	@("ripLabel")
-    unittest
-    {
-        ripLabel();
-    }
+	unittest
+	{
+		ripLabel();
+	}
 
-    void ripLabel()
-    {
+	void ripLabel()
+	{
 		scope tc = TestCount(__FUNCTION__);
-		
-    	scope Code code = new Code();
+
+		scope Code code = new Code();
 		tc.TEST_EQUAL(code.getSize(), ok.length);
-		
+
 		const size_t n = ok.length;
 		auto ctbl = code.getCode();
 
-        for(int i=0; i < n; i++)
-        {
-            tc.TEST_EQUAL(ctbl[i], ok[i]);
-        }
-    }
+		for(int i=0; i < n; i++)
+		{
+			tc.TEST_EQUAL(ctbl[i], ok[i]);
+		}
+	}
 
 	const uint8_t[] ok = [
 		0xF3, 0x0F, 0xC2, 0x05, 0xF1, 0x00, 0x00, 0x00, 0x00,
@@ -2401,7 +2401,7 @@ void release_label_after_code()
 			scope (exit) destroy(code);
 		}
 		else
-		{	
+		{
 			writeln("scope");
 			scope code = new ReleaseTestCode(L1, L2, L3);
 		}
@@ -2470,7 +2470,7 @@ unittest
 void setDefaultJmpNEAR()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	alias LabelType = CodeGenerator.LabelType;
 	struct TBL{
 		bool pre;
@@ -2479,8 +2479,8 @@ void setDefaultJmpNEAR()
 		size_t expect1; // 0 means exception
 		size_t expect2;
 	}
-	
-	TBL[] tbl = 
+
+	TBL[] tbl =
 	[
 		TBL( false, false, T_SHORT, 2, 2 ),
 		TBL( false, false, T_NEAR, 5, 5 ),
@@ -2519,7 +2519,7 @@ void setDefaultJmpNEAR()
 				 code1.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
 			}
 			catch (Exception e) {
-        		// writeln("code1 catch");
+				// writeln("code1 catch");
 				ret = true;
 			}
 			if (ret) assert(ret);
@@ -2534,9 +2534,9 @@ void setDefaultJmpNEAR()
 				 code2.gen(tbl[i].pre, tbl[i].large, tbl[i].type);
 			}
 			catch (Exception e) {
-        		// writeln("code2 catch");
+				// writeln("code2 catch");
 				ret = true;
-     		}
+	 		}
 			if (ret) assert(ret);
 		}
 
@@ -2555,7 +2555,7 @@ void isDefined()
 	scope tc = TestCount(__FUNCTION__);
 
 	class Code : CodeGenerator
-	{	
+	{
 		this(ref TestCount tc)
 		{
 			super();
@@ -2585,7 +2585,7 @@ unittest
 void ambiguousFarJmp()
 {
 	scope tc = TestCount(__FUNCTION__);
-	
+
 	class Code : CodeGenerator
 	{
 version(XBYAK32){
