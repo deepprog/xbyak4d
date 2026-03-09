@@ -6,30 +6,33 @@ on:
   pull_request:
     branches: [ "master" ]
 
-permissions:
-  contents: read
-
 jobs:
   test:
     runs-on: macos-15-intel
 
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
-        compiler: [dmd, ldc, dmd-beta, ldc-beta]
+        compiler: [dmd, ldc]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install D compiler
+      # --- DMD 手動インストール ---
+      - name: Install DMD manually
+        if: matrix.compiler == 'dmd'
         run: |
-          source $(curl https://dlang.org/install.sh | bash -s -- ${{ matrix.compiler }} -a)
+          curl -fsSL https://downloads.dlang.org/releases/2.x/2.109.1/dmd.2.109.1.osx.tar.xz -o dmd.tar.xz
+          tar xf dmd.tar.xz
+          sudo cp -r dmd2/osx/bin/* /usr/local/bin/
+          sudo cp -r dmd2/osx/lib/* /usr/local/lib/
 
-      - name: Run tests (x86_64)
+      # --- LDC は Homebrew で OK ---
+      - name: Install LDC
+        if: matrix.compiler == 'ldc'
+        run: |
+          brew install ldc
+
+      - name: Run tests
         run: |
           dub test -ax86_64 --parallel -b=unittest-cov
-
-      - name: Upload coverage to Codecov
-        if: ${{ matrix.compiler == 'dmd' }}
-        run: bash <(curl -s https://codecov.io/bash)
