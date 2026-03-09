@@ -1,7 +1,9 @@
 name: macOS Intel x86_64
 
-on:
-  workflow_dispatch:
+push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
 
 permissions:
   contents: read
