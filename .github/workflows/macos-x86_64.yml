@@ -25,15 +25,12 @@ jobs:
           brew install dub
           dub --version
 
-      # D言語の公式ミラーから最新版を取得
-      - name: Install latest DMD (auto-detect)
+      - name: Install latest DMD
         if: matrix.compiler == 'dmd'
         run: |
-          curl -fsS https://dlang.org/install.sh | bash -s dmd
-          source ~/dlang/dmd-*/activate
+          brew install dmd
           dmd --version
 
-      # --- LDC は Homebrew で安定動作 ---
       - name: Install LDC
         if: matrix.compiler == 'ldc'
         run: |
