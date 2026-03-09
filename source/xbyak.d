@@ -2994,7 +2994,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
                 if ((type & (T_NX_MASK | T_N_VL)) == 0) {
                     type |= T_N16 | T_N_VL; // default
                 }
-                int low = type & T_NX_MASK;
+                auto low = type & T_NX_MASK;
                 if (low > 0) {
                     disp8N = 1 << (low - 1);
                     if (type & T_N_VL) disp8N *= (VL == 512 ? 4 : VL == 256 ? 2 : 1);
