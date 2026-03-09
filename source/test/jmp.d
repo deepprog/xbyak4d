@@ -685,7 +685,6 @@ void addr_in_2GiB()
 	free32bitAddress(buf, size);
 }
 
-}
 
 @("addr_label_backward_ref2")
 unittest
@@ -737,6 +736,8 @@ void addr_label_backward_ref2()
 	}
 	free32bitAddress(buf, size);
 }
+
+} // version(OSX) {} else
 
 version(XBYAK32)
 {
