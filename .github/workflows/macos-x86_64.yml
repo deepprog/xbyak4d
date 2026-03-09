@@ -1,6 +1,7 @@
 name: macOS Intel x86_64
 
-push:
+on:
+  push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
