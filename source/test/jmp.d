@@ -69,8 +69,7 @@ version(XBYAK64)
 			VirtualFree(p, 0, MEM_RELEASE);
 		}
 	}
-
-	version(linux)
+  else
 	{
 		import core.sys.linux.sys.mman;
 		void* get32bitAddress(uint32_t size)
