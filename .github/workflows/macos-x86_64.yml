@@ -25,25 +25,12 @@ jobs:
           brew install dub
           dub --version
 
-      # --- dmd 最新版を自動取得してインストール ---
+      # D言語の公式ミラーから最新版を取得
       - name: Install latest DMD (auto-detect)
         if: matrix.compiler == 'dmd'
         run: |
-          # 最新の macOS 用 dmd バージョンを自動取得
-          DMD_VER=$(curl -s https://downloads.dlang.org/releases/LATEST | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-          echo "Latest DMD version = $DMD_VER"
-
-          # macOS 用バイナリが存在するか確認
-          URL="https://downloads.dlang.org/releases/2.x/${DMD_VER}/dmd.${DMD_VER}.osx.tar.xz"
-          echo "Downloading: $URL"
-          curl -fSL "$URL" -o dmd.tar.xz
-
-          # 展開してインストール
-          tar xf dmd.tar.xz
-          sudo cp -r dmd2/osx/bin/* /usr/local/bin/
-          sudo cp -r dmd2/osx/lib/* /usr/local/lib/
-          sudo cp dmd2/osx/bin/dmd.conf /etc/dmd.conf
-
+          curl -fsS https://dlang.org/install.sh | bash -s dmd
+          source ~/dlang/dmd-*/activate
           dmd --version
 
       # --- LDC は Homebrew で安定動作 ---
