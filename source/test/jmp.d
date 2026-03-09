@@ -86,40 +86,6 @@ version(XBYAK64)
         munmap(p, size);
     }
 	}
-	
-	version (OSX) // macOS
-	{
-    import core.sys.posix.sys.mman;
-
-    // macOS には MAP_32BIT が無いので、32bit 範囲のアドレスを指定して mmap を試す
-    void* get32bitAddress(uint32_t size)
-    {
-        enum void* BASE_ADDR = cast(void*)0x10000000; // 256MB 付近から試す
-
-        void* p = mmap(BASE_ADDR, size,
-            PROT_READ | PROT_WRITE,
-            MAP_PRIVATE | MAP_ANON,
-            -1, 0);
-
-        // macOS は ASLR で別アドレスになる可能性があるためチェック
-        if (p == MAP_FAILED)
-            return null;
-
-        // 32bit 範囲外なら失敗扱いにする
-        if (cast(size_t)p > 0xFFFFFFFF)
-        {
-            munmap(p, size);
-            return null;
-        }
-
-        return p;
-    }
-
-    void free32bitAddress(void* p, uint32_t size)
-    {
-        munmap(p, size);
-    }
-	}
 
 }
 
