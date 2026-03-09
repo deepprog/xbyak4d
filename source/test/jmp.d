@@ -614,6 +614,12 @@ void mov_eax_offset()
 	tc.TEST_EQUAL(v, v0 * 3 + v1 + v2 + v3);
 }
 
+
+version (OSX) // macOS
+{}
+else
+{
+
 @("addr_in_2GiB")
 unittest
 {
@@ -677,6 +683,8 @@ void addr_in_2GiB()
 		tc.TEST_EQUAL(v, 2 * (v0 + v1 + v2 + v3));
 	}
 	free32bitAddress(buf, size);
+}
+
 }
 
 @("addr_label_backward_ref2")
