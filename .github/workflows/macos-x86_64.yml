@@ -21,17 +21,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --- 最新 dmd を手動インストール ---
-      - name: Install latest DMD
+      # --- dub をインストール ---
+      - name: Install dub
+        run: |
+          brew update
+          brew install dub
+          dub --version
+
+      # --- dmd 最新版を自動取得してインストール ---
+      - name: Install latest DMD (auto-detect)
         if: matrix.compiler == 'dmd'
         run: |
-          # 最新版に変更したい場合はここを書き換える
-          DMD_VER=2.112.1
-          curl -fsSL https://downloads.dlang.org/releases/2.x/${DMD_VER}/dmd.${DMD_VER}.osx.tar.xz -o dmd.tar.xz
+          # 最新の macOS 用 dmd バージョンを自動取得
+          DMD_VER=$(curl -s https://downloads.dlang.org/releases/LATEST | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          echo "Latest DMD version = $DMD_VER"
+
+          # macOS 用バイナリが存在するか確認
+          URL="https://downloads.dlang.org/releases/2.x/${DMD_VER}/dmd.${DMD_VER}.osx.tar.xz"
+          echo "Downloading: $URL"
+          curl -fSL "$URL" -o dmd.tar.xz
+
+          # 展開してインストール
           tar xf dmd.tar.xz
           sudo cp -r dmd2/osx/bin/* /usr/local/bin/
           sudo cp -r dmd2/osx/lib/* /usr/local/lib/
           sudo cp dmd2/osx/bin/dmd.conf /etc/dmd.conf
+
           dmd --version
 
       # --- LDC は Homebrew で安定動作 ---
