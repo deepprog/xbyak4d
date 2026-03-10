@@ -1324,6 +1324,168 @@ version (XBYAK64_WIN)
             return r;
         }
     }
-} // XBYAK_ONLY_CLASS_CPU
 
+class Profiler
+    {
+        int mode_;
+        const char* suffix_;
+        const void* startAddr_;
+    
+        version (XBYAK_USE_PERF)
+        {
+            FILE* fp_;
+        }
+
+    public:
+        enum
+        {
+            None = 0,
+            Perf = 1,
+            VTune = 2
+        }
+
+        this()
+        {
+            mode_ = None;
+            suffix_ = "";
+            startAddr_ = null;
+            version (XBYAK_USE_PERF)
+            {
+                fp_ = null;
+            }
+        }
+
+    // append suffix to funcName
+    void setNameSuffix(const char* suffix)
+    {
+        char* tmp = cast(char*) suffix_;
+        tmp = cast(char*) suffix;
+    }
+    void setStartAddr(const void* startAddr)
+    {
+        void* tmp = cast(void*) startAddr_;
+        tmp = cast(void*) startAddr;
+    }
+    void init_(int mode)
+    {
+        mode_ = None;
+        switch (mode)
+        {
+        default:
+        case None:
+            return;
+        case Perf:
+
+ 
+    version (XBYAK_USE_PERF)
+    {
+            close();
+            {
+                const int pid = getpid();
+                char[128] name;
+                snprintf(name, name.sizeof, "/tmp/perf-%d.map", pid);
+                fp_ = fopen(name, "a+");
+                if (fp_ == 0) {
+                    fprintf(stderr, "can't open %s\n", name);
+                    return;
+                }
+            }
+            mode_ = Perf;
+    }
+
+            return;
+        case VTune:
+
+version (XBYAK_USE_VTUNE)
+{
+
+                // enum RTLD_LAZY = 1;
+                // dlopen("dummy", RTLD_LAZY); // force to load dlopen to enable jit profiling
+                // import  core.runtime;
+                // Runtime rt;
+                //rt.loadLibrary("dummy");    
+
+                if (iJIT_IsProfilingActive() != iJIT_SAMPLING_ON)
+                {
+                    fprintf(stderr, "VTune profiling is not active\n");
+                    return;
+                }
+                printf("VTune\n");
+                mode_ = VTune;
 }
+
+            return;
+        }
+    }
+
+    ~this()
+    {
+        close();
+    }
+    void close()
+    {
+        version (XBYAK_USE_PERF)
+        {
+            if (fp_ is null) return;
+            fclose(fp_);
+            fp_ = null;
+        }
+    }
+
+    void set(const char* funcName, const void* startAddr, size_t funcSize) const
+    {
+        if (mode_ == None) return;
+
+version (XBYAK_USE_PERF)
+{
+        if (mode_ == Perf) {
+            if (fp_ is null) return;
+            fprintf(cast(FILE*) fp_, "%llx %zx %s%s", cast(int64_t) startAddr, funcSize, funcName, suffix_);
+            /*
+                perf does not recognize the function name which is less than 3,
+                so append '_' at the end of the name if necessary
+            */
+            size_t n = strlen(funcName) + strlen(suffix_);
+            for (size_t i = n; i < 3; i++) {
+                fprintf(cast(FILE*) fp_, "_");
+            }
+            fprintf(cast(FILE*) fp_, "\n");
+            fflush(cast(FILE*) fp_);
+        }
+}
+
+version (XBYAK_USE_VTUNE)
+{
+        if (mode_ != VTune) return;
+        char[] className; // = "";
+        char[] fileName; // = "";
+        iJIT_Method_Load jmethod; // = {};
+        jmethod.method_id = iJIT_GetNewMethodID();
+        jmethod.class_file_name = className.ptr;
+        jmethod.source_file_name = fileName.ptr;
+        jmethod.method_load_address = cast(void*) startAddr;
+        jmethod.method_size = cast(uint) funcSize;
+        jmethod.line_number_size = 0;
+        char[128] buf;
+        snprintf(buf.ptr, buf.sizeof, "%s%s", funcName, suffix_);
+        jmethod.method_name = buf.ptr;
+        iJIT_NotifyEvent(iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED, cast(void*) &jmethod);
+}
+    }
+    /*
+        for continuous set
+        funcSize = endAddr - <previous set endAddr>
+    */
+    void set(const char* funcName, const void* endAddr)
+    {
+        set(funcName, startAddr_, cast(size_t) endAddr - cast(size_t) startAddr_);
+        void* tmp = cast(void*) startAddr_;
+        tmp = cast(void*) endAddr;
+    }
+}
+
+    }   // XBYAK_ONLY_CLASS_CPU
+
+} // end of util
+
+
