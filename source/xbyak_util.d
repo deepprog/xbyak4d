@@ -180,7 +180,7 @@ alias piJIT_Method_Update = iJIT_Method_Update*;
     version (Posix)
     {
         import core.sys.posix.dlfcn;
-        extern(C) void* dlopen(const char*, int);
+        // extern(C) void* dlopen(const char*, int);
     }
 }
 
