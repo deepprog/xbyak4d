@@ -14,6 +14,178 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import std.stdint;
 
+version (XBYAK_USE_VTUNE)
+{
+extern (C):
+enum iJIT_JVM_EVENT
+{
+    iJVM_EVENT_TYPE_SHUTDOWN = 2,
+    iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED = 13,
+
+    iJVM_EVENT_TYPE_METHOD_UNLOAD_START,
+
+    iJVM_EVENT_TYPE_METHOD_UPDATE,
+    iJVM_EVENT_TYPE_METHOD_INLINE_LOAD_FINISHED,
+
+    iJVM_EVENT_TYPE_METHOD_UPDATE_V2,
+
+    iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED_V2 = 21,
+    iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED_V3
+}
+alias iJVM_EVENT_TYPE_SHUTDOWN = iJIT_JVM_EVENT.iJVM_EVENT_TYPE_SHUTDOWN;
+alias iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED = iJIT_JVM_EVENT.iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED;
+
+alias iJVM_EVENT_TYPE_METHOD_UNLOAD_START = iJIT_JVM_EVENT.iJVM_EVENT_TYPE_METHOD_UNLOAD_START;
+
+alias iJVM_EVENT_TYPE_METHOD_UPDATE = iJIT_JVM_EVENT.iJVM_EVENT_TYPE_METHOD_UPDATE;
+alias iJVM_EVENT_TYPE_METHOD_INLINE_LOAD_FINISHED = iJIT_JVM_EVENT.iJVM_EVENT_TYPE_METHOD_INLINE_LOAD_FINISHED;
+
+alias iJVM_EVENT_TYPE_METHOD_UPDATE_V2 = iJIT_JVM_EVENT.iJVM_EVENT_TYPE_METHOD_UPDATE_V2;
+
+alias iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED_V2 = iJIT_JVM_EVENT.iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED_V2;
+alias iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED_V3 = iJIT_JVM_EVENT.iJVM_EVENT_TYPE_METHOD_LOAD_FINISHED_V3;
+
+extern (C):
+enum iJIT_IsProfilingActiveFlags
+{
+    iJIT_NOTHING_RUNNING = 0x0000,
+    iJIT_SAMPLING_ON = 0x0001
+}
+alias iJIT_NOTHING_RUNNING = iJIT_IsProfilingActiveFlags.iJIT_NOTHING_RUNNING;
+alias iJIT_SAMPLING_ON = iJIT_IsProfilingActiveFlags.iJIT_SAMPLING_ON;
+
+extern (C):
+struct LineNumberInfo
+{
+    uint Offset;
+    uint LineNumber;
+}
+alias pLineNumberInfo = LineNumberInfo*;
+
+extern (C):
+enum iJIT_CodeArchitecture
+{
+    iJIT_CA_NATIVE = 0,
+    iJIT_CA_32,
+    iJIT_CA_64
+}
+
+extern (C):
+struct iJIT_Method_Load
+{
+    align(8)
+    {
+        uint method_id;
+        char* method_name;
+        void* method_load_address;
+        uint method_size;
+        uint line_number_size;
+        pLineNumberInfo line_number_table;
+        uint class_id;
+        char* class_file_name;
+        char* source_file_name;
+    }
+}
+alias piJIT_Method_Load = iJIT_Method_Load*;
+
+extern (C):
+struct iJIT_Method_Load_V2
+{
+    align(8)
+    {
+        uint method_id;
+        char* method_name;
+        void* method_load_address;
+        uint method_size;
+        uint line_number_size;
+        pLineNumberInfo line_number_table;
+        char* class_file_name;
+        char* source_file_name;
+        char* module_name;
+    }
+}
+alias piJIT_Method_Load_V2 = iJIT_Method_Load_V2*;
+
+extern (C):
+struct iJIT_Method_Load_V3
+{
+    align(8)
+    {
+        uint method_id;
+        char* method_name;
+        void* method_load_address;
+        uint method_size;
+        uint line_number_size;
+        pLineNumberInfo line_number_table;
+        char* class_file_name;
+        char* source_file_name;
+        char* module_name;
+        iJIT_CodeArchitecture module_arch;
+    }
+}
+alias piJIT_Method_Load_V3 = iJIT_Method_Load_V3*;
+
+extern (C):
+struct iJIT_Method_Inline_Load
+{
+    align(8)
+    {
+        uint method_id;
+        uint parent_method_id;
+        char* method_name;
+        void* method_load_address;
+        uint method_size;
+        uint line_number_size;
+        pLineNumberInfo line_number_table;
+        char* class_file_name;
+        char* source_file_name;
+    }
+}
+alias piJIT_Method_Inline_Load = iJIT_Method_Inline_Load*;
+
+extern (C):
+enum iJIT_SegmentType
+{
+    iJIT_CT_UNKNOWN = 0,
+    iJIT_CT_CODE,
+    iJIT_CT_DATA,
+    iJIT_CT_KEEP,
+    iJIT_CT_EOF
+}
+
+extern (C):
+struct iJIT_Method_Update
+{
+    align(8)
+    {
+        void* load_address;
+        uint size;
+        iJIT_SegmentType type;
+        const(char)* data_format;
+    }
+}
+alias piJIT_Method_Update = iJIT_Method_Update*;
+
+@nogc nothrow pure private extern(C) uint iJIT_GetNewMethodID();
+@nogc nothrow pure private extern(C) iJIT_IsProfilingActiveFlags iJIT_IsProfilingActive();
+@nogc nothrow pure private extern(C) int iJIT_NotifyEvent(iJIT_JVM_EVENT event_type, void* EventSpecificData);
+
+    version (Windows)
+    {
+        pragma(lib, "jitprofiling.lib");
+    }
+	
+    version (Posix)
+    {
+		// #include <dlfcn.h>
+    }
+}
+
+version (Posix)
+{
+    version = XBYAK_USE_PERF;
+}
+
 version (X86)
 {
     version = XBYAK32;
