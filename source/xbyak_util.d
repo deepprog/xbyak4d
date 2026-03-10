@@ -179,7 +179,8 @@ alias piJIT_Method_Update = iJIT_Method_Update*;
 
     version (Posix)
     {
-		// #include <dlfcn.h>
+        import core.sys.posix.dlfcn;
+        extern(C) void* dlopen(const char*, int);
     }
 }
 
@@ -1401,12 +1402,11 @@ class Profiler
 
 version (XBYAK_USE_VTUNE)
 {
-
-                // enum RTLD_LAZY = 1;
-                // dlopen("dummy", RTLD_LAZY); // force to load dlopen to enable jit profiling
-                // import  core.runtime;
-                // Runtime rt;
-                //rt.loadLibrary("dummy");
+            ////    enum RTLD_LAZY = 1;
+            ////    dlopen("dummy", RTLD_LAZY); // force to load dlopen to enable jit profiling
+            ////    import  core.runtime;
+            ////    Runtime rt;
+            ////    rt.loadLibrary("dummy");
 
                 if (iJIT_IsProfilingActive() != iJIT_SAMPLING_ON)
                 {
