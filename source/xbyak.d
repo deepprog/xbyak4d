@@ -1585,17 +1585,28 @@ version(XBYAK64)
         return this + RegExp(b);
     }
 
+    // since what size_t is typedef'd to depends on the implementation, use unsigned long long (assume u64) for the implementation.
+    RegExp opBinary(string op : "+")(ulong disp)
+    {
+        RegExp ret = this;
+        ret.disp_ += cast(size_t)disp;
+        return ret;
+    }
+
     // overload for integer literals (e.g. eax+0) to avoid ambiguity with the void* overload
     RegExp  opBinary(string op : "+")(int disp)
     {
-        return this + cast(size_t)disp;
+        return this + cast(ulong)disp;
     }
 
-    RegExp opBinary(string op : "+")(size_t disp)
+    RegExp  opBinary(string op : "+")(long disp)
     {
-        RegExp ret = this;
-        ret.disp_ += disp;
-        return ret;
+        return this + cast(ulong)disp;
+    }
+
+    RegExp  opBinary(string op : "+")(uint disp)
+    {
+        return this + cast(ulong)disp;
     }
 
     RegExp opBinary(string op : "-")(size_t disp)
@@ -1845,7 +1856,9 @@ public:
 //  @param size [in] write size(1, 2, 4, 8)
     void rewrite(size_t offset, uint64_t disp, size_t size)
     {
-        assert(offset < maxSize_);
+        if (offset >= maxSize_ || size > maxSize_ - offset) {
+            mixin(XBYAK_THROW(ERR.OFFSET_IS_TOO_BIG));
+        }
         if (size != 1 && size != 2 && size != 4 && size != 8) {
             mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
         }

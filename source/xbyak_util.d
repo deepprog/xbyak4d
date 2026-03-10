@@ -12,7 +12,9 @@ module xbyak_util;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
+import core.stdc.string;
 import std.stdint;
+import std.string : toStringz;
 
 version (XBYAK_USE_VTUNE)
 {
@@ -174,7 +176,7 @@ alias piJIT_Method_Update = iJIT_Method_Update*;
     {
         pragma(lib, "jitprofiling.lib");
     }
-	
+
     version (Posix)
     {
 		// #include <dlfcn.h>
@@ -202,7 +204,7 @@ version (Win64) version = XBYAK64_WIN;
 version (XBYAK_ONLY_CLASS_CPU)
 {
     import xbyak : ERR;
-   
+
     string XBYAK_THROW(ERR err)
     {
         return "return;";
@@ -280,7 +282,7 @@ public:
         {
             return this.H == rhs.H && this.L == rhs.L;
         }
-+/    
++/
         // without explicit because backward compatilibity
         bool opCast() const { return (H | L) != 0; }
         uint64_t getL() const { return L; }
@@ -774,7 +776,7 @@ public:
             if ((bv & 6) == 6) {
                 if (*ecx & (1U << 12)) type_ |= tFMA;
                 if (*ecx & (1U << 28)) type_ |= tAVX;
-                
+
                 if (((bv >> 5) & 7) == 7)
                 {
                     getCpuidEx(7, 0, data);
@@ -938,7 +940,7 @@ unittest
     import std.stdio;
     import test.test_count;
     scope tc = TestCount(__FUNCTION__);
- 
+
     writeln("unittest clock");
     writeln("loop n : clock");
     Clock cl;
@@ -954,7 +956,7 @@ unittest
     for(int i=0; i<n2; i++){}
     cl2.end();
     writeln(n2, " : ", cl2.getClock());
-    
+
     tc.TEST_ASSERT( cl.getClock() < cl2.getClock() );
 }
 
@@ -1105,7 +1107,7 @@ version (XBYAK64)
             tbl_[10] = ta;
         }
         this(
-            Reg64 tb, 
+            Reg64 tb,
             Reg64 ta,
             Reg64 t9, Reg64 t8, Reg64 t7, Reg64 t6, Reg64 t5, Reg64 t4, Reg64 t3, Reg64 t2, Reg64 t1, Reg64 t0
         )
@@ -1236,7 +1238,7 @@ version (XBYAK64_WIN)
             saveNum_ = 0;
             P_ = 0;
             makeEpilog_ = makeEpilog;
-        
+
             if (pNum < 0 || pNum > 4) mixin(XBYAK_THROW(ERR.BAD_PNUM));
             const int allRegNum = pNum + tNum_ + (useRcx_ ? 1 : 0) + (useRdx_ ? 1 : 0);
             if (tNum_ < 0 || allRegNum > maxRegNum) mixin(XBYAK_THROW(ERR.BAD_TNUM));
@@ -1249,19 +1251,19 @@ version (XBYAK64_WIN)
 
             P_ = (stackSizeByte + 7) / 8;
             if (P_ > 0 && (P_ & 1) == (saveNum_ & 1)) P_++; // (rsp % 16) == 8, then increment P_ for 16 byte alignment
-            
+
             P_ *= 8;
             if (P_ > 0) code.sub(_rsp, P_);
-            
+
             int pos = 0;
             for (int i = 0; i < pNum; i++) {
                 pTbl_[i] = new Reg64(getRegIdx(pos));
             }
-            
+
             for (int i = 0; i < tNum_; i++) {
                 tTbl_[i] = new Reg64(getRegIdx(pos));
             }
-            
+
             if (useRcx_ && rcxPos < pNum) code_.mov(code_.r10, code_.rcx);
             if (useRdx_ && rdxPos < pNum) code_.mov(code_.r11, code_.rdx);
 
@@ -1310,7 +1312,7 @@ version (XBYAK64_WIN)
         int getRegIdx(ref int pos)
         {
             assert(pos < maxRegNum);
-        
+
             int[] tbl = getOrderTbl();
             int r = tbl[pos++];
             if (useRcx_) {
@@ -1330,7 +1332,7 @@ class Profiler
         int mode_;
         const char* suffix_;
         const void* startAddr_;
-    
+
         version (XBYAK_USE_PERF)
         {
             FILE* fp_;
@@ -1376,17 +1378,18 @@ class Profiler
             return;
         case Perf:
 
- 
+
     version (XBYAK_USE_PERF)
     {
             close();
             {
+                import core.sys.posix.unistd : getpid;
                 const int pid = getpid();
                 char[128] name;
-                snprintf(name, name.sizeof, "/tmp/perf-%d.map", pid);
-                fp_ = fopen(name, "a+");
-                if (fp_ == 0) {
-                    fprintf(stderr, "can't open %s\n", name);
+                snprintf(name.ptr, name.sizeof, "/tmp/perf-%d.map", pid);
+                fp_ = fopen(name.toStringz, "a+".toStringz);
+                if (fp_ == null) {
+                    fprintf(stderr, "can't open %s\n", name.toStringz);
                     return;
                 }
             }
@@ -1403,7 +1406,7 @@ version (XBYAK_USE_VTUNE)
                 // dlopen("dummy", RTLD_LAZY); // force to load dlopen to enable jit profiling
                 // import  core.runtime;
                 // Runtime rt;
-                //rt.loadLibrary("dummy");    
+                //rt.loadLibrary("dummy");
 
                 if (iJIT_IsProfilingActive() != iJIT_SAMPLING_ON)
                 {
@@ -1487,5 +1490,3 @@ version (XBYAK_USE_VTUNE)
     }   // XBYAK_ONLY_CLASS_CPU
 
 } // end of util
-
-
