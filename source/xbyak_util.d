@@ -1402,8 +1402,8 @@ class Profiler
 
 version (XBYAK_USE_VTUNE)
 {
-            ////    enum RTLD_LAZY = 1;
-            ////    dlopen("dummy", RTLD_LAZY); // force to load dlopen to enable jit profiling
+            enum RTLD_LAZY = 1;
+            dlopen("dummy", RTLD_LAZY); // force to load dlopen to enable jit profiling
             ////    import  core.runtime;
             ////    Runtime rt;
             ////    rt.loadLibrary("dummy");
