@@ -34,12 +34,13 @@ import core.stdc.stdlib;
 
 import std.algorithm;
 import std.array;
+import std.container.dlist;
 import std.conv;
 import std.file;
+import std.range;
 import std.stdint;
 import std.stdio;
 import std.string;
-import std.container.dlist;
 
 void mapInsert(K, V)(ref V[K] m, K key, V value) {
     m[key] = value;
@@ -2553,11 +2554,7 @@ public:
     }
     void leaveLocal()
     {
-        size_t n = 0;
-        foreach (_; stateList_)
-            n++;
-
-        if (n <= 2)
+        if (stateList_[].walkLength <= 2)
             mixin(XBYAK_THROW(ERR.UNDER_LOCAL_LABEL));
         if (hasUndefinedLabel_inner(stateList_.back().undefList))
              mixin(XBYAK_THROW(ERR.LABEL_IS_NOT_FOUND));
