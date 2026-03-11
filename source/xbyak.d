@@ -40,6 +40,8 @@ import std.stdint;
 import std.stdio;
 import std.string;
 
+import cpp_list;
+
 void mapInsert(K, V)(ref V[K] m, K key, V value) {
     m[key] = value;
 }
@@ -95,9 +97,9 @@ size_t VERSION = 0x07352;  // 0xABCD = A.BC(D)
   }
 
 // MIE_ALIGN
+pragma(inline, true);
 T MIE_PACK(T)(T x, T y, T z, T w)
 {
-    pragma(inline, true);
     return x * 64 + y * 16 + z * 4 + w;
 }
 
@@ -1675,7 +1677,7 @@ class CodeArray
         }
     }
 
-    alias AddrInfoList = AddrInfo[] ;
+    alias AddrInfoList = list!(AddrInfo);
     AddrInfoList addrInfoList_;
     Type type_;
 
@@ -1716,10 +1718,9 @@ protected:
     void calcJmpAddress()
     {
         if (isCalledCalcJmpAddress_) return;
-        foreach (i; addrInfoList_)
-        {
-            uint64_t disp = i.getVal(top_);
-            rewrite(i.codeOffset, disp, i.jmpSize);
+        for (auto i = addrInfoList_.begin(), ie = addrInfoList_.end(); i != ie; ++i) {
+            uint64_t disp = i.allow.getVal(top_);
+            rewrite(i.allow.codeOffset, disp, i.allow.jmpSize);
         }
         isCalledCalcJmpAddress_ = true;
     }
@@ -1781,7 +1782,7 @@ public:
     void resetSize()
     {
         size_ = 0;
-        addrInfoList_.length = 0;
+        addrInfoList_.clear();
         isCalledCalcJmpAddress_ = false;
     }
     void db(int code)
@@ -1869,7 +1870,7 @@ public:
     }
     void save(size_t offset, size_t val, int size, inner.LabelMode mode)
     {
-        addrInfoList_ ~= AddrInfo(offset, val, size, mode);
+        addrInfoList_.push_back(AddrInfo(offset, val, size, mode));
     }
     bool isAutoGrow() const { return type_ == Type.AUTO_GROW; }
     bool isCalledCalcJmpAddress() const { return isCalledCalcJmpAddress_; }
@@ -2404,7 +2405,7 @@ struct LabelManager
         SlabelDefList defList;
         SlabelUndefList undefList;
     }
-    alias StateList = SlabelState[];
+    alias StateList = list!(SlabelState);
 
 // for Label class
     struct ClabelVal
@@ -2534,9 +2535,9 @@ public:
     {
         base_ = null;
         labelId_ = 1;
-        stateList_ = [];
-        stateList_ ~= SlabelState();
-        stateList_ ~= SlabelState();
+        stateList_.clear();
+        stateList_.push_back(SlabelState());
+        stateList_.push_back(SlabelState());
 
         foreach(key; clabelDefList_.keys) {
             clabelDefList_.remove(key);
@@ -2549,19 +2550,15 @@ public:
 
     void enterLocal()
     {
-        stateList_ ~= SlabelState();
+        stateList_.push_back(SlabelState());
     }
     void leaveLocal()
     {
-        if (stateList_.length <= 2)
-        {
+        if (stateList_.size() <= 2)
             mixin(XBYAK_THROW(ERR.UNDER_LOCAL_LABEL));
-        }
-        if (hasUndefinedLabel_inner(stateList_[$-1].undefList))
-        {
-            mixin(XBYAK_THROW(ERR.LABEL_IS_NOT_FOUND));
-        }
-        stateList_.popBack();
+        if (hasUndefinedLabel_inner(stateList_.back().undefList))
+             mixin(XBYAK_THROW(ERR.LABEL_IS_NOT_FOUND));
+        stateList_.pop_back();
     }
 
     void set(CodeArray base)
@@ -2574,20 +2571,20 @@ public:
             mixin(XBYAK_THROW(ERR.BAD_LABEL_STR));
         }
         if (label == "@@") {
-            SlabelDefList defList = stateList_[0].defList;
-        	auto i = defList.mapFind("@f");
+            ref defList = stateList_.front().defList;
+            auto i = defList.mapFind("@f");
             if (i != defList.mapEnd()) {
-                stateList_[0].defList.mapErase("@f");
+                defList.mapErase("@f");
                 label = "@b";
             } else {
                 i = defList.mapFind("@b");
                 if (i != defList.mapEnd()) {
-                    stateList_[0].defList.mapErase("@b");
+                    defList.mapErase("@b");
                 }
                 label = "@f";
             }
         }
-        SlabelState* st = label[0] == '.' ? &stateList_[$-1] : &stateList_[0];
+        ref SlabelState st = label[0] == '.' ? stateList_.back() : stateList_.front();
         define_inner(st.defList, st.undefList, label, base_.getSize());
     }
     void defineClabel(Label* label)
@@ -2608,19 +2605,19 @@ public:
     }
     bool getOffset(size_t* offset, ref string label)
     {
-        SlabelDefList dfList = stateList_[0].defList;
+        ref SlabelDefList defList = stateList_.front().defList;
         if (label == "@b") {
-            if (dfList.mapFind("@f") != dfList.mapEnd()) {
+            if (defList.mapFind("@f") != defList.mapEnd()) {
                 label = "@f";
-            } else if (dfList.mapFind("@b") == dfList.mapEnd()) {
+            } else if (defList.mapFind("@b") == defList.mapEnd()) {
                 mixin(XBYAK_THROW_RET(ERR.LABEL_IS_NOT_FOUND, "false"));
             }
         } else if (label == "@f") {
-            if (dfList.mapFind("@f") != dfList.mapEnd()) {
+            if (defList.mapFind("@f") != defList.mapEnd()) {
                 label = "@b";
             }
         }
-        SlabelState* st = label[0] == '.' ? &stateList_[$-1] : &stateList_[0];
+        ref SlabelState st = label[0] == '.' ? stateList_.back() : stateList_.front();
         return getOffset_inner(st.defList, offset, label);
     }
     bool getOffset(size_t* offset, Label* label)
@@ -2629,17 +2626,17 @@ public:
     }
     void addUndefinedLabel(ref string label, ref JmpLabel jmp)
     {
-        SlabelState* st = label[0] == '.' ? &stateList_[$-1] : &stateList_[0];
+        ref SlabelState st = label[0] == '.' ? stateList_.back() : stateList_.front();
         st.undefList[label] ~= jmp;
     }
     void addUndefinedLabel(Label* label, ref JmpLabel jmp)
     {
         clabelUndefList_[label.id] ~= jmp;
     }
-    bool hasUndefSlabel() const
+    bool hasUndefSlabel() //const
     {
-        foreach (st; stateList_) {
-            if (hasUndefinedLabel_inner(st.undefList)) return true;
+        for (auto i = stateList_.begin(), ie = stateList_.end(); i != ie; ++i) {
+            if (hasUndefinedLabel_inner(i.allow.undefList)) return true;
         }
         return false;
     }
@@ -4661,7 +4658,7 @@ else
         labelMgr_.reset();
         labelMgr_.set(this);
     }
-    bool hasUndefinedLabel() const
+    bool hasUndefinedLabel() //const
     {
         return labelMgr_.hasUndefSlabel() || labelMgr_.hasUndefClabel();
     }
