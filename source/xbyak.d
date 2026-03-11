@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.7352
- * Date: 2026/03/06
+ * Version: 0.7353
+ * Date: 2026/03/11
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright (c) 2019 deepprog
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -39,8 +39,7 @@ import std.file;
 import std.stdint;
 import std.stdio;
 import std.string;
-
-import cpp_list;
+import std.container.dlist;
 
 void mapInsert(K, V)(ref V[K] m, K key, V value) {
     m[key] = value;
@@ -80,7 +79,7 @@ V* mapEnd(K, V)(ref V[K] m) {
   }
 
 size_t DEFAULT_MAX_CODE_SIZE = 4096 * 8;
-size_t VERSION = 0x07352;  // 0xABCD = A.BC(D)
+size_t VERSION = 0x07353;  // 0xABCD = A.BC(D)
 
 
   version (MIE_INTEGER_TYPE_DEFINED)
@@ -1677,7 +1676,7 @@ class CodeArray
         }
     }
 
-    alias AddrInfoList = list!(AddrInfo);
+    alias AddrInfoList = DList!(AddrInfo);
     AddrInfoList addrInfoList_;
     Type type_;
 
@@ -1718,9 +1717,9 @@ protected:
     void calcJmpAddress()
     {
         if (isCalledCalcJmpAddress_) return;
-        for (auto i = addrInfoList_.begin(), ie = addrInfoList_.end(); i != ie; ++i) {
-            uint64_t disp = i.allow.getVal(top_);
-            rewrite(i.allow.codeOffset, disp, i.allow.jmpSize);
+        foreach (i; addrInfoList_) {
+            uint64_t disp = i.getVal(top_);
+            rewrite(i.codeOffset, disp, i.jmpSize);
         }
         isCalledCalcJmpAddress_ = true;
     }
@@ -1870,7 +1869,7 @@ public:
     }
     void save(size_t offset, size_t val, int size, inner.LabelMode mode)
     {
-        addrInfoList_.push_back(AddrInfo(offset, val, size, mode));
+        addrInfoList_.insertBack(AddrInfo(offset, val, size, mode));
     }
     bool isAutoGrow() const { return type_ == Type.AUTO_GROW; }
     bool isCalledCalcJmpAddress() const { return isCalledCalcJmpAddress_; }
@@ -2405,7 +2404,7 @@ struct LabelManager
         SlabelDefList defList;
         SlabelUndefList undefList;
     }
-    alias StateList = list!(SlabelState);
+    alias StateList = DList!(SlabelState);
 
 // for Label class
     struct ClabelVal
@@ -2536,8 +2535,8 @@ public:
         base_ = null;
         labelId_ = 1;
         stateList_.clear();
-        stateList_.push_back(SlabelState());
-        stateList_.push_back(SlabelState());
+        stateList_.insertBack(SlabelState());
+        stateList_.insertBack(SlabelState());
 
         foreach(key; clabelDefList_.keys) {
             clabelDefList_.remove(key);
@@ -2550,15 +2549,19 @@ public:
 
     void enterLocal()
     {
-        stateList_.push_back(SlabelState());
+        stateList_.insertBack(SlabelState());
     }
     void leaveLocal()
     {
-        if (stateList_.size() <= 2)
+        size_t n = 0;
+        foreach (_; stateList_)
+            n++;
+
+        if (n <= 2)
             mixin(XBYAK_THROW(ERR.UNDER_LOCAL_LABEL));
         if (hasUndefinedLabel_inner(stateList_.back().undefList))
              mixin(XBYAK_THROW(ERR.LABEL_IS_NOT_FOUND));
-        stateList_.pop_back();
+        stateList_.removeBack();
     }
 
     void set(CodeArray base)
@@ -2635,8 +2638,8 @@ public:
     }
     bool hasUndefSlabel() //const
     {
-        for (auto i = stateList_.begin(), ie = stateList_.end(); i != ie; ++i) {
-            if (hasUndefinedLabel_inner(i.allow.undefList)) return true;
+        foreach(i; stateList_) {
+            if (hasUndefinedLabel_inner(i.undefList)) return true;
         }
         return false;
     }
@@ -4818,7 +4821,7 @@ version (XBYAK_DONT_READ_LIST)
 else
 {
 
-string getVersionString() const { return "0.7352"; }
+string getVersionString() const { return "0.7353"; }
 void aadd(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38, 0x0FC, T_APX); }
 void aand(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38|T_66, 0x0FC, T_APX|T_66); }
 void adc(Operand op, uint32_t imm) { opOI(op, imm, 0x10, 2); }
