@@ -37,7 +37,7 @@ import std.array;
 import std.container.dlist;
 import std.conv;
 import std.file;
-import std.range;
+import std.range : walkLength;
 import std.stdint;
 import std.stdio;
 import std.string;
@@ -68,19 +68,21 @@ V* mapEnd(K, V)(ref V[K] m) {
 
 struct Set(T)
 {
-    struct Node(T)
+    alias Iterator = const(Node)* ;
+
+    struct Node
     {
-        T* TPtr_;
+        T t_;
         Node* left, right, parent;
         Node* prev, next;
 
-        inout(T)* getPtr() inout
+        inout(T) getValue() inout
         {
-            return TPtr_;
+            return t_;
         }
     }
 
-    static Node!T* minimumNode(Node!T* n) @nogc nothrow
+    static Node* minimumNode(Node* n) @nogc nothrow
     {
         while (n && n.left)
         {
@@ -89,26 +91,26 @@ struct Set(T)
         return n;
     }
 
-    Node!T* root, head, tail;
+    Node* root, head, tail;
     size_t length;
 
-    Node!T* createNode(T* t) @nogc nothrow
+    Node* createNode(T t) @nogc nothrow
     {
-        Node!T* n = cast(Node!T*) malloc(Node!T.sizeof);
+        Node* n = cast(Node*) malloc(Node.sizeof);
         if (n)
         {
-            *n = Node!T.init;
-            *n = Node!T(t, null, null, null, null, null);
+            *n = Node.init;
+            *n = Node(t, null, null, null, null, null);
         }
         return n;
     }
 
-    const(Node!T)* begin() const @nogc nothrow
+    const(Node)* begin() const @nogc nothrow
     {
         return head;
     }
 
-    const(Node!T)* end() const @nogc nothrow
+    const(Node)* end() const @nogc nothrow
     {
         return null;
     }
@@ -123,26 +125,26 @@ struct Set(T)
         return length == 0;
     }
 
-    bool insert(T* t) @nogc nothrow
+    bool insert(T t) @nogc nothrow
     {
         if (find(t))
         {
             return false;
         }
 
-        Node!T* z = createNode(t);
+        Node* z = createNode(t);
         if (z is null)
         {
             return false;
         }
 
-        Node!T* y = null;
-        Node!T* x = root;
+        Node* y = null;
+        Node* x = root;
 
         while (x)
         {
             y = x;
-            x = (t < x.TPtr_) ? x.left : x.right;
+            x = (t < x.t_) ? x.left : x.right;
         }
 
         z.parent = y;
@@ -150,7 +152,7 @@ struct Set(T)
         {
             root = head = tail = z;
         }
-        else if (t < y.TPtr_)
+        else if (t < y.t_)
         {
             y.left = z;
             z.next = y;
@@ -185,23 +187,23 @@ struct Set(T)
         return true;
     }
 
-    const(Node!T)* find(T* t) const @nogc nothrow
+    const(Node)* find(T t) const @nogc nothrow
     {
-        const(Node!T)* curr = root;
+        const(Node)* curr = root;
         while (curr)
         {
-            if (t == curr.TPtr_)
+            if (t == curr.t_)
             {
                 return curr;
             }
-            curr = (t < curr.TPtr_) ? curr.left : curr.right;
+            curr = (t < curr.t_) ? curr.left : curr.right;
         }
         return null;
     }
 
-    bool erase(T* t) @nogc nothrow
+    bool erase(T t) @nogc nothrow
     {
-        Node!T* z = cast(Node!T*) find(t);
+        Node* z = cast(Node*) find(t);
         if (z is null)
         {
             return false;
@@ -225,9 +227,9 @@ struct Set(T)
             tail = z.prev;
         }
 
-        Node!T* y = (!z.left || !z.right) ? z : minimumNode(z.right);
+        Node* y = (!z.left || !z.right) ? z : minimumNode(z.right);
 
-        Node!T* x = (y.left) ? y.left : y.right;
+        Node* x = (y.left) ? y.left : y.right;
         if (x)
         {
             x.parent = y.parent;
@@ -248,14 +250,14 @@ struct Set(T)
 
         if (y != z)
         {
-            z.TPtr_ = y.TPtr_;
+            z.t_ = y.t_;
         }
         free(y);
         --length;
         return true;
     }
 
-    void destroy(Node!T* n) @nogc nothrow
+    void destroy(Node* n) @nogc nothrow
     {
         if (n)
         {
@@ -265,13 +267,15 @@ struct Set(T)
         }
     }
 
-    void release() @nogc nothrow
+    void clear() @nogc nothrow
     {
         destroy(root);
         root = head = tail = null;
         length = 0;
     }
 }
+
+alias XBYAK_STD_UNORDERED_SET = Set;
 
   version (Windows)
   {
@@ -2424,7 +2428,7 @@ struct LabelManager
     }
     alias ClabelDefList = ClabelVal[int];
     alias ClabelUndefList = JmpLabel[][int];
-    alias LabelPtrList = Set!Label;
+    alias LabelPtrList = XBYAK_STD_UNORDERED_SET!(Label*);
     CodeArray base_;
 
 // global : stateList_[0], local : stateList_[$-1]
@@ -2522,12 +2526,12 @@ struct LabelManager
     // detach all labels linked to LabelManager
     void resetLabelPtrList()
     {
-        for (auto i = labelPtrList_.begin(), ie = labelPtrList_.end(); i != ie; i = i.next)
+        for (LabelPtrList.Iterator i = labelPtrList_.begin(), ie = labelPtrList_.end(); i != ie; i = i.next)
         {
-            Label* label = cast(Label*) i.getPtr();
+            Label* label = cast(Label*) i.getValue();
             label.clear();
         }
-        labelPtrList_.release();
+        labelPtrList_.clear();
     }
 
 public:
