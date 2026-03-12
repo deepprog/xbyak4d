@@ -66,6 +66,12 @@ V* mapEnd(K, V)(ref V[K] m) {
     return null;
 }
 
+struct Map(K, V)
+{
+    private V[K] data;
+    alias data this;
+}
+
 struct Set(T)
 {
     alias Iterator = const(Node)* ;
@@ -275,6 +281,7 @@ struct Set(T)
     }
 }
 
+alias XBYAK_STD_UNORDERED_MAP = Map;
 alias XBYAK_STD_UNORDERED_SET = Set;
 
   version (Windows)
@@ -2405,7 +2412,7 @@ struct LabelManager
             this.offset = offset;
         }
     }
-    alias SlabelDefList = SlabelVal[string];
+    alias SlabelDefList = XBYAK_STD_UNORDERED_MAP!(string, SlabelVal);
     alias SlabelUndefList = JmpLabel[][string];
 
     struct SlabelState
@@ -2426,7 +2433,7 @@ struct LabelManager
             this.refCount = 1;
         }
     }
-    alias ClabelDefList = ClabelVal[int];
+    alias ClabelDefList = XBYAK_STD_UNORDERED_MAP!(int, ClabelVal);
     alias ClabelUndefList = JmpLabel[][int];
     alias LabelPtrList = XBYAK_STD_UNORDERED_SET!(Label*);
     CodeArray base_;
@@ -2547,10 +2554,8 @@ public:
         stateList_.clear();
         stateList_.insertBack(SlabelState());
         stateList_.insertBack(SlabelState());
+        clabelDefList_.clear();
 
-        foreach(key; clabelDefList_.keys) {
-            clabelDefList_.remove(key);
-        }
         foreach(key; clabelUndefList_.keys) {
             clabelUndefList_.remove(key);
         }
