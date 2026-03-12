@@ -66,6 +66,213 @@ V* mapEnd(K, V)(ref V[K] m) {
     return null;
 }
 
+struct Set(T)
+{
+    struct Node(T)
+    {
+        T* TPtr_;
+        Node* left, right, parent;
+        Node* prev, next;
+
+        inout(T)* getPtr() inout
+        {
+            return TPtr_;
+        }
+    }
+
+    static Node!T* minimumNode(Node!T* n) @nogc nothrow
+    {
+        while (n && n.left)
+        {
+            n = n.left;
+        }
+        return n;
+    }
+
+    Node!T* root, head, tail;
+    size_t length;
+
+    Node!T* createNode(T* t) @nogc nothrow
+    {
+        Node!T* n = cast(Node!T*) malloc(Node!T.sizeof);
+        if (n)
+        {
+            *n = Node!T.init;
+            *n = Node!T(t, null, null, null, null, null);
+        }
+        return n;
+    }
+
+    const(Node!T)* begin() const @nogc nothrow
+    {
+        return head;
+    }
+
+    const(Node!T)* end() const @nogc nothrow
+    {
+        return null;
+    }
+
+    size_t size() const @nogc nothrow
+    {
+        return length;
+    }
+
+    bool empty() const @nogc nothrow
+    {
+        return length == 0;
+    }
+
+    bool insert(T* t) @nogc nothrow
+    {
+        if (find(t))
+        {
+            return false;
+        }
+
+        Node!T* z = createNode(t);
+        if (z is null)
+        {
+            return false;
+        }
+
+        Node!T* y = null;
+        Node!T* x = root;
+
+        while (x)
+        {
+            y = x;
+            x = (t < x.TPtr_) ? x.left : x.right;
+        }
+
+        z.parent = y;
+        if (y is null)
+        {
+            root = head = tail = z;
+        }
+        else if (t < y.TPtr_)
+        {
+            y.left = z;
+            z.next = y;
+            z.prev = y.prev;
+            if (y.prev)
+            {
+                y.prev.next = z;
+            }
+            else
+            {
+                head = z;
+            }
+            y.prev = z;
+        }
+        else
+        {
+            y.right = z;
+            z.prev = y;
+            z.next = y.next;
+            if (y.next)
+            {
+                y.next.prev = z;
+            }
+            else
+            {
+                tail = z;
+            }
+            y.next = z;
+        }
+
+        ++length;
+        return true;
+    }
+
+    const(Node!T)* find(T* t) const @nogc nothrow
+    {
+        const(Node!T)* curr = root;
+        while (curr)
+        {
+            if (t == curr.TPtr_)
+            {
+                return curr;
+            }
+            curr = (t < curr.TPtr_) ? curr.left : curr.right;
+        }
+        return null;
+    }
+
+    bool erase(T* t) @nogc nothrow
+    {
+        Node!T* z = cast(Node!T*) find(t);
+        if (z is null)
+        {
+            return false;
+        }
+
+        if (z.prev)
+        {
+            z.prev.next = z.next;
+        }
+        else
+        {
+            head = z.next;
+        }
+
+        if (z.next)
+        {
+            z.next.prev = z.prev;
+        }
+        else
+        {
+            tail = z.prev;
+        }
+
+        Node!T* y = (!z.left || !z.right) ? z : minimumNode(z.right);
+
+        Node!T* x = (y.left) ? y.left : y.right;
+        if (x)
+        {
+            x.parent = y.parent;
+        }
+
+        if (y.parent is null)
+        {
+            root = x;
+        }
+        else if (y == y.parent.left)
+        {
+            y.parent.left = x;
+        }
+        else
+        {
+            y.parent.right = x;
+        }
+
+        if (y != z)
+        {
+            z.TPtr_ = y.TPtr_;
+        }
+        free(y);
+        --length;
+        return true;
+    }
+
+    void destroy(Node!T* n) @nogc nothrow
+    {
+        if (n)
+        {
+            destroy(n.left);
+            destroy(n.right);
+            free(n);
+        }
+    }
+
+    void release() @nogc nothrow
+    {
+        destroy(root);
+        root = head = tail = null;
+        length = 0;
+    }
+}
+
   version (Windows)
   {
     import core.sys.windows.windows;  // VirtualProtect
@@ -2183,209 +2390,6 @@ public:
 }
 
 
-struct Node
-{
-    Label* labelPtr_;
-    Node* left, right, parent;
-    Node* prev, next;
-}
-
-Node* minimumNode(Node* n) @nogc nothrow
-{
-    while (n && n.left)
-    {
-        n = n.left;
-    }
-    return n;
-}
-
-struct LabelPtrList
-{
-    Node* root, head, tail;
-    size_t length;
-
-    Node* createNode(Label* labelPtr) @nogc nothrow
-    {
-        Node* n = cast(Node*) malloc(Node.sizeof);
-        if (n)
-        {
-            *n = Node.init;
-            *n = Node(labelPtr, null, null, null, null, null);
-        }
-        return n;
-    }
-
-    const(Node)* begin() const @nogc nothrow
-    {
-        return head;
-    }
-
-    const(Node)* end() const @nogc nothrow
-    {
-        return null;
-    }
-
-    size_t size() const @nogc nothrow
-    {
-        return length;
-    }
-
-    bool empty() const @nogc nothrow
-    {
-        return length == 0;
-    }
-
-    bool insert(Label* labelPtr) @nogc nothrow
-    {
-        if (find(labelPtr))
-        {
-            return false;
-        }
-
-        Node* z = createNode(labelPtr);
-        if (z is null)
-        {
-            return false;
-        }
-
-        Node* y = null;
-        Node* x = root;
-
-        while (x)
-        {
-            y = x;
-            x = (labelPtr < x.labelPtr_) ? x.left : x.right;
-        }
-
-        z.parent = y;
-        if (y is null)
-        {
-            root = head = tail = z;
-        }
-        else if (labelPtr < y.labelPtr_)
-        {
-            y.left = z;
-            z.next = y;
-            z.prev = y.prev;
-            if (y.prev)
-            {
-                y.prev.next = z;
-            }
-            else
-            {
-                head = z;
-            }
-            y.prev = z;
-        }
-        else
-        {
-            y.right = z;
-            z.prev = y;
-            z.next = y.next;
-            if (y.next)
-            {
-                y.next.prev = z;
-            }
-            else
-            {
-                tail = z;
-            }
-            y.next = z;
-        }
-
-        ++length;
-        return true;
-    }
-
-    const(Node)* find(Label* labelPtr) const @nogc nothrow
-    {
-        const(Node)* curr = root;
-        while (curr)
-        {
-            if (labelPtr == curr.labelPtr_)
-            {
-                return curr;
-            }
-            curr = (labelPtr < curr.labelPtr_) ? curr.left : curr.right;
-        }
-        return null;
-    }
-
-    bool erase(Label* labelPtr) @nogc nothrow
-    {
-        Node* z = cast(Node*) find(labelPtr);
-        if (z is null)
-        {
-            return false;
-        }
-
-        if (z.prev)
-        {
-            z.prev.next = z.next;
-        }
-        else
-        {
-            head = z.next;
-        }
-
-        if (z.next)
-        {
-            z.next.prev = z.prev;
-        }
-        else
-        {
-            tail = z.prev;
-        }
-
-        Node* y = (!z.left || !z.right) ? z : minimumNode(z.right);
-
-        Node* x = (y.left) ? y.left : y.right;
-        if (x)
-        {
-            x.parent = y.parent;
-        }
-
-        if (y.parent is null)
-        {
-            root = x;
-        }
-        else if (y == y.parent.left)
-        {
-            y.parent.left = x;
-        }
-        else
-        {
-            y.parent.right = x;
-        }
-
-        if (y != z)
-        {
-            z.labelPtr_ = y.labelPtr_;
-        }
-        free(y);
-        --length;
-        return true;
-    }
-
-    void destroy(Node* n) @nogc nothrow
-    {
-        if (n)
-        {
-            destroy(n.left);
-            destroy(n.right);
-            free(n);
-        }
-    }
-
-    void release() @nogc nothrow
-    {
-        destroy(root);
-        root = head = tail = null;
-        length = 0;
-    }
-}
-
-
 struct LabelManager
 {
 // for string label
@@ -2420,6 +2424,7 @@ struct LabelManager
     }
     alias ClabelDefList = ClabelVal[int];
     alias ClabelUndefList = JmpLabel[][int];
+    alias LabelPtrList = Set!Label;
     CodeArray base_;
 
 // global : stateList_[0], local : stateList_[$-1]
@@ -2519,7 +2524,7 @@ struct LabelManager
     {
         for (auto i = labelPtrList_.begin(), ie = labelPtrList_.end(); i != ie; i = i.next)
         {
-            Label* label = cast(Label*) i.labelPtr_;
+            Label* label = cast(Label*) i.getPtr();
             label.clear();
         }
         labelPtrList_.release();
