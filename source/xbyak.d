@@ -69,7 +69,40 @@ V* mapEnd(K, V)(ref V[K] m) {
 struct Map(K, V)
 {
     private V[K] data;
-    alias data this;
+//    alias data this;
+
+    void Insert(K key, V value) {
+        data[key] = value;
+    }
+
+    inout(V)* Find(K key) inout
+    {
+        return key in data;
+    }
+
+    bool Erase(K key) {
+        return data.remove(key);
+    }
+
+    size_t Size() {
+        return data.length;
+    }
+
+    void Clear()
+    {
+        data.clear();
+    }
+
+    inout(V)* End() inout
+    {
+        return cast(V*)null;
+    }
+
+    ref V opIndex(K key)
+    {
+        return data[key];
+    }
+
 }
 
 struct Set(T)
@@ -2386,9 +2419,9 @@ public:
         return this.mgr.getCode() + offset;
     }
 
-    bool isDefined()
+    bool isDefined() //const
     {
-        return this.mgr && this.mgr.isDefined(this);
+        return mgr && mgr.isDefined(this);
     }
 
     // backward compatibility
@@ -2453,10 +2486,10 @@ struct LabelManager
     void define_inner(DefList, UndefList, T)(ref DefList deflist, ref UndefList undeflist, T labelId, size_t addrOffset)
     {
         // add label
-        if (deflist.mapFind(labelId) != deflist.mapEnd()) {
+        if (deflist.Find(labelId) != deflist.End()) {
             mixin(XBYAK_THROW(ERR.LABEL_IS_REDEFINED));
         }
-        deflist.mapInsert(labelId, typeof(deflist[labelId])(addrOffset));
+        deflist.Insert(labelId, typeof(deflist[labelId])(addrOffset));
 
         // search undefined label
         auto itr = undeflist.mapFind(labelId);
@@ -2496,8 +2529,8 @@ struct LabelManager
     bool getOffset_inner(DefList, T)(DefList defList, size_t* offset, T label)
     if(is(T == string) || is(T == int))
     {
-        auto i = defList.mapFind(label);
-        if (i == defList.mapEnd()) return false;
+        auto i = defList.Find(label);
+        if (i == defList.End()) return false;
         *offset = defList[label].offset;
         return true;
     }
@@ -2509,12 +2542,12 @@ struct LabelManager
     void decRefCount(int id, Label* label)
     {
         labelPtrList_.erase(label);
-        const i = clabelDefList_.mapFind(id);
-        if (i == clabelDefList_.mapEnd()) {
+        const i = clabelDefList_.Find(id);
+        if (i == clabelDefList_.End()) {
             return;
         }
         if (clabelDefList_[id].refCount == 1) {
-            clabelDefList_.mapErase(id);
+            clabelDefList_.Erase(id);
         } else {
             clabelDefList_[id].refCount -= 1;
         }
@@ -2554,7 +2587,7 @@ public:
         stateList_.clear();
         stateList_.insertBack(SlabelState());
         stateList_.insertBack(SlabelState());
-        clabelDefList_.clear();
+        clabelDefList_.Clear();
 
         foreach(key; clabelUndefList_.keys) {
             clabelUndefList_.remove(key);
@@ -2586,14 +2619,14 @@ public:
         }
         if (label == "@@") {
             ref defList = stateList_.front().defList;
-            auto i = defList.mapFind("@f");
-            if (i != defList.mapEnd()) {
-                defList.mapErase("@f");
+            auto i = defList.Find("@f");
+            if (i != defList.End()) {
+                defList.Erase("@f");
                 label = "@b";
             } else {
-                i = defList.mapFind("@b");
-                if (i != defList.mapEnd()) {
-                    defList.mapErase("@b");
+                i = defList.Find("@b");
+                if (i != defList.End()) {
+                    defList.Erase("@b");
                 }
                 label = "@f";
             }
@@ -2609,8 +2642,8 @@ public:
     }
     void assign(ref Label dst, ref Label src)
     {
-        const i = clabelDefList_.mapFind(src.id);
-        if(i == clabelDefList_.mapEnd()) {
+        const i = clabelDefList_.Find(src.id);
+        if(i == clabelDefList_.End()) {
             mixin(XBYAK_THROW(ERR.LABEL_ISNOT_SET_BY_L));
         }
         define_inner(clabelDefList_, clabelUndefList_, dst.id, i.offset);
@@ -2621,13 +2654,13 @@ public:
     {
         ref SlabelDefList defList = stateList_.front().defList;
         if (label == "@b") {
-            if (defList.mapFind("@f") != defList.mapEnd()) {
+            if (defList.Find("@f") != defList.End()) {
                 label = "@f";
-            } else if (defList.mapFind("@b") == defList.mapEnd()) {
+            } else if (defList.Find("@b") == defList.End()) {
                 mixin(XBYAK_THROW_RET(ERR.LABEL_IS_NOT_FOUND, "false"));
             }
         } else if (label == "@f") {
-            if (defList.mapFind("@f") != defList.mapEnd()) {
+            if (defList.Find("@f") != defList.End()) {
                 label = "@b";
             }
         }
@@ -2666,7 +2699,7 @@ public:
     }
     bool isDefined(Label label) const
     {
-        return null != (label.id in clabelDefList_);
+        return clabelDefList_.Find(label.id) != clabelDefList_.End();
     }
 }
 
