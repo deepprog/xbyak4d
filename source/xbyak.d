@@ -86,9 +86,9 @@ struct Map(K, V)
 struct MultiMap(K, V)
 {
     private V[][K] data;
-    //alias data this;
+    alias data this;
 
-     struct value_type
+    struct value_type
     {
         K first;
         V second;
