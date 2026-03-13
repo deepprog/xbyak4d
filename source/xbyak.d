@@ -42,36 +42,12 @@ import std.stdint;
 import std.stdio;
 import std.string;
 
-/+
-void mapInsert(K, V)(ref V[K] m, K key, V value) {
-    m[key] = value;
-}
-
-V* mapFind(K, V)(ref V[K] m, K key) {
-    return key in m;
-}
-
-bool mapErase(K, V)(ref V[K] m, K key) {
-    return m.remove(key);
-}
-
-size_t mapSize(K, V)(ref V[K] m) {
-    return m.length;
-}
-
-void mapClear(K, V)(ref V[K] m) {
-    m = V[K].init;
-}
-
-V* mapEnd(K, V)(ref V[K] m) {
-    return null;
-}
-+/
 
 struct Map(K, V)
 {
     private V[K] data;
-//    alias data this;
+    alias iterator = V* ;
+    alias const_iterator = const V* ;
 
     void Insert(K key, V value) {
         data[key] = value;
@@ -79,7 +55,7 @@ struct Map(K, V)
 
     inout(V)* Find(K key) inout
     {
-        return key in data;
+        return (key in data);
     }
 
     bool Erase(K key) {
@@ -95,9 +71,9 @@ struct Map(K, V)
         data.clear();
     }
 
-    inout(V)* End() inout
+    const(V)* End() const
     {
-        return cast(V*)null;
+        return cast(const V*)null;
     }
 
     ref V opIndex(K key)
@@ -111,6 +87,29 @@ struct MultiMap(K, V)
 {
     private V[][K] data;
     alias data this;
+
+     struct value_type
+    {
+        K first;
+        V second;
+
+        this(K k, V v)
+        {
+            first = k;
+            second = v;
+        }
+    }
+
+/+
+    void Insert(K key, V value)
+    {
+        data[key] ~= value;
+    }
++/
+    void Insert(value_type p)
+    {
+        data[p.first] ~= p.second;
+    }
 
     void Clear()
     {
@@ -2653,8 +2652,8 @@ public:
             mixin(XBYAK_THROW(ERR.BAD_LABEL_STR));
         }
         if (label == "@@") {
-            ref defList = stateList_.front().defList;
-            auto i = defList.Find("@f");
+            ref SlabelDefList defList = stateList_.front().defList;
+            SlabelDefList.iterator i = defList.Find("@f");
             if (i != defList.End()) {
                 defList.Erase("@f");
                 label = "@b";
@@ -2677,7 +2676,7 @@ public:
     }
     void assign(ref Label dst, ref Label src)
     {
-        const i = clabelDefList_.Find(src.id);
+        ClabelDefList.const_iterator i = clabelDefList_.Find(src.id);
         if(i == clabelDefList_.End()) {
             mixin(XBYAK_THROW(ERR.LABEL_ISNOT_SET_BY_L));
         }
@@ -2685,9 +2684,9 @@ public:
         dst.mgr = &this;
         labelPtrList_.insert(&dst);
     }
-    bool getOffset(size_t* offset, ref string label)
+    bool getOffset(size_t* offset, ref string label) //const
     {
-        ref SlabelDefList defList = stateList_.front().defList;
+        const ref SlabelDefList defList = stateList_.front().defList;
         if (label == "@b") {
             if (defList.Find("@f") != defList.End()) {
                 label = "@f";
@@ -2709,11 +2708,11 @@ public:
     void addUndefinedLabel(ref string label, ref JmpLabel jmp)
     {
         ref SlabelState st = label[0] == '.' ? stateList_.back() : stateList_.front();
-        st.undefList[label] ~= jmp;
+        st.undefList.Insert(SlabelUndefList.value_type(label, jmp));
     }
     void addUndefinedLabel(Label* label, ref JmpLabel jmp)
     {
-        clabelUndefList_[label.id] ~= jmp;
+        clabelUndefList_.Insert(ClabelUndefList.value_type(label.id, jmp));
     }
     bool hasUndefSlabel() //const
     {
@@ -2726,10 +2725,12 @@ public:
     {
         return hasUndefinedLabel_inner(clabelUndefList_);
     }
-    uint8_t* getCode() { return base_.getCode(); }
+    uint8_t* getCode() //const
+    {
+        return base_.getCode();
+    }
     bool isReady() const
     {
-        if(base_ is null) return false;
         return !base_.isAutoGrow() || base_.isCalledCalcJmpAddress();
     }
     bool isDefined(Label label) const
