@@ -136,38 +136,67 @@ struct MultiMap(K, V)
     }
 }
 
+
 struct Set(T)
 {
-    alias Iterator = const(Node)* ;
-
     struct Node
     {
         T t_;
         Node* left, right, parent;
         Node* prev, next;
 
-        inout(T) getValue() inout
-        {
-            return t_;
-        }
-
-        inout(Node)* getNext() inout
-        {
-            return next;
-        }
-    }
-
-    static Node* minimumNode(Node* n) @nogc nothrow
-    {
-        while (n && n.left)
-        {
-            n = n.left;
-        }
-        return n;
+        inout(T) getValue() inout { return t_; }
+        inout(Node)* getNext() inout { return next; }
     }
 
     Node* root, head, tail;
     size_t length;
+
+    struct Iterator
+    {
+        Node* p;
+
+        void opUnary(string op)() if (op == "++")
+        {
+            p = p ? p.next : null;
+        }
+
+        ref T opUnary(string op)() if (op == "*")
+        {
+            return p.t_;
+        }
+
+        bool opEquals(const Iterator rhs) const
+        {
+            return p == rhs.p;
+        }
+    }
+
+    struct ConstIterator
+    {
+        const(Node)* p;
+
+        void opUnary(string op)() if (op == "++")
+        {
+            p = p ? p.next : null;
+        }
+
+        const(T) opUnary(string op)() const if (op == "*")
+        {
+            return p.t_;
+        }
+
+        bool opEquals(const ConstIterator rhs) const
+        {
+            return p == rhs.p;
+        }
+    }
+
+    Iterator begin() @nogc nothrow { return Iterator(head); }
+    Iterator end()   @nogc nothrow { return Iterator(null); }
+
+    ConstIterator begin() const @nogc nothrow { return ConstIterator(head); }
+    ConstIterator end()   const @nogc nothrow { return ConstIterator(null); }
 
     Node* createNode(T t) @nogc nothrow
     {
@@ -175,43 +204,28 @@ struct Set(T)
         if (n)
         {
             *n = Node.init;
-            *n = Node(t, null, null, null, null, null);
+            n.t_ = t;
         }
         return n;
     }
 
-    const(Node)* begin() const @nogc nothrow
+    const(Node)* find(T t) const @nogc nothrow
     {
-        return head;
-    }
-
-    const(Node)* end() const @nogc nothrow
-    {
+        const(Node)* curr = root;
+        while (curr)
+        {
+            if (t == curr.t_) return curr;
+            curr = (t < curr.t_) ? curr.left : curr.right;
+        }
         return null;
-    }
-
-    size_t size() const @nogc nothrow
-    {
-        return length;
-    }
-
-    bool empty() const @nogc nothrow
-    {
-        return length == 0;
     }
 
     bool insert(T t) @nogc nothrow
     {
-        if (find(t))
-        {
-            return false;
-        }
+        if (find(t)) return false;
 
         Node* z = createNode(t);
-        if (z is null)
-        {
-            return false;
-        }
+        if (!z) return false;
 
         Node* y = null;
         Node* x = root;
@@ -223,7 +237,7 @@ struct Set(T)
         }
 
         z.parent = y;
-        if (y is null)
+        if (!y)
         {
             root = head = tail = z;
         }
@@ -232,14 +246,8 @@ struct Set(T)
             y.left = z;
             z.next = y;
             z.prev = y.prev;
-            if (y.prev)
-            {
-                y.prev.next = z;
-            }
-            else
-            {
-                head = z;
-            }
+            if (y.prev) y.prev.next = z;
+            else head = z;
             y.prev = z;
         }
         else
@@ -247,14 +255,8 @@ struct Set(T)
             y.right = z;
             z.prev = y;
             z.next = y.next;
-            if (y.next)
-            {
-                y.next.prev = z;
-            }
-            else
-            {
-                tail = z;
-            }
+            if (y.next) y.next.prev = z;
+            else tail = z;
             y.next = z;
         }
 
@@ -262,84 +264,45 @@ struct Set(T)
         return true;
     }
 
-    const(Node)* find(T t) const @nogc nothrow
-    {
-        const(Node)* curr = root;
-        while (curr)
-        {
-            if (t == curr.t_)
-            {
-                return curr;
-            }
-            curr = (t < curr.t_) ? curr.left : curr.right;
-        }
-        return null;
-    }
-
     bool erase(T t) @nogc nothrow
     {
         Node* z = cast(Node*) find(t);
-        if (z is null)
-        {
-            return false;
-        }
+        if (!z) return false;
 
-        if (z.prev)
-        {
-            z.prev.next = z.next;
-        }
-        else
-        {
-            head = z.next;
-        }
+        if (z.prev) z.prev.next = z.next;
+        else head = z.next;
 
-        if (z.next)
-        {
-            z.next.prev = z.prev;
-        }
-        else
-        {
-            tail = z.prev;
-        }
+        if (z.next) z.next.prev = z.prev;
+        else tail = z.prev;
 
         Node* y = (!z.left || !z.right) ? z : minimumNode(z.right);
+        Node* x = y.left ? y.left : y.right;
 
-        Node* x = (y.left) ? y.left : y.right;
-        if (x)
-        {
-            x.parent = y.parent;
-        }
+        if (x) x.parent = y.parent;
 
-        if (y.parent is null)
-        {
-            root = x;
-        }
-        else if (y == y.parent.left)
-        {
-            y.parent.left = x;
-        }
-        else
-        {
-            y.parent.right = x;
-        }
+        if (!y.parent) root = x;
+        else if (y == y.parent.left) y.parent.left = x;
+        else y.parent.right = x;
 
-        if (y != z)
-        {
-            z.t_ = y.t_;
-        }
+        if (y != z) z.t_ = y.t_;
+
         free(y);
         --length;
         return true;
     }
 
+    static Node* minimumNode(Node* n) @nogc nothrow
+    {
+        while (n && n.left) n = n.left;
+        return n;
+    }
+
     void destroy(Node* n) @nogc nothrow
     {
-        if (n)
-        {
-            destroy(n.left);
-            destroy(n.right);
-            free(n);
-        }
+        if (!n) return;
+        destroy(n.left);
+        destroy(n.right);
+        free(n);
     }
 
     void clear() @nogc nothrow
@@ -2603,10 +2566,9 @@ struct LabelManager
     // detach all labels linked to LabelManager
     void resetLabelPtrList()
     {
-        for (LabelPtrList.Iterator i = labelPtrList_.begin(), ie = labelPtrList_.end(); i != ie; i = i.getNext())
+        for (LabelPtrList.Iterator i = labelPtrList_.begin(), ie = labelPtrList_.end(); i != ie; ++i)
         {
-            Label* label = cast(Label*) i.getValue();
-            label.clear();
+            (*i).clear();
         }
         labelPtrList_.clear();
     }
