@@ -42,6 +42,7 @@ import std.stdint;
 import std.stdio;
 import std.string;
 
+/+
 void mapInsert(K, V)(ref V[K] m, K key, V value) {
     m[key] = value;
 }
@@ -65,6 +66,7 @@ void mapClear(K, V)(ref V[K] m) {
 V* mapEnd(K, V)(ref V[K] m) {
     return null;
 }
++/
 
 struct Map(K, V)
 {
@@ -105,6 +107,36 @@ struct Map(K, V)
 
 }
 
+struct MultiMap(K, V)
+{
+    private V[][K] data;
+    alias data this;
+
+    void Clear()
+    {
+        data.clear();
+    }
+
+    bool Erase(K key) {
+        return data.remove(key);
+    }
+
+    bool Empty() const
+    {
+        return data.length == 0;
+    }
+
+    inout(V[])* Find(K key) inout
+    {
+        return key in data;
+    }
+
+    inout(V[])* End() inout
+    {
+        return null;
+    }
+}
+
 struct Set(T)
 {
     alias Iterator = const(Node)* ;
@@ -118,6 +150,11 @@ struct Set(T)
         inout(T) getValue() inout
         {
             return t_;
+        }
+
+        inout(Node)* getNext() inout
+        {
+            return next;
         }
     }
 
@@ -315,6 +352,7 @@ struct Set(T)
 }
 
 alias XBYAK_STD_UNORDERED_MAP = Map;
+alias XBYAK_STD_UNORDERED_MULTIMAP = MultiMap;
 alias XBYAK_STD_UNORDERED_SET = Set;
 
   version (Windows)
@@ -2446,7 +2484,7 @@ struct LabelManager
         }
     }
     alias SlabelDefList = XBYAK_STD_UNORDERED_MAP!(string, SlabelVal);
-    alias SlabelUndefList = JmpLabel[][string];
+    alias SlabelUndefList = XBYAK_STD_UNORDERED_MULTIMAP!(string, JmpLabel);
 
     struct SlabelState
     {
@@ -2467,7 +2505,7 @@ struct LabelManager
         }
     }
     alias ClabelDefList = XBYAK_STD_UNORDERED_MAP!(int, ClabelVal);
-    alias ClabelUndefList = JmpLabel[][int];
+    alias ClabelUndefList = XBYAK_STD_UNORDERED_MULTIMAP!(int, JmpLabel);
     alias LabelPtrList = XBYAK_STD_UNORDERED_SET!(Label*);
     CodeArray base_;
 
@@ -2492,8 +2530,8 @@ struct LabelManager
         deflist.Insert(labelId, typeof(deflist[labelId])(addrOffset));
 
         // search undefined label
-        auto itr = undeflist.mapFind(labelId);
-        if (itr == undeflist.mapEnd()) return;
+        auto itr = undeflist.Find(labelId);
+        if (itr == undeflist.End()) return;
 
         foreach (JmpLabel jmp; undeflist[labelId]) {
             size_t offset = jmp.endOfJmp - jmp.jmpSize;
@@ -2522,7 +2560,7 @@ struct LabelManager
             } else {
                 base_.rewrite(offset, disp, jmp.jmpSize);
             }
-            undeflist.remove(labelId);
+            undeflist.Erase(labelId);
         }
     }
 
@@ -2561,12 +2599,12 @@ struct LabelManager
             writeln("undefined label:", c);
         }
   }
-        return !list.empty();
+        return !list.Empty();
     }
     // detach all labels linked to LabelManager
     void resetLabelPtrList()
     {
-        for (LabelPtrList.Iterator i = labelPtrList_.begin(), ie = labelPtrList_.end(); i != ie; i = i.next)
+        for (LabelPtrList.Iterator i = labelPtrList_.begin(), ie = labelPtrList_.end(); i != ie; i = i.getNext())
         {
             Label* label = cast(Label*) i.getValue();
             label.clear();
@@ -2588,10 +2626,7 @@ public:
         stateList_.insertBack(SlabelState());
         stateList_.insertBack(SlabelState());
         clabelDefList_.Clear();
-
-        foreach(key; clabelUndefList_.keys) {
-            clabelUndefList_.remove(key);
-        }
+        clabelUndefList_.Clear();
         resetLabelPtrList();
     }
 
@@ -2687,7 +2722,7 @@ public:
         }
         return false;
     }
-    bool hasUndefClabel() const
+    bool hasUndefClabel() //const
     {
         return hasUndefinedLabel_inner(clabelUndefList_);
     }
