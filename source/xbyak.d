@@ -42,6 +42,12 @@ import std.stdint;
 import std.stdio;
 import std.string;
 
+template ImportEnumMembers(E)
+{
+    static foreach (m; __traits(allMembers, E))
+        static if (__traits(compiles, mixin("E." ~ m)))
+            mixin("alias " ~ m ~ " = E." ~ m ~ ";");
+}
 
 struct Map(K, V)
 {
@@ -620,6 +626,7 @@ static:
         Labs, // absolute
         LaddTop // (addr + top) for mov(reg, label) with AutoGrow
     }
+    mixin ImportEnumMembers!LabelMode;
 
     enum AddressMode
     {
