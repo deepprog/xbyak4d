@@ -2326,9 +2326,9 @@ struct Label
 public:
     this(ref Label rhs)
     {
-        this.id = rhs.id;
-        this.mgr = rhs.mgr;
-        if (this.mgr)
+        id = rhs.id;
+        mgr = rhs.mgr;
+        if (mgr)
         {
             mgr.incRefCount(id, &this);
         }
@@ -2336,23 +2336,23 @@ public:
 
     ~this()
     {
-        if (this.id && this.mgr)
+        if (id && mgr)
         {
-            mgr.decRefCount(this.id, &this);
+            mgr.decRefCount(id, &this);
         }
     }
 
     Label opAssign(ref Label rhs)
     {
-        if (this.id)
+        if (id)
         {
             mixin(XBYAK_THROW_RET(ERR.LABEL_IS_ALREADY_SET_BY_L, "this"));
         }
-        this.id = rhs.id;
-        this.mgr = rhs.mgr;
-        if (this.mgr)
+        id = rhs.id;
+        mgr = rhs.mgr;
+        if (mgr)
         {
-            mgr.incRefCount(this.id, &this);
+            mgr.incRefCount(id, &this);
         }
         return this;
     }
@@ -2374,27 +2374,27 @@ public:
 
     void clear()
     {
-        this.mgr = null;
-        this.id = 0;
+        mgr = null;
+        id = 0;
     }
 
     int getId() const
     {
-        return this.id;
+        return id;
     }
 
     uint8_t* getAddress()
     {
-        if (this.mgr is null || !this.mgr.isReady())
+        if (mgr is null || !mgr.isReady())
         {
             return null;
         }
         size_t offset;
-        if (!this.mgr.getOffset(&offset, &this))
+        if (!mgr.getOffset(&offset, &this))
         {
             return null;
         }
-        return this.mgr.getCode() + offset;
+        return mgr.getCode() + offset;
     }
 
     bool isDefined() //const
