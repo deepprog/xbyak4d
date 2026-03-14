@@ -2483,7 +2483,7 @@ struct LabelManager
         foreach (JmpLabel jmp; undeflist[labelId]) {
             size_t offset = jmp.endOfJmp - jmp.jmpSize;
             size_t disp;
-            if (jmp.mode == innerLaddTop) {
+            if (jmp.mode == inner.LaddTop) {
                 disp = addrOffset;
             } else if (jmp.mode == inner.Labs) {
                 disp = cast(size_t) base_.getCurr;
