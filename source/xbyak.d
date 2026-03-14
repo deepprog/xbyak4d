@@ -2483,9 +2483,9 @@ struct LabelManager
         foreach (JmpLabel jmp; undeflist[labelId]) {
             size_t offset = jmp.endOfJmp - jmp.jmpSize;
             size_t disp;
-            if (jmp.mode == inner.LabelMode.LaddTop) {
+            if (jmp.mode == innerLaddTop) {
                 disp = addrOffset;
-            } else if (jmp.mode == inner.LabelMode.Labs) {
+            } else if (jmp.mode == inner.Labs) {
                 disp = cast(size_t) base_.getCurr;
             } else {
                 disp = addrOffset - jmp.endOfJmp + jmp.disp;
@@ -2499,7 +2499,7 @@ struct LabelManager
                     mixin(XBYAK_THROW(ERR.LABEL_IS_TOO_FAR));
                 }
             }
-            if (jmp.mode != inner.LabelMode.LasIs) {
+            if (jmp.mode != inner.LasIs) {
                 disp += jmp.disp;
             }
             if (base_.isAutoGrow()) {
@@ -3278,7 +3278,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
                 db(shortCode);
                 db(0);
             }
-            JmpLabel jmp = JmpLabel(size_, jmpSize, inner.LabelMode.LasIs);
+            JmpLabel jmp = JmpLabel(size_, jmpSize, inner.LasIs);
             labelMgr_.addUndefinedLabel(label, jmp);
         }
     }
@@ -3303,7 +3303,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
                 db(shortCode);
                 db(0);
             }
-            JmpLabel jmp = JmpLabel(size_, jmpSize, inner.LabelMode.LasIs);
+            JmpLabel jmp = JmpLabel(size_, jmpSize, inner.LasIs);
             labelMgr_.addUndefinedLabel(&label, jmp);
         }
     }
@@ -3320,7 +3320,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             if (longPref) db(longPref);
             db(longCode);
             dd(0);
-            save(size_ - 4, cast(size_t) addr - size_, 4, inner.LabelMode.Labs);
+            save(size_ - 4, cast(size_t) addr - size_, 4, inner.Labs);
         } else {
             makeJmp(inner.VerifyInInt32(cast(uint8_t*) addr - getCurr), type, shortCode, longCode, longPref);
         }
@@ -3681,7 +3681,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
                 db(inner.VerifyInInt32(offset + disp - size_ - jmpSize), jmpSize);
             } else if (isAutoGrow()) {
                 db(cast(uint64_t) 0, jmpSize);
-                save(size_ - jmpSize, offset, jmpSize, inner.LabelMode.LaddTop);
+                save(size_ - jmpSize, offset, jmpSize, inner.LaddTop);
             } else {
                 db(cast(size_t) top_ + offset, jmpSize);
             }
@@ -3692,7 +3692,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             JmpLabel(
                 size_,
                 jmpSize,
-                (relative ? inner.LabelMode.LasIs : isAutoGrow() ? inner.LabelMode.LaddTop : inner.LabelMode.Labs),
+                (relative ? inner.LasIs : isAutoGrow() ? inner.LaddTop : inner.Labs),
                 disp
             );
 
