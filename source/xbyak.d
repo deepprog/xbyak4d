@@ -88,6 +88,9 @@ struct MultiMap(K, V)
     private V[][K] data;
     alias data this;
 
+    alias iterator = V[]* ;
+    alias const_iterator = const V[]* ;
+
     struct value_type
     {
         K first;
@@ -2478,7 +2481,7 @@ struct LabelManager
     ClabelUndefList clabelUndefList_;
     LabelPtrList labelPtrList_;
 
-    int getId(Label* label)
+    int getId(Label* label) //const
     {
         if (label.id == 0) label.id = labelId_++;
         return label.id;
@@ -2683,7 +2686,7 @@ public:
         }
         return false;
     }
-    bool hasUndefClabel() //const
+    bool hasUndefClabel() const
     {
         return hasUndefinedLabel_inner(clabelUndefList_);
     }
