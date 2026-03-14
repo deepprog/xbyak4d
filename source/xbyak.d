@@ -1902,9 +1902,9 @@ class CodeArray
         uint64_t getVal(uint8_t* top) const
         {
             uint64_t disp =
-                (mode == inner.LabelMode.LaddTop) ?
+                (mode == inner.LaddTop) ?
                     jmpAddr + cast(size_t) top :
-                    (mode == inner.LabelMode.LasIs) ?
+                    (mode == inner.LasIs) ?
                         jmpAddr :
                         jmpAddr - cast(size_t) top;
 
@@ -2316,7 +2316,7 @@ struct JmpLabel
     inner.LabelMode mode;
     size_t disp; // disp for [rip + disp] or [forward ref label + disp]
 
-    this(size_t endOfJmp, int jmpSize, inner.LabelMode mode = inner.LabelMode.LasIs, size_t disp = 0)
+    this(size_t endOfJmp, int jmpSize, inner.LabelMode mode = inner.LasIs, size_t disp = 0)
     {
         this.endOfJmp = endOfJmp;
         this.jmpSize = jmpSize;
