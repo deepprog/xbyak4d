@@ -55,14 +55,15 @@ struct Map(K, V)
 
     inout(V)* Find(K key) inout
     {
-        return (key in data);
+        return key in data;
     }
 
     bool Erase(K key) {
         return data.remove(key);
     }
 
-    size_t Size() {
+    size_t Size() const
+    {
         return data.length;
     }
 
@@ -73,7 +74,7 @@ struct Map(K, V)
 
     const(V)* End() const
     {
-        return cast(const V*)null;
+        return cast(const(V)*)null;
     }
 
     ref V opIndex(K key)
@@ -147,9 +148,6 @@ struct Set(T)
         T t_;
         Node* left, right, parent;
         Node* prev, next;
-
-        inout(T) getValue() inout { return t_; }
-        inout(Node)* getNext() inout { return next; }
     }
 
     Node* root, head, tail;
@@ -175,31 +173,8 @@ struct Set(T)
         }
     }
 
-    struct ConstIterator
-    {
-        const(Node)* p;
-
-        void opUnary(string op)() if (op == "++")
-        {
-            p = p ? p.next : null;
-        }
-
-        const(T) opUnary(string op)() const if (op == "*")
-        {
-            return p.t_;
-        }
-
-        bool opEquals(const ConstIterator rhs) const
-        {
-            return p == rhs.p;
-        }
-    }
-
     Iterator begin() @nogc nothrow { return Iterator(head); }
     Iterator end()   @nogc nothrow { return Iterator(null); }
-
-    ConstIterator begin() const @nogc nothrow { return ConstIterator(head); }
-    ConstIterator end()   const @nogc nothrow { return ConstIterator(null); }
 
     Node* createNode(T t) @nogc nothrow
     {
