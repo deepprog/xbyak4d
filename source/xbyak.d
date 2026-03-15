@@ -837,7 +837,7 @@ protected:
 public:
   version (XBYAK64)
   {
-    enum : int //Code
+    enum Code
     {
         RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
         R16, R17, R18, R19, R20, R21, R22, R23, R24, R25, R26, R27, R28, R29, R30, R31,
@@ -848,14 +848,21 @@ public:
         R8B = 8, R9B, R10B, R11B, R12B, R13B, R14B, R15B,
         R16B, R17B, R18B, R19B, R20B, R21B, R22B, R23B, R24B, R25B, R26B, R27B, R28B, R29B, R30B, R31B,
         SPL = 4, BPL, SIL, DIL,
+        EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
+        AX = 0, CX, DX, BX, SP, BP, SI, DI,
+        AL = 0, CL, DL, BL, AH, CH, DH, BH
     }
   }
-    enum : int //Code
+  else
+  {
+    enum Code
     {
         EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
         AX = 0, CX, DX, BX, SP, BP, SI, DI,
         AL = 0, CL, DL, BL, AH, CH, DH, BH
     }
+  }
+    mixin ImportEnumMembers!Code;
 
     this()
     {
@@ -944,14 +951,14 @@ public:
             bit != 128 && bit != 256 && bit != 512 && bit != 8192) goto ERR;
         if (isBit(bit)) return;
         if (isKind(MEM | OPMASK)) {
-            this.bit_ = bit;
+            bit_ = bit;
             return;
         }
 
         if (isKind(REG | XMM | YMM | ZMM | TMM)) {
             int idx = getIdx();
             // err if converting ah, bh, ch, dh
-            if (isREG(8) && (4 <= idx && idx < 8) && !isExt8bit) goto ERR;
+            if (isREG(8) && (4 <= idx && idx < 8) && !isExt8bit()) goto ERR;
             Kind kind = REG;
             switch (bit)
             {
@@ -982,7 +989,7 @@ public:
                 case 256: kind = YMM; break;
                 case 512: kind = ZMM; break;
                 case 8192: kind = TMM; break;
-                default:    assert(0);
+                default: goto ERR;
             }
             idx_ = idx;
             kind_ = kind;
@@ -2698,6 +2705,7 @@ public:
         T_FAR, // far jump
         T_AUTO // T_SHORT if possible
     }
+    mixin ImportEnumMembers!(LabelType);
 
 private:
   version (XBYAK64)
@@ -8771,87 +8779,14 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
 
 }// CodeGenerator
 
-alias T_SHORT = CodeGenerator.LabelType.T_SHORT;
-alias T_NEAR  = CodeGenerator.LabelType.T_NEAR;
-alias T_FAR  = CodeGenerator.LabelType.T_FAR;
-alias T_AUTO  = CodeGenerator.LabelType.T_AUTO;
+mixin ImportEnumMembers!(CodeGenerator);
 
-string def_alias(string[] names)
+version (XBYAK_DISABLE_SEGMENT)
+{}
+else
 {
-    string result;
-      foreach(name; names){
-        result ~="alias "~name~" = CodeGenerator."~name~";\n";
-    }
-    return result;
+    mixin ImportEnumMembers!(Segment);
 }
-
-mixin(["mm0","mm1","mm2","mm3","mm4","mm5","mm6","mm7"].def_alias);
-mixin(["xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7"].def_alias);
-mixin(["ymm0","ymm1","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7"].def_alias);
-mixin(["zmm0","zmm1","zmm2","zmm3","zmm4","zmm5","zmm6","zmm7"].def_alias);
-
-mixin(["eax","ecx","edx","ebx","esp","ebp","esi","edi"].def_alias);
-mixin(["ax","cx","dx","bx","sp","bp","si","di"].def_alias);
-mixin(["al","cl","dl","bl","ah","ch","dh","bh"].def_alias);
-mixin(["ptr","byte_","word","dword","qword", "xword", "yword", "zword"].def_alias);
-mixin(["ptr_b", "xword_b", "yword_b", "zword_b"].def_alias);
-
-mixin(["st0","st1","st2","st3","st4","st5","st6","st7"].def_alias);
-mixin(["k0","k1","k2","k3","k4","k5","k6","k7"].def_alias);
-mixin(["bnd0","bnd1","bnd2","bnd3"].def_alias);
-mixin(["T_sae","T_rn_sae","T_rd_sae","T_ru_sae","T_rz_sae"].def_alias);
-
-mixin(["T_z"].def_alias);
-
-  version (XBYAK64)
-  {
-    mixin(["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi"].def_alias);
-    mixin(["r8","r9","r10","r11","r12","r13","r14","r15"].def_alias);
-    mixin(["r16","r17","r18","r19","r20","r21","r22","r23"].def_alias);
-    mixin(["r24","r25","r26","r27","r28","r29","r30","r31"].def_alias);
-
-    mixin(["r8d","r9d","r10d","r11d","r12d","r13d","r14d","r15d"].def_alias);
-    mixin(["r16d","r17d","r18d","r19d","r20d","r21d","r22d","r23d"].def_alias);
-    mixin(["r24d","r25d","r26d","r27d","r28d","r29d","r30d","r31d"].def_alias);
-
-    mixin(["r8w","r9w","r10w","r11w","r12w","r13w","r14w","r15w"].def_alias);
-    mixin(["r16w","r17w","r18w","r19w","r20w","r21w","r22w","r23w"].def_alias);
-    mixin(["r24w","r25w","r26w","r27w","r28w","r29w","r30w","r31w"].def_alias);
-
-    mixin(["r8b","r9b","r10b","r11b","r12b","r13b","r14b","r15b"].def_alias);
-    mixin(["r16b","r17b","r18b","r19b","r20b","r21b","r22b","r23b"].def_alias);
-    mixin(["r24b","r25b","r26b","r27b","r28b","r29b","r30b","r31b"].def_alias);
-    mixin(["spl","bpl","sil","dil"].def_alias);
-
-    mixin(["xmm8","xmm9","xmm10","xmm11","xmm12","xmm13","xmm14","xmm15"].def_alias);
-    mixin(["xmm16","xmm17","xmm18","xmm19","xmm20","xmm21","xmm22","xmm23"].def_alias);
-    mixin(["xmm24","xmm25","xmm26","xmm27","xmm28","xmm29","xmm30","xmm31"].def_alias);
-
-    mixin(["ymm8","ymm9","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15"].def_alias);
-    mixin(["ymm16","ymm17","ymm18","ymm19","ymm20","ymm21","ymm22","ymm23"].def_alias);
-    mixin(["ymm24","ymm25","ymm26","ymm27","ymm28","ymm29","ymm30","ymm31"].def_alias);
-
-    mixin(["zmm8","zmm9","zmm10","zmm11","zmm12","zmm13","zmm14","zmm15"].def_alias);
-    mixin(["zmm16","zmm17","zmm18","zmm19","zmm20","zmm21","zmm22","zmm23"].def_alias);
-    mixin(["zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm30","zmm31"].def_alias);
-
-    mixin(["tmm0","tmm1","tmm2","tmm3","tmm4","tmm5","tmm6","tmm7"].def_alias);
-    mixin(["rip"].def_alias);
-    mixin(["T_nf"].def_alias);
-    mixin(["T_zu"].def_alias);
-  }
-
-  version (XBYAK_DISABLE_SEGMENT)
-  {}
-  else
-  {
-    alias es = Segment.es;
-    alias cs = Segment.cs;
-    alias ss = Segment.ss;
-    alias ds = Segment.ds;
-    alias fs = Segment.fs;
-    alias gs = Segment.gs;
-  }
 
 
 @("test_toString")
