@@ -802,7 +802,6 @@ static const int t_zf = 2;
 alias T_cf = t_cf;
 static const int t_cf = 1;
 
-
 enum Kind
 {
     NONE = 0,
@@ -817,7 +816,7 @@ enum Kind
     BNDREG = 1 << 8,
     TMM = 1 << 9
 }
-
+mixin ImportEnumMembers!Kind;
 
 public class Operand
 {
@@ -836,21 +835,6 @@ protected:
     void setIdx(int idx) { idx_ = idx; }
 
 public:
-    enum Kind : int
-    {
-        NONE = 0,
-        MEM = 1 << 0,
-        REG = 1 << 1,
-        MMX = 1 << 2,
-        FPU = 1 << 3,
-        XMM = 1 << 4,
-        YMM = 1 << 5,
-        ZMM = 1 << 6,
-        OPMASK = 1 << 7,
-        BNDREG = 1 << 8,
-        TMM = 1 << 9
-    }
-
   version (XBYAK64)
   {
     enum : int //Code
@@ -920,20 +904,20 @@ public:
     int getIdx () const { return idx_ & (EXT8BIT - 1); }
     bool hasIdxBit(int bit) const { return cast(bool) (idx_ & (1<<bit)); }
     bool isNone () const {return this.kind_ == 0; }
-    bool isMMX  () const { return isKind(Kind.MMX); }
-    bool isXMM  () const { return isKind(Kind.XMM); }
-    bool isYMM  () const { return isKind(Kind.YMM); }
-    bool isZMM  () const { return isKind(Kind.ZMM); }
-    bool isSIMD() const { return isKind(Kind.XMM | Kind.YMM | Kind.ZMM); }
-    bool isTMM() const { return isKind(Kind.TMM); }
-    bool isXMEM() const { return isKind(Kind.XMM | Kind.MEM); }
-    bool isYMEM() const { return isKind(Kind.YMM | Kind.MEM); }
-    bool isZMEM() const { return isKind(Kind.ZMM | Kind.MEM); }
-    bool isOPMASK() const { return isKind(Kind.OPMASK); }
-    bool isBNDREG() const { return isKind(Kind.BNDREG); }
-    bool isREG(int bit = 0) const { return isKind(Kind.REG, bit); }
-    bool isMEM(int bit = 0) const { return isKind(Kind.MEM, bit); }
-    bool isFPU  () const { return isKind(Kind.FPU);}
+    bool isMMX  () const { return isKind(MMX); }
+    bool isXMM  () const { return isKind(XMM); }
+    bool isYMM  () const { return isKind(YMM); }
+    bool isZMM  () const { return isKind(ZMM); }
+    bool isSIMD() const { return isKind(XMM | YMM | ZMM); }
+    bool isTMM() const { return isKind(TMM); }
+    bool isXMEM() const { return isKind(XMM | MEM); }
+    bool isYMEM() const { return isKind(YMM | MEM); }
+    bool isZMEM() const { return isKind(ZMM | MEM); }
+    bool isOPMASK() const { return isKind(OPMASK); }
+    bool isBNDREG() const { return isKind(BNDREG); }
+    bool isREG(int bit = 0) const { return isKind(REG, bit); }
+    bool isMEM(int bit = 0) const { return isKind(MEM, bit); }
+    bool isFPU  () const { return isKind(FPU);}
     bool isExt8bit() const { return (idx_ & EXT8BIT) != 0; }
     bool isExtIdx() const { return (getIdx() & 8) != 0; }
     bool isExtIdx2() const { return (getIdx() & 16) != 0; }
@@ -949,9 +933,9 @@ public:
     int getRounding() const { return rounding_; }
     void setKind(int kind)
     {
-        if ((kind & (Kind.XMM | Kind.YMM | Kind.ZMM | Kind.TMM)) == 0) return;
+        if ((kind & (XMM | YMM | ZMM | TMM)) == 0) return;
         kind_ = kind;
-        bit_ = kind == Kind.XMM ? 128 : kind == Kind.YMM ? 256 : kind == Kind.ZMM ? 512 : 8192;
+        bit_ = kind == XMM ? 128 : kind == YMM ? 256 : kind == ZMM ? 512 : 8192;
     }
     // err if MMX/FPU/OPMASK/BNDREG
     void setBit(int bit)
@@ -959,16 +943,16 @@ public:
         if (bit != 8 && bit != 16 && bit != 32 && bit != 64 &&
             bit != 128 && bit != 256 && bit != 512 && bit != 8192) goto ERR;
         if (isBit(bit)) return;
-        if (isKind(Kind.MEM | Kind.OPMASK)) {
+        if (isKind(MEM | OPMASK)) {
             this.bit_ = bit;
             return;
         }
 
-        if (isKind(Kind.REG | Kind.XMM | Kind.YMM | Kind.ZMM | Kind.TMM)) {
+        if (isKind(REG | XMM | YMM | ZMM | TMM)) {
             int idx = getIdx();
             // err if converting ah, bh, ch, dh
             if (isREG(8) && (4 <= idx && idx < 8) && !isExt8bit) goto ERR;
-            Kind kind = Kind.REG;
+            Kind kind = REG;
             switch (bit)
             {
                 case 8:
@@ -994,10 +978,10 @@ public:
                     if (idx >= 32) goto ERR;
   }
                     break;
-                case 128: kind = Kind.XMM; break;
-                case 256: kind = Kind.YMM; break;
-                case 512: kind = Kind.ZMM; break;
-                case 8192: kind = Kind.TMM; break;
+                case 128: kind = XMM; break;
+                case 256: kind = YMM; break;
+                case 512: kind = ZMM; break;
+                case 8192: kind = TMM; break;
                 default:    assert(0);
             }
             idx_ = idx;
@@ -1051,7 +1035,7 @@ public:
     override string toString() const
     {
         const int idx = getIdx();
-        if (kind_ == Kind.REG) {
+        if (kind_ == REG) {
             if (isExt8bit()) {
                 string[4] tbl = ["spl", "bpl", "sil", "dil"];
                 return tbl[idx - 4];
@@ -1273,7 +1257,7 @@ public class Reg8 : Reg
 public:
     this(int idx, bool ext8bit = false)
     {
-        super(idx, Kind.REG, 8, ext8bit);
+        super(idx, REG, 8, ext8bit);
     }
 
     this(Reg8 r)
@@ -1292,7 +1276,7 @@ public class Reg16 : Reg
 public:
     this(int idx)
     {
-        super(idx, Kind.REG, 16);
+        super(idx, REG, 16);
     }
 
     this(Reg16 r)
@@ -1309,7 +1293,7 @@ public:
 public class Mmx : Reg
 {
 public:
-    this(int idx, int kind = Kind.MMX, int bit = 64)
+    this(int idx, int kind = MMX, int bit = 64)
     {
         super(idx, kind, bit);
     }
@@ -1362,7 +1346,7 @@ struct EvexModifierZero
 public class Xmm : Mmx
 {
 public:
-    this(int idx, int kind = Kind.XMM, int bit = 128)
+    this(int idx, int kind = XMM, int bit = 128)
     {
         super(idx, kind, bit);
     }
@@ -1379,7 +1363,7 @@ public:
 
     static Xmm opCall(int kind, int idx)
     {
-        return new Xmm(idx, kind, kind == Kind.XMM ? 128 : kind == Kind.YMM ? 256 : 512);
+        return new Xmm(idx, kind, kind == XMM ? 128 : kind == YMM ? 256 : 512);
     }
 
     Xmm copyAndSetIdx(int idx)
@@ -1400,7 +1384,7 @@ public:
 public class Ymm : Xmm
 {
 public:
-    this(int idx, int kind = Kind.YMM, int bit = 256)
+    this(int idx, int kind = YMM, int bit = 256)
     {
         super(idx, kind, bit);
     }
@@ -1419,7 +1403,7 @@ public:
 public class Zmm : Ymm
 {
 public:
-    this(int idx, int kind = Kind.ZMM, int bit = 512)
+    this(int idx, int kind = ZMM, int bit = 512)
     {
         super(idx, kind, bit);
     }
@@ -1440,7 +1424,7 @@ public:
     public class Tmm : Reg
     {
     public:
-        this(int idx, Kind kind = Kind.TMM, int bit = 8192)
+        this(int idx, Kind kind = TMM, int bit = 8192)
         {
             super(idx, kind, bit);
         }
@@ -1462,7 +1446,7 @@ class Opmask : Reg
 {
     this(int idx)
     {
-        super(idx, Kind.OPMASK, 64);
+        super(idx, OPMASK, 64);
     }
 
     this(Opmask opmask)
@@ -1487,7 +1471,7 @@ class BoundsReg : Reg
 {
     this(int idx)
     {
-        super(idx, Kind.BNDREG, 128);
+        super(idx, BNDREG, 128);
     }
 
     this(BoundsReg b)
@@ -1506,7 +1490,7 @@ public class Fpu : Reg
 public:
     this(int idx)
     {
-        super(idx, Kind.FPU, 32);
+        super(idx, FPU, 32);
     }
 
     this(Fpu f)
@@ -1524,7 +1508,7 @@ public class Reg32e : Reg
 {
     this(int idx, int bit)
     {
-        super(idx, Kind.REG, bit);
+        super(idx, REG, bit);
     }
 
     this(Reg32e r)
@@ -1651,7 +1635,7 @@ public:
         scale_ = scale;
         disp_ = 0;
         label_ = null;
-        if (!r.isREG(i32e) && !r.isKind(Kind.XMM | Kind.YMM | Kind.ZMM | Kind.TMM)) {
+        if (!r.isREG(i32e) && !r.isKind(XMM | YMM | ZMM | TMM)) {
             mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
         }
         if (scale == 0) return;
@@ -2179,7 +2163,7 @@ class Address : Operand
 public:
     this()
     {
-        super(0, Kind.MEM, 0);
+        super(0, MEM, 0);
         e_ = RegExp(0);
         label_ = null;
         mode_ = inner.M_ModRM;
@@ -2192,7 +2176,7 @@ public:
 
     this(Address a)
     {
-        super(0, Kind.MEM, a.getBit());
+        super(0, MEM, a.getBit());
         e_ = a.e_;
         label_ = a.label_;
         mode_ = a.mode_;
@@ -2205,7 +2189,7 @@ public:
 
     this(uint32_t sizeBit, bool broadcast, RegExp e)
     {
-        super(0, Kind.MEM, sizeBit);
+        super(0, MEM, sizeBit);
         e_ = e;
         label_ = e.label_;
         mode_ = inner.M_ModRM;
@@ -3476,10 +3460,10 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     {
         int opBit = op.getBit();
         if (disableRex && opBit == 64) opBit = 32;
-        Reg r = Reg(ext, Kind.REG, opBit);
+        Reg r = Reg(ext, REG, opBit);
         if ((type & T_APX) &&
             (d !is null || op.hasRex2NFZU()) &&
-            opROO(d ? d : Reg(0, Kind.REG, opBit), op, r, type, code)
+            opROO(d ? d : Reg(0, REG, opBit), op, r, type, code)
             )
         {
             return;
@@ -3591,7 +3575,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     {
         uint32_t immBit = getImmBit(d, imm);
         int code = immBit < min(d.getBit(), 32U) ? 2 : 0;
-        opROO(d, op, Reg(ext, Kind.REG, d.getBit()), type, 0x80 | code, immBit / 8);
+        opROO(d, op, Reg(ext, REG, d.getBit()), type, 0x80 | code, immBit / 8);
         db(imm, immBit / 8);
     }
     void opIncDec(Reg d, Operand op, int ext)
@@ -3602,7 +3586,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             int code = d.isBit(8) ? 0xFE : 0xFF;
             uint64_t type = T_APX|T_NF|T_ND1;
             if (d.isBit(16)) type |= T_66;
-            opROO(d, op, Reg(ext, Kind.REG, d.getBit()), type, code);
+            opROO(d, op, Reg(ext, REG, d.getBit()), type, code);
             return;
         }
   }
@@ -3640,7 +3624,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
                 return;
             }
             if (op.isMEM()) {
-                opMR(op.getAddress(), Reg(ext, Kind.REG, 32), T_ALLOW_DIFF_SIZE, code);
+                opMR(op.getAddress(), Reg(ext, REG, 32), T_ALLOW_DIFF_SIZE, code);
                 return;
             }
         }
@@ -3830,15 +3814,15 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     // (x, x/m), (y, x/m256), (z, y/m)
     void checkCvt1(Operand x, Operand op)
     {
-        if (!op.isMEM() && !(x.isKind(Kind.XMM | Kind.YMM) && op.isXMM()) && !(x.isZMM() && op.isYMM())) {
+        if (!op.isMEM() && !(x.isKind(XMM | YMM) && op.isXMM()) && !(x.isZMM() && op.isYMM())) {
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         }
     }
     // (x, x/m), (x, y/m256), (y, z/m)
     void checkCvt2(Xmm x, Operand op)
     {
-        if (!(x.isXMM() && op.isKind(Kind.XMM | Kind.YMM | Kind.MEM)) &&
-            !(x.isYMM() && op.isKind(Kind.ZMM | Kind.MEM))
+        if (!(x.isXMM() && op.isKind(XMM | YMM | MEM)) &&
+            !(x.isYMM() && op.isKind(ZMM | MEM))
             )
         {
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
@@ -3846,7 +3830,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     }
     void opCvt(Xmm x, Operand op, uint64_t type, int code)
     {
-        Kind kind = x.isXMM() ? (op.isBit(256) ? Kind.YMM : Kind.XMM) : Kind.ZMM;
+        Kind kind = x.isXMM() ? (op.isBit(256) ? YMM : XMM) : ZMM;
         opVex(x.copyAndSetKind(kind), xm0, op, type, code);
     }
     void opCvt2(Xmm x, Operand op, uint64_t type, int code)
@@ -3866,8 +3850,8 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     // (x, x/y/xword/yword), (y, z/m)
     void checkCvt4(Xmm x, Operand op) const
     {
-        if (!(x.isXMM() && op.isKind(Kind.XMM | Kind.YMM | Kind.MEM) && op.isBit(128|256)) &&
-            !(x.isYMM() && op.isKind(Kind.ZMM | Kind.MEM))
+        if (!(x.isXMM() && op.isKind(XMM | YMM | MEM) && op.isBit(128|256)) &&
+            !(x.isYMM() && op.isKind(ZMM | MEM))
             )
         {
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
@@ -3879,7 +3863,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         if (!(x.isXMM() && op.isBit(128|256|512))) {
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         }
-        Kind kind = op.isBit(128) ? Kind.XMM : op.isBit(256) ? Kind.YMM : Kind.ZMM;
+        Kind kind = op.isBit(128) ? XMM : op.isBit(256) ? YMM : ZMM;
         opVex(x.copyAndSetKind(kind), xm0, op, type, code);
     }
     // (x, x, x/m), (x, y, y/m), (y, z, z/m)
@@ -4081,7 +4065,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         if (dfv < 0 || 15 < dfv) {
             mixin(XBYAK_THROW(ERR_INVALID_DFV));
         }
-        opROO(Reg(15 - dfv, Kind.REG, (op1.getBit() | op2.getBit())), op1, op2, T_APX|T_CODE1_IF1, code, 0, sc);
+        opROO(Reg(15 - dfv, REG, (op1.getBit() | op2.getBit())), op1, op2, T_APX|T_CODE1_IF1, code, 0, sc);
     }
     void opCcmpi(Operand op, int imm, int dfv, int sc)
     {
@@ -4092,9 +4076,9 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         uint32_t opBit = op.getBit();
         int tmp = immBit < min(opBit, 32U) ? 2 : 0;
         opROO(
-            Reg(15 - dfv, Kind.REG, opBit),
+            Reg(15 - dfv, REG, opBit),
             op,
-            Reg(15, Kind.REG, opBit),
+            Reg(15, REG, opBit),
             T_APX | T_CODE1_IF1,
             0x80 | tmp,
             immBit / 8,
@@ -4112,7 +4096,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             mixin(XBYAK_THROW(ERR_MEM_SIZE_IS_NOT_SPECIFIED));
         }
         int immBit = min(opBit, 32U);
-        opROO(Reg(15 - dfv, Kind.REG, opBit), op, Reg(0, Kind.REG, opBit), T_APX|T_CODE1_IF1, 0xF6, immBit / 8, sc);
+        opROO(Reg(15 - dfv, REG, opBit), op, Reg(0, REG, opBit), T_APX|T_CODE1_IF1, 0xF6, immBit / 8, sc);
         db(imm, immBit / 8);
     }
     void opCfcmov(Reg d, Operand op1, Operand op2, int code)
@@ -4564,7 +4548,7 @@ else
                 }
                 immSize = 4;
             }
-            opMR(op.getAddress(immSize), Reg(0, Kind.REG, op.getBit()), 0, 0xC6);
+            opMR(op.getAddress(immSize), Reg(0, REG, op.getBit()), 0, 0xC6);
             db(cast(uint32_t)imm, immSize);
         } else {
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
@@ -5702,9 +5686,9 @@ void mwait() { db(0x0F); db(0x01); db(0xC9); }
 void mwaitx() { db(0x0F); db(0x01); db(0xFB); }
 
 void neg(Operand op) { opRext(op, 0, 3, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
-void neg(Reg d, Operand op) { opROO(d, op, Reg(3, Kind.REG, d.getBit()), T_APX|T_NF|T_CODE1_IF1|T_ND1, 0xF6); }
+void neg(Reg d, Operand op) { opROO(d, op, Reg(3, REG, d.getBit()), T_APX|T_NF|T_CODE1_IF1|T_ND1, 0xF6); }
 void not_(Operand op) { opRext(op, 0, 2, T_APX|T_CODE1_IF1, 0xF6); }
-void not_(Reg d, Operand op) { opROO(d, op, Reg(2, Kind.REG, d.getBit()), T_APX|T_CODE1_IF1|T_ND1, 0xF6); }
+void not_(Reg d, Operand op) { opROO(d, op, Reg(2, REG, d.getBit()), T_APX|T_CODE1_IF1|T_ND1, 0xF6); }
 
 void or_(Operand op, uint32_t imm) { opOI(op, imm, 0x08, 1); }
 void or_(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x08); }
@@ -5899,13 +5883,13 @@ void rdrand(Reg r)
 {
     if (r.isBit(8))
         mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
-    opRR(Reg(6, Kind.REG, r.getBit()), r, T_0F, 0xC7);
+    opRR(Reg(6, REG, r.getBit()), r, T_0F, 0xC7);
 }
 void rdseed(Reg r)
 {
     if (r.isBit(8))
         mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
-    opRR(Reg(7, Kind.REG, r.getBit()), r, T_0F, 0xC7);
+    opRR(Reg(7, REG, r.getBit()), r, T_0F, 0xC7);
 }
 void rdtsc() { db(0x0F); db(0x31); }
 void rdtscp() { db(0x0F); db(0x01); db(0xF9); }
@@ -6832,7 +6816,7 @@ void vpminud(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|
 void vpminuw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_YMM|T_EVEX, 0x3A); }
 void vpmovmskb(Reg32e r, Xmm x)
 {
-    if (!x.isKind(Kind.XMM | Kind.YMM))
+    if (!x.isKind(XMM | YMM))
         mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
     opVex(x.isYMM() ? Ymm(r.getIdx()) : Xmm(r.getIdx()), null, x, T_0F | T_66 | T_YMM, 0xD7);
 }
@@ -7982,49 +7966,49 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
      { opAVX_X_XM_IMM(x, op, T_N4|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX, 0x88); }
     void vextractf32x4(Operand op, Ymm r, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.XMM))
+        if (!op.isKind(MEM|XMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r, null, op, T_N16|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x19, imm);
     }
     void vextractf32x8(Operand op, Zmm r, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.YMM))
+        if (!op.isKind(MEM|YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r, null, op, T_N32|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x1B, imm);
     }
     void vextractf64x2(Operand op, Ymm r, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.XMM))
+        if (!op.isKind(MEM|XMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r, null, op, T_N16|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x19, imm);
     }
     void vextractf64x4(Operand op, Zmm r, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.YMM))
+        if (!op.isKind(MEM|YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r, null, op, T_N32|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x1B, imm);
     }
     void vextracti32x4(Operand op, Ymm r, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.XMM))
+        if (!op.isKind(MEM|XMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r, null, op, T_N16|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x39, imm);
     }
     void vextracti32x8(Operand op, Zmm r, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.YMM))
+        if (!op.isKind(MEM|YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r, null, op, T_N32|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x3B, imm);
     }
     void vextracti64x2(Operand op, Ymm r, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.XMM))
+        if (!op.isKind(MEM|XMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r, null, op, T_N16|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x39, imm);
     }
     void vextracti64x4(Operand op, Zmm r, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.YMM))
+        if (!op.isKind(MEM|YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r, null, op, T_N32|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x3B, imm);
     }
@@ -8171,21 +8155,21 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vgatherdps(Xmm x, Address addr)
      { opGather2(x, addr, T_N4|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX|T_VSIB, 0x92, 0); }
     void vgatherpf0dpd(Address addr)
-     { opGatherFetch(addr, zm1, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, Kind.YMM); }
+     { opGatherFetch(addr, zm1, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, YMM); }
     void vgatherpf0dps(Address addr)
-     { opGatherFetch(addr, zm1, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, Kind.ZMM); }
+     { opGatherFetch(addr, zm1, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, ZMM); }
     void vgatherpf0qpd(Address addr)
-     { opGatherFetch(addr, zm1, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, Kind.ZMM); }
+     { opGatherFetch(addr, zm1, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, ZMM); }
     void vgatherpf0qps(Address addr)
-     { opGatherFetch(addr, zm1, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, Kind.ZMM); }
+     { opGatherFetch(addr, zm1, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, ZMM); }
     void vgatherpf1dpd(Address addr)
-     { opGatherFetch(addr, zm2, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, Kind.YMM); }
+     { opGatherFetch(addr, zm2, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, YMM); }
     void vgatherpf1dps(Address addr)
-     { opGatherFetch(addr, zm2, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, Kind.ZMM); }
+     { opGatherFetch(addr, zm2, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, ZMM); }
     void vgatherpf1qpd(Address addr)
-     { opGatherFetch(addr, zm2, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, Kind.ZMM); }
+     { opGatherFetch(addr, zm2, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, ZMM); }
     void vgatherpf1qps(Address addr)
-     { opGatherFetch(addr, zm2, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, Kind.ZMM); }
+     { opGatherFetch(addr, zm2, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, ZMM); }
     void vgatherqpd(Xmm x, Address addr)
      { opGather2(x, addr, T_N8|T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_VSIB, 0x93, 0); }
     void vgatherqps(Xmm x, Address addr)
@@ -8220,49 +8204,49 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
      { opAVX_X_X_XM(x1, x2, op, T_N4|T_66|T_0F3A|T_W0|T_SAE_X|T_MUST_EVEX, 0x27, imm); }
     void vinsertf32x4(Ymm r1, Ymm r2, Operand op, uint8_t imm)
     {
-        if (!(r1.getKind() == r2.getKind() && op.isKind(Kind.MEM|Kind.XMM)))
+        if (!(r1.getKind() == r2.getKind() && op.isKind(MEM|XMM)))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r1, r2, op, T_N16|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x18, imm);
     }
     void vinsertf32x8(Zmm r1, Zmm r2, Operand op, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.YMM))
+        if (!op.isKind(MEM|YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r1, r2, op, T_N32|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x1A, imm);
     }
     void vinsertf64x2(Ymm r1, Ymm r2, Operand op, uint8_t imm)
     {
-        if (!(r1.getKind() == r2.getKind() && op.isKind(Kind.MEM|Kind.XMM)))
+        if (!(r1.getKind() == r2.getKind() && op.isKind(MEM|XMM)))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r1, r2, op, T_N16|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x18, imm);
     }
     void vinsertf64x4(Zmm r1, Zmm r2, Operand op, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.YMM))
+        if (!op.isKind(MEM|YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r1, r2, op, T_N32|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x1A, imm);
     }
     void vinserti32x4(Ymm r1, Ymm r2, Operand op, uint8_t imm)
     {
-        if (!(r1.getKind() == r2.getKind() && op.isKind(Kind.MEM|Kind.XMM)))
+        if (!(r1.getKind() == r2.getKind() && op.isKind(MEM|XMM)))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r1, r2, op, T_N16|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x38, imm);
     }
     void vinserti32x8(Zmm r1, Zmm r2, Operand op, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.YMM))
+        if (!op.isKind(MEM|YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r1, r2, op, T_N32|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x3A, imm);
     }
     void vinserti64x2(Ymm r1, Ymm r2, Operand op, uint8_t imm)
     {
-        if (!(r1.getKind() == r2.getKind() && op.isKind(Kind.MEM|Kind.XMM)))
+        if (!(r1.getKind() == r2.getKind() && op.isKind(MEM|XMM)))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r1, r2, op, T_N16|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x38, imm);
     }
     void vinserti64x4(Zmm r1, Zmm r2, Operand op, uint8_t imm)
     {
-        if (!op.isKind(Kind.MEM|Kind.YMM))
+        if (!op.isKind(MEM|YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         opVex(r1, r2, op, T_N32|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x3A, imm);
     }
@@ -8718,21 +8702,21 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vscatterdps(Address addr, Xmm x)
      { opGather2(x, addr, T_N4|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX|T_M_K|T_VSIB, 0xA2, 0); }
     void vscatterpf0dpd(Address addr)
-     { opGatherFetch(addr, zm5, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, Kind.YMM); }
+     { opGatherFetch(addr, zm5, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, YMM); }
     void vscatterpf0dps(Address addr)
-     { opGatherFetch(addr, zm5, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, Kind.ZMM); }
+     { opGatherFetch(addr, zm5, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, ZMM); }
     void vscatterpf0qpd(Address addr)
-     { opGatherFetch(addr, zm5, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, Kind.ZMM); }
+     { opGatherFetch(addr, zm5, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, ZMM); }
     void vscatterpf0qps(Address addr)
-     { opGatherFetch(addr, zm5, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, Kind.ZMM); }
+     { opGatherFetch(addr, zm5, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, ZMM); }
     void vscatterpf1dpd(Address addr)
-     { opGatherFetch(addr, zm6, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, Kind.YMM); }
+     { opGatherFetch(addr, zm6, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, YMM); }
     void vscatterpf1dps(Address addr)
-     { opGatherFetch(addr, zm6, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, Kind.ZMM); }
+     { opGatherFetch(addr, zm6, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC6, ZMM); }
     void vscatterpf1qpd(Address addr)
-     { opGatherFetch(addr, zm6, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, Kind.ZMM); }
+     { opGatherFetch(addr, zm6, T_N8|T_66|T_0F38|T_EW1|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, ZMM); }
     void vscatterpf1qps(Address addr)
-     { opGatherFetch(addr, zm6, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, Kind.ZMM); }
+     { opGatherFetch(addr, zm6, T_N4|T_66|T_0F38|T_W0|T_MUST_EVEX|T_M_K|T_VSIB, 0xC7, ZMM); }
     void vscatterqpd(Address addr, Xmm x)
      { opGather2(x, addr, T_N8|T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_M_K|T_VSIB, 0xA3, 0); }
     void vscatterqps(Address addr, Xmm x)
