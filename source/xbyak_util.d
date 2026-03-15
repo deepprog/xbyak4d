@@ -180,7 +180,7 @@ alias piJIT_Method_Update = iJIT_Method_Update*;
     version (Posix)
     {
         import core.sys.posix.dlfcn;
-        // extern(C) void* dlopen(const char*, int);
+        extern(C) void* dlopen(const char*, int);
     }
 }
 
@@ -552,18 +552,18 @@ public:
         switch (level) {
             case SmtLevel: return numCores_[level - 1];
             case CoreLevel: return numCores_[level - 1] / numCores_[SmtLevel - 1];
-            default: mixin(XBYAK_THROW_RET(ERR.X2APIC_IS_NOT_SUPPORTED, "0"));
+            default: mixin(XBYAK_THROW_RET(ERR_X2APIC_IS_NOT_SUPPORTED, "0"));
         }
     }
     uint32_t getDataCacheLevels() const { return dataCacheLevels_; }
     uint32_t getCoresSharingDataCache(uint32_t i) const
     {
-        if (i >= dataCacheLevels_) mixin(XBYAK_THROW_RET(ERR.BAD_PARAMETER, "0"));
+        if (i >= dataCacheLevels_) mixin(XBYAK_THROW_RET(ERR_BAD_PARAMETER, "0"));
         return coresSharingDataCache_[i];
     }
     uint32_t getDataCacheSize(uint32_t i) const
     {
-        if (i >= dataCacheLevels_) mixin(XBYAK_THROW_RET(ERR.BAD_PARAMETER, "0"));
+        if (i >= dataCacheLevels_) mixin(XBYAK_THROW_RET(ERR_BAD_PARAMETER, "0"));
         return dataCacheSize_[i];
     }
 
@@ -1132,7 +1132,7 @@ version (XBYAK64)
         {
             if (n_ == maxTblNum) {
                 fprintf(stderr, "ERR Pack.can't append\n");
-                mixin(XBYAK_THROW_RET(ERR.BAD_PARAMETER, "this"));
+                mixin(XBYAK_THROW_RET(ERR_BAD_PARAMETER, "this"));
             }
             tbl_[n_++] = t;
             return this;
@@ -1143,7 +1143,7 @@ version (XBYAK64)
         {
             if (n > maxTblNum) {
                 fprintf(stderr, "ERR Pack::init_ bad n=%d\n", cast(int)n);
-                mixin(XBYAK_THROW(ERR.BAD_PARAMETER));
+                mixin(XBYAK_THROW(ERR_BAD_PARAMETER));
             }
             n_ = n;
             for (size_t i = 0; i < n; i++) {
@@ -1154,7 +1154,7 @@ version (XBYAK64)
         {
             if (n >= n_) {
                 fprintf(stderr, "ERR Pack bad n=%d(%d)\n", cast(int)n, cast(int)n_);
-                mixin(XBYAK_THROW_RET(ERR.BAD_PARAMETER, "rax"));
+                mixin(XBYAK_THROW_RET(ERR_BAD_PARAMETER, "rax"));
             }
             return tbl_[n];
         }
@@ -1167,7 +1167,7 @@ version (XBYAK64)
             if (num == cast(size_t)(-1)) num = n_ - pos;
             if (pos + num > n_) {
                 fprintf(stderr, "ERR Pack.sub bad pos=%d, num=%d\n", cast(int)pos, cast(int)num);
-                mixin(XBYAK_THROW_RET(ERR.BAD_PARAMETER, "Pack()"));
+                mixin(XBYAK_THROW_RET(ERR_BAD_PARAMETER, "Pack()"));
             }
             Pack pack;
             pack.n_ = num;
@@ -1240,9 +1240,9 @@ version (XBYAK64_WIN)
             P_ = 0;
             makeEpilog_ = makeEpilog;
 
-            if (pNum < 0 || pNum > 4) mixin(XBYAK_THROW(ERR.BAD_PNUM));
+            if (pNum < 0 || pNum > 4) mixin(XBYAK_THROW(ERR_BAD_PNUM));
             const int allRegNum = pNum + tNum_ + (useRcx_ ? 1 : 0) + (useRdx_ ? 1 : 0);
-            if (tNum_ < 0 || allRegNum > maxRegNum) mixin(XBYAK_THROW(ERR.BAD_TNUM));
+            if (tNum_ < 0 || allRegNum > maxRegNum) mixin(XBYAK_THROW(ERR_BAD_TNUM));
             Reg64 _rsp = code.rsp;
             saveNum_ = local_max_(0, allRegNum - noSaveNum);
             int[] tbl = getOrderTbl(noSaveNum);
@@ -1408,13 +1408,13 @@ version (XBYAK_USE_VTUNE)
             ////    Runtime rt;
             ////    rt.loadLibrary("dummy");
 
-                if (iJIT_IsProfilingActive() != iJIT_SAMPLING_ON)
-                {
-                    fprintf(stderr, "VTune profiling is not active\n");
-                    return;
-                }
-                printf("VTune\n");
-                mode_ = VTune;
+            if (iJIT_IsProfilingActive() != iJIT_SAMPLING_ON)
+            {
+                fprintf(stderr, "VTune profiling is not active\n");
+                return;
+            }
+            printf("VTune\n");
+            mode_ = VTune;
 }
 
             return;
