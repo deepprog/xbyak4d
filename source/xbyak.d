@@ -318,10 +318,10 @@ size_t DEFAULT_MAX_CODE_SIZE = 4096 * 8;
 size_t VERSION = 0x07353;  // 0xABCD = A.BC(D)
 
 
-  version (MIE_INTEGER_TYPE_DEFINED)
-  {}
-  else
-  {
+version (MIE_INTEGER_TYPE_DEFINED)
+{}
+else
+{
     // for backward compatibility
     alias uint64 = uint64_t;
     alias sint64 = int64_t;
@@ -329,7 +329,7 @@ size_t VERSION = 0x07353;  // 0xABCD = A.BC(D)
     alias int32  = int32_t;
     alias uint16 = uint16_t;
     alias uint8  = uint8_t;
-  }
+}
 
 // MIE_ALIGN
 pragma(inline, true);
@@ -467,8 +467,8 @@ string convertErrorToString(ERR err)
     return err <= ERR_INTERNAL ? errTbl[err] : "unknown err";
 }
 
-  version (XBYAK_NO_EXCEPTION)
-  {
+version (XBYAK_NO_EXCEPTION)
+{
     alias local = Local;
     struct Local
     {
@@ -500,9 +500,9 @@ string convertErrorToString(ERR err)
     {
         return "local.SetError(" ~ err ~ "); return " ~ r ~";";
     }
-  }
-  else
-  {
+}
+else
+{
     class XError : Exception
     {
         ERR err_;
@@ -511,7 +511,7 @@ string convertErrorToString(ERR err)
         {
             err_ = err;
             if (err_ < 0 || err_ > ERR_INTERNAL) err_ = ERR_INTERNAL;
-            super(what(), file, line, next);
+            super(this.what(), file, line, next);
         }
         int opCast(T : int)() const {
             return err_;
@@ -544,10 +544,10 @@ string convertErrorToString(ERR err)
     {
         return "throw new XError(" ~ err ~ ");";
     }
-  } //version (XBYAK_NO_EXCEPTION)
+} // version (XBYAK_NO_EXCEPTION)
 
-  version (CRuntime_Microsoft)
-  {
+version (CRuntime_Microsoft)
+{
     @nogc nothrow pure private extern(C) void* _aligned_malloc(size_t, size_t);
     @nogc nothrow pure private extern(C) void _aligned_free(void* memblock);
 
@@ -561,10 +561,10 @@ string convertErrorToString(ERR err)
     {
         _aligned_free(p);
     }
-  }
+}
 
-  version (Posix)
-  {
+version (Posix)
+{
     import core.sys.posix.stdlib : posix_memalign;
 
     alias AlignedMalloc = alignedMalloc;
@@ -579,7 +579,7 @@ string convertErrorToString(ERR err)
     {
         free(p);
     }
-  }
+}
 
 alias inner = Inner;
 struct Inner
@@ -596,11 +596,11 @@ static:
         pageSize = sysinfo.dwAllocationGranularity;
   }
 
-  version (Posix)
-  {
+version (Posix)
+{
         import core.sys.posix.unistd;
         pageSize = cast(size_t) sysconf(_SC_PAGESIZE);
-  }
+}
         return pageSize;
     }
 
@@ -639,7 +639,7 @@ static:
     }
     mixin ImportEnumMembers!AddressMode;
 
-}// inner
+} // inner
 
 /*
     custom allocator
@@ -663,13 +663,13 @@ class Allocator
     bool useProtect() const { return true; }
 }
 
-  version (XBYAK_USE_MEMFD)
-  {
+version (XBYAK_USE_MEMFD)
+{
     extern(C) int memfd_create(const char*, uint);
-  }
+}
 
-  version (XBYAK_USE_MMAP_ALLOCATOR)
-  {
+version (XBYAK_USE_MMAP_ALLOCATOR)
+{
     class MmapAllocator : Allocator
     {
         struct Allocation
@@ -700,8 +700,8 @@ class Allocator
             size = (size + alignedSizeM1) & ~alignedSizeM1;
             int mode = MAP_PRIVATE | MAP_ANON;
             int fd = -1;
-      version (XBYAK_USE_MEMFD)
-      {
+    version (XBYAK_USE_MEMFD)
+    {
             uint flag = 0;
             fd = memfd_create(name_.toStringz(), flag);
             if (fd != -1)
@@ -713,7 +713,7 @@ class Allocator
                     mixin(XBYAK_THROW_RET(ERR_CANT_ALLOC, "0"));
                 }
             }
-      }
+    }
             void* p = mmap(null, size, PROT_READ | PROT_WRITE, mode, fd, 0);
             if (p == MAP_FAILED)
             {
@@ -729,10 +729,10 @@ class Allocator
             Allocation* alloc = &allocList_[uip];
             alloc.size = size;
 
-      version (XBYAK_USE_MEMFD)
-      {
+    version (XBYAK_USE_MEMFD)
+    {
             alloc.fd = fd;
-      }
+    }
             GC.addRange(p, (p is null ? 0 : size));
             return cast(uint8_t*) p;
         }
@@ -750,24 +750,24 @@ class Allocator
                 mixin(XBYAK_THROW(ERR_MUNMAP));
             }
 
-      version (XBYAK_USE_MEMFD)
-      {
+    version (XBYAK_USE_MEMFD)
+    {
             if (allocList_[uip].fd != -1)
             {
                 close(allocList_[uip].fd);
             }
-      }
+    }
             allocList_.remove(uip);
     }
 }
-  }
+} // XBYAK_USE_MMAP_ALLOCATOR
 
-  version (XBYAK_USE_MMAP_ALLOCATOR)
-  {}
-  else
-  {
+version (XBYAK_USE_MMAP_ALLOCATOR)
+{}
+else
+{
     alias MmapAllocator = Allocator;
-  }
+}
 
 struct ApxFlagNF
 {
@@ -835,8 +835,8 @@ protected:
     void setIdx(int idx) { idx_ = idx; }
 
 public:
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
     enum Code
     {
         RAX = 0, RCX, RDX, RBX, RSP, RBP, RSI, RDI, R8, R9, R10, R11, R12, R13, R14, R15,
@@ -852,16 +852,16 @@ public:
         AX = 0, CX, DX, BX, SP, BP, SI, DI,
         AL = 0, CL, DL, BL, AH, CH, DH, BH
     }
-  }
-  else
-  {
+}
+else
+{
     enum Code
     {
         EAX = 0, ECX, EDX, EBX, ESP, EBP, ESI, EDI,
         AX = 0, CX, DX, BX, SP, BP, SI, DI,
         AL = 0, CL, DL, BL, AH, CH, DH, BH
     }
-  }
+}
     mixin ImportEnumMembers!Code;
 
     this()
@@ -1194,13 +1194,13 @@ public:
         return new Reg32(changeBit(32).getIdx());
     }
 
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
     Reg64 cvt64()
     {
         return new Reg64(changeBit(64).getIdx());
     }
-  }
+}
 
     Xmm cvt128()
     {
@@ -1427,8 +1427,8 @@ public:
     }
 }
 
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
     public class Tmm : Reg
     {
     public:
@@ -1447,7 +1447,7 @@ public:
             return new Tmm(idx);
         }
     }
-  }
+}
 
 
 class Opmask : Reg
@@ -1548,8 +1548,8 @@ public class Reg32 : Reg32e
     }
 }
 
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
     public class Reg64 : Reg32e
     {
         this(int idx, int bit = 64)
@@ -1573,12 +1573,12 @@ public class Reg32 : Reg32e
         RegExp re = RegExp.setRegRip();
         alias re this;
     }
-  }
+}
 
-  version (XBYAK_DISABLE_SEGMENT)
-  {}
-  else
-  {
+version (XBYAK_DISABLE_SEGMENT)
+{}
+else
+{
     // not derived from Reg
     struct Segment
     {
@@ -1607,7 +1607,7 @@ public class Reg32 : Reg32e
             return tbl[idx_];
         }
     }
-  }
+} // version (XBYAK_DISABLE_SEGMENT) else
 
 /*
     pattern
@@ -1912,14 +1912,14 @@ class CodeArray
     AddrInfoList addrInfoList_;
     Type type_;
 
-  version (XBYAK_USE_MMAP_ALLOCATOR)
-  {
+version (XBYAK_USE_MMAP_ALLOCATOR)
+{
     MmapAllocator defaultAllocator_ = new MmapAllocator();
-  }
-  else
-  {
+}
+else
+{
     Allocator defaultAllocator_ = new Allocator();
-  }
+}
     Allocator alloc_;
 protected:
     size_t maxSize_;
@@ -1966,7 +1966,9 @@ public:
 
     this(size_t maxSize, void* userPtr = null, Allocator allocator = null)
     {
-        type_ = (userPtr == AutoGrow) ? AUTO_GROW : (userPtr == null || userPtr == DontSetProtectRWE) ? ALLOC_BUF : USER_BUF;
+        type_ = (userPtr == AutoGrow) ?
+            AUTO_GROW : (userPtr == null || userPtr == DontSetProtectRWE) ?
+            ALLOC_BUF : USER_BUF;
         alloc_ = allocator ? allocator : defaultAllocator_;
         maxSize_ = maxSize;
         top_ = type_ == USER_BUF ? cast(uint8_t*) userPtr : alloc_.alloc(max(maxSize, 1));
@@ -1976,8 +1978,9 @@ public:
         if (maxSize_ > 0 && top_ == null) {
             mixin(XBYAK_THROW(ERR_CANT_ALLOC));
         }
-        if ((type_ == ALLOC_BUF && userPtr != DontSetProtectRWE && alloc_.useProtect()) && !setProtectMode(PROTECT_RWE, false))
-        {
+        if ((type_ == ALLOC_BUF && userPtr != DontSetProtectRWE && alloc_.useProtect()) &&
+            !this.setProtectMode(PROTECT_RWE, false))
+            {
             alloc_.free(top_);
             mixin(XBYAK_THROW(ERR_CANT_PROTECT));
         }
@@ -2107,20 +2110,20 @@ public:
     */
     static bool protect(const void* addr, size_t size, ProtectMode protectMode_)
     {
-  version (Windows)
-  {
+version (Windows)
+{
         const DWORD c_rw = PAGE_READWRITE;
         const DWORD c_rwe = PAGE_EXECUTE_READWRITE;
         const DWORD c_re = PAGE_EXECUTE_READ;
         DWORD mode;
-  }
-  else
-  {
+}
+else
+{
         const int c_rw = PROT_READ | PROT_WRITE;
         const int c_rwe = PROT_READ | PROT_WRITE | PROT_EXEC;
         const int c_re = PROT_READ | PROT_EXEC;
         int mode;
-  }
+}
         switch (protectMode_) {
             case PROTECT_RW: mode = c_rw; break;
             case PROTECT_RWE: mode = c_rwe; break;
@@ -2479,12 +2482,12 @@ struct LabelManager
                 disp = cast(size_t) base_.getCurr;
             } else {
                 disp = addrOffset - jmp.endOfJmp + jmp.disp;
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
                 if (jmp.jmpSize <= 4 && !inner.IsInInt32(disp)) {
                     mixin(XBYAK_THROW(ERR_OFFSET_IS_TOO_BIG));
                 }
-  }
+}
                 if (jmp.jmpSize == 1 && !inner.IsInDisp8(cast(uint32_t) disp)) {
                     mixin(XBYAK_THROW(ERR_LABEL_IS_TOO_FAR));
                 }
@@ -2699,18 +2702,18 @@ public:
     mixin ImportEnumMembers!(LabelType);
 
 private:
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
         enum { i32e = 64 | 32, BIT = 64 }
         static const size_t dummyAddr = cast(uint64_t) 0x1122334455667788uL;
         alias NativeReg = Reg64;
-  }
-  else
-  {
+}
+else
+{
         enum { i32e = 32, BIT = 32 }
         static const size_t dummyAddr = 0x12345678;
         alias NativeReg = Reg32;
-  }
+}
 
     // (XMM, XMM|MEM)
     bool isXMM_XMMorMEM(Operand op1, Operand op2)
@@ -2942,7 +2945,9 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
 
     void verifySAE(Reg r, uint64_t type) const
     {
-        if (((type & T_SAE_X) && r.isXMM()) || ((type & T_SAE_Y) && r.isYMM()) || ((type & T_SAE_Z) && r.isZMM())) return;
+        if (((type & T_SAE_X) && r.isXMM()) ||
+            ((type & T_SAE_Y) && r.isYMM()) ||
+            ((type & T_SAE_Z) && r.isZMM())) return;
         mixin(XBYAK_THROW(ERR_SAE_IS_INVALID));
     }
 
@@ -3089,25 +3094,25 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         Label* label = e.getLabel();
         int disp8N = addr.disp8N;
         uint64_t disp64 = e.getDisp();
-  version (XBYAK64)
-  {
-      version (XBYAK_OLD_DISP_CHECK)
-      {
+version (XBYAK64)
+{
+    version (XBYAK_OLD_DISP_CHECK)
+    {
         // treat 0xffffffff as 0xffffffffffffffff
         uint64_t high = disp64 >> 32;
         if (high != 0 && high != 0xFFFFFFFF) {
             mixin(XBYAK_THROW(ERR_OFFSET_IS_TOO_BIG));
         }
-      }
-      else
-      {
+    }
+    else
+    {
         // displacement should be a signed 32-bit value, so also check sign bit
         uint64_t high = disp64 >> 31;
         if (high != 0 && high != 0x1FFFFFFFF) {
             mixin(XBYAK_THROW(ERR_OFFSET_IS_TOO_BIG));
         }
-      }
-  }
+    }
+}
         uint32_t disp = cast(uint32_t) disp64;
         Reg base = e.getBase();
         Reg index = e.getIndex();
@@ -3139,10 +3144,10 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         const int newBaseIdx = baseBit ? (baseIdx & 7) : Operand.EBP;
         /* ModR/M = [2:3:3] = [Mod:reg/code:R/M] */
         bool hasSIB = indexBit || (baseIdx & 7) == Operand.ESP;
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
         if (!baseBit && !indexBit) hasSIB = true;
-  }
+}
         if (hasSIB) {
             setModRM(mod, reg, Operand.ESP);
             /* SIB = [2:3:3] = [SS:index:base(=rm)] */
@@ -3579,8 +3584,8 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     }
     void opIncDec(Reg d, Operand op, int ext)
     {
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
         if (d.isREG()) {
             int code = d.isBit(8) ? 0xFE : 0xFF;
             uint64_t type = T_APX|T_NF|T_ND1;
@@ -3588,22 +3593,22 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             opROO(d, op, Reg(ext, REG, d.getBit()), type, code);
             return;
         }
-  }
-  else
-  {
+}
+else
+{
         cast(void) d;
-  }
+}
         verifyMemHasSize(op);
-  version (XBYAK64)
-  {}
-  else
-  {
+version (XBYAK64)
+{}
+else
+{
         if (op.isREG() && !op.isBit(8)) {
             rex(op);
             db((ext ? 0x48 : 0x40) | op.getIdx());
             return;
         }
-  }
+}
         opRext(op, op.getBit(), ext, 0, 0xFE);
     }
     void opPushPop(Operand op, int code, int ext, int alt)
@@ -4019,12 +4024,12 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         {
             mixin(XBYAK_THROW_RET(ERR_BAD_ENCODING_MODE, "VexEncoding"));
         }
-  version (XBYAK_DISABLE_AVX512)
-  {
+version (XBYAK_DISABLE_AVX512)
+{
         if (enc == EvexEncoding || enc == AVX10v2Encoding) {
             mixin(XBYAK_THROW_RET(ERR_EVEX_IS_INVALID, VexEncoding));
         }
-  }
+}
         return enc;
     }
     uint64_t orEvexIf(PreferredEncoding enc, uint64_t typeVex, uint64_t typeEvex, int sel)
@@ -4118,8 +4123,8 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             opROO(d, op1, cast(Reg) op2|T_nf, T_MUST_EVEX|T_NF, code);
         }
     }
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
     void opAMX(Tmm t1, Address addr, uint64_t type, int code)
     {
         scope Address addr2 = addr.cloneNoOptimize();
@@ -4133,7 +4138,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         if (opROO(Reg(), addr2, t1, T_APX|type, code)) return;
         opVex(t1, tmm0, addr2, type, code);
     }
-  }
+}
     // (reg32e/mem, k) if rev else (k, k/mem/reg32e)
     // size = 8, 16, 32, 64
     void opKmov(Opmask k, Operand op, bool rev, int size)
@@ -4262,8 +4267,8 @@ public:
         T_zu = ApxFlagZU()
     }
 
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
     enum
     {
         rax = Reg64(Operand.RAX), rcx = Reg64(Operand.RCX), rdx = Reg64(Operand.RDX), rbx = Reg64(Operand.RBX),
@@ -4350,10 +4355,10 @@ public:
         rip = RegRip()
     }
 
-      version (XBYAK_DISABLE_SEGMENT)
-      {}
-      else
-      {
+    version (XBYAK_DISABLE_SEGMENT)
+    {}
+    else
+    {
         enum {
             es = Segment(Segment.es),
             cs = Segment(Segment.cs),
@@ -4362,8 +4367,8 @@ public:
             fs = Segment(Segment.fs),
             gs = Segment(Segment.gs)
         }
-      }
-  }
+    }
+}
 
 private:
     bool isDefaultJmpNEAR_;
@@ -4402,8 +4407,8 @@ public:
     void call(ref Label label) { opJmp(label, T_NEAR, 0, 0xE8, 0); }
 
     // call(function pointer)
-  version (XBYAK_VARIADIC_TEMPLATE)
-  {
+version (XBYAK_VARIADIC_TEMPLATE)
+{
     alias CastTo = castTo;
     To castTo(To, From)(From p)
     {
@@ -4415,7 +4420,7 @@ public:
         //call(CastTo(opJmpAbs(&func)));
         call(cast(void*)func);
     }
-  }
+}
     void call(const void* addr) { opJmpAbs(addr, T_NEAR, 0, 0xE8); }
 
     void test(Operand op, Reg reg)
@@ -4581,10 +4586,10 @@ else
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         }
         bool BL = true;
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
         BL = (p2.getIdx != 0 || !p1.isREG(32));
-  }
+}
         if (p2.isREG && (p1.isREG(16 | i32e) && p1.getIdx == 0) && BL)
         {
             rex(p2, p1);
@@ -4595,10 +4600,10 @@ else
         opRO(cast(Reg) p1, p2, 0, 0x86 | (p1.isBit(8) ? 0 : 1), (p1.isREG() && (p1.getBit() == p2.getBit())));
     }
 
-  version (XBYAK_DISABLE_SEGMENT)
-  {}
-  else
-  {
+version (XBYAK_DISABLE_SEGMENT)
+{}
+else
+{
     void push(Segment seg)
     {
         switch (seg.getIdx()) {
@@ -4653,7 +4658,7 @@ else
             op.isREG(16|i32e)
         );
     }
-  }
+}
 
     enum { NONE = 256 }
 // public:
@@ -4661,8 +4666,8 @@ else
     {
         super(maxSize, userPtr, allocator);
         isDefaultJmpNEAR_ = false;
-        setDefaultEncoding();
-        setDefaultEncodingAVX10();
+        this.setDefaultEncoding();
+        this.setDefaultEncodingAVX10();
 
         labelMgr_.reset();
         labelMgr_.set(this);
@@ -4695,14 +4700,14 @@ else
     // set read/exec
     void readyRE() { return ready(PROTECT_RE); }
 
-  version (XBYAK_TEST)
-  {
+version (XBYAK_TEST)
+{
     override void dump(bool doClear = true)
     {
         xbyak.CodeArray.dump();
         if (doClear) size_ = 0;
     }
-  }
+}
     // set default encoding of VNNI
     // EvexEncoding : AVX512_VNNI, VexEncoding : AVX-VNNI
     void setDefaultEncoding(PreferredEncoding enc = EvexEncoding)
@@ -4806,10 +4811,10 @@ else
         }
     }
 
-  version (XBYAK_DONT_READ_LIST)
-  {}
-  else
-  {
+version (XBYAK_DONT_READ_LIST)
+{}
+else
+{
     /*
         use single byte nop if useMultiByteNop = 0
     */
@@ -4827,7 +4832,7 @@ else
             nop(x - remain, useMultiByteNop);
         }
     }
-  }
+}
 
 version (XBYAK_DONT_READ_LIST)
 {}
@@ -6987,8 +6992,8 @@ void xorps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x57, &isXMM_XMMorMEM); }
 void xresldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE9); }
 void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
 
-  version (XBYAK_ENABLE_OMITTED_OPERAND)
-  {
+version (XBYAK_ENABLE_OMITTED_OPERAND)
+{
     void vblendpd(Xmm x, Operand op, uint8_t imm) { vblendpd(x, x, op, imm); }
     void vblendps(Xmm x, Operand op, uint8_t imm) { vblendps(x, x, op, imm); }
     void vblendvpd(Xmm x1, Operand op, Xmm x4) { vblendvpd(x1, x1, op, x4); }
@@ -7245,10 +7250,10 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vunpckhps(Xmm x, Operand op) { vunpckhps(x, x, op); }
     void vunpcklpd(Xmm x, Operand op) { vunpcklpd(x, x, op); }
     void vunpcklps(Xmm x, Operand op) { vunpcklps(x, x, op); }
-  }
+}
 
-  version (XBYAK64)
-  {
+version (XBYAK64)
+{
     void jecxz(string label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
     void jecxz(ref Label label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
     void jrcxz(string label) { opJmp(label, T_SHORT, 0xe3, 0, 0); }
@@ -7369,9 +7374,9 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void tilestored(Address addr, Tmm tm) { opAMX(tm, addr, T_F3|T_0F38|T_W0, 0x4B); }
     void tilerelease() { db(0xc4); db(0xe2); db(0x78); db(0x49); db(0xc0); }
     void tilezero(Tmm t) { opVex(t, tmm0, tmm0, T_F2|T_0F38|T_W0, 0x49); }
-  }
-  else
-  {
+}
+else
+{
     void jcxz(string label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
     void jcxz(ref Label label) { db(0x67); opJmp(label, T_SHORT, 0xe3, 0, 0); }
     void jecxz(string label) { opJmp(label, T_SHORT, 0xe3, 0, 0); }
@@ -7391,12 +7396,12 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void popa() { db(0x61); }
     void lds(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NONE, 0xC5); }
     void les(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NONE, 0xC4); }
-  }
+}
 
-  version (XBYAK_NO_OP_NAMES)
-  {}
-  else
-  {
+version (XBYAK_NO_OP_NAMES)
+{}
+else
+{
     void and(Operand op1, Operand op2) { and_(op1, op2); }
     void and(Operand op, uint32_t imm) { and_(op, imm); }
     void and(Reg d, Operand op, uint32_t imm) { and_(d, op, imm); }
@@ -7414,12 +7419,12 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
 
     void not(Operand op) { not_(op); }
     void not(Reg d, Operand op) { not_(d, op); }
-  }
+}
 
-  version (XBYAK_DISABLE_AVX512)
-  {}
-  else
-  {
+version (XBYAK_DISABLE_AVX512)
+{}
+else
+{
     void kaddb(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_66 | T_W0, 0x4A); }
     void kaddd(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_66 | T_W1, 0x4A); }
     void kaddq(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_W1, 0x4A); }
@@ -8744,8 +8749,9 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
     void vucomxsd(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N8|T_F2|T_0F|T_EW1|T_SAE_X|T_MUST_EVEX, 0x2E); }
     void vucomxsh(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N2|T_F3|T_MAP5|T_W0|T_SAE_X|T_MUST_EVEX, 0x2E); }
     void vucomxss(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N4|T_F3|T_0F|T_W0|T_SAE_X|T_MUST_EVEX, 0x2E); }
-      version (XBYAK64)
-      {
+
+    version (XBYAK64)
+    {
         void kmovq(Reg64 r, Opmask k) { opKmov(k, r, true, 64); }
         void tcvtrowd2ps(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_F3|T_0F38|T_W0|T_MUST_EVEX, 0x4A); }
         void tcvtrowd2ps(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_F3|T_0F3A|T_W0|T_MUST_EVEX, 0x07, imm); }
@@ -8764,11 +8770,11 @@ void xsusldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE8); }
         void vmovrsq(Xmm x, Address addr) { opVex(x, null, addr, T_F3|T_MAP5|T_EW1|T_MUST_EVEX, 0x6F); }
         void vmovrsw(Xmm x, Address addr) { opVex(x, null, addr, T_F2|T_MAP5|T_EW1|T_MUST_EVEX, 0x6F); }
         void vpbroadcastq(Xmm x, Reg64 r) { opVex(x, null, r, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x7C); }
-      }
-  }
-}// version (XBYAK_DONT_READ_LIST) else
+    }
 
-}// CodeGenerator
+} // version (XBYAK_DISABLE_AVX512)
+} // version (XBYAK_DONT_READ_LIST) else
+} // CodeGenerator
 
 mixin ImportEnumMembers!(CodeGenerator);
 
