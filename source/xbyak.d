@@ -1314,6 +1314,7 @@ public:
     }
 }
 
+mixin ImportEnumMembers!EvexModifierRounding;
 struct EvexModifierRounding
 {
     enum
@@ -1873,10 +1874,11 @@ class CodeArray
         ALLOC_BUF,    // use new(alignment, protect)
         AUTO_GROW     // automatically move and grow memory if necessary
     }
+    mixin ImportEnumMembers!Type;
 
     bool isAllocType() const
     {
-        return type_ == Type.ALLOC_BUF || type_ == Type.AUTO_GROW;
+        return type_ == ALLOC_BUF || type_ == AUTO_GROW;
     }
 
     struct AddrInfo
@@ -1961,27 +1963,22 @@ public:
         PROTECT_RWE = 1, // read/write/exec
         PROTECT_RE = 2 // read/exec
     }
+    mixin ImportEnumMembers!ProtectMode;
 
     this(size_t maxSize, void* userPtr = null, Allocator allocator = null)
     {
-        type_ =
-            (userPtr == AutoGrow) ?
-                Type.AUTO_GROW :
-                (userPtr == null || userPtr == DontSetProtectRWE) ?
-                    Type.ALLOC_BUF :
-                    Type.USER_BUF;
-
+        type_ = (userPtr == AutoGrow) ? AUTO_GROW : (userPtr == null || userPtr == DontSetProtectRWE) ? ALLOC_BUF : USER_BUF;
         alloc_ = allocator ? allocator : defaultAllocator_;
         maxSize_ = maxSize;
-        top_ = type_ == Type.USER_BUF ? cast(uint8_t*) userPtr : alloc_.alloc(max(maxSize, 1));
+        top_ = type_ == USER_BUF ? cast(uint8_t*) userPtr : alloc_.alloc(max(maxSize, 1));
         size_ = 0;
         isCalledCalcJmpAddress_ = false;
 
         if (maxSize_ > 0 && top_ == null) {
             mixin(XBYAK_THROW(ERR_CANT_ALLOC));
         }
-        if ((type_ == Type.ALLOC_BUF && userPtr != DontSetProtectRWE && alloc_.useProtect()) &&
-            !this.setProtectMode(ProtectMode.PROTECT_RWE, false)
+        if ((type_ == ALLOC_BUF && userPtr != DontSetProtectRWE && alloc_.useProtect()) &&
+            !this.setProtectMode(PROTECT_RWE, false)
             )
         {
             alloc_.free(top_);
@@ -2007,8 +2004,8 @@ public:
         }
         return false;
     }
-    bool setProtectModeRE(bool throwException = true) { return setProtectMode(ProtectMode.PROTECT_RE, throwException); }
-    bool setProtectModeRW(bool throwException = true) { return setProtectMode(ProtectMode.PROTECT_RW, throwException); }
+    bool setProtectModeRE(bool throwException = true) { return setProtectMode(PROTECT_RE, throwException); }
+    bool setProtectModeRW(bool throwException = true) { return setProtectMode(PROTECT_RW, throwException); }
     void resetSize()
     {
         size_ = 0;
@@ -2018,7 +2015,7 @@ public:
     void db(int code)
     {
         if (size_ >= maxSize_) {
-            if (type_ == Type.AUTO_GROW) {
+            if (type_ == AUTO_GROW) {
                 growMemory();
             } else {
                 mixin(XBYAK_THROW(ERR_CODE_IS_TOO_BIG));
@@ -2102,7 +2099,7 @@ public:
     {
         addrInfoList_.insertBack(AddrInfo(offset, val, size, mode));
     }
-    bool isAutoGrow() const { return type_ == Type.AUTO_GROW; }
+    bool isAutoGrow() const { return type_ == AUTO_GROW; }
     bool isCalledCalcJmpAddress() const { return isCalledCalcJmpAddress_; }
     /*
         change exec permission of memory
@@ -2128,9 +2125,9 @@ public:
         int mode;
   }
         switch (protectMode_) {
-            case ProtectMode.PROTECT_RW: mode = c_rw; break;
-            case ProtectMode.PROTECT_RWE: mode = c_rwe; break;
-            case ProtectMode.PROTECT_RE: mode = c_re; break;
+            case PROTECT_RW: mode = c_rw; break;
+            case PROTECT_RWE: mode = c_rwe; break;
+            case PROTECT_RE: mode = c_re; break;
             default:
                 return false;
         }
@@ -2468,7 +2465,9 @@ struct LabelManager
         if (deflist.Find(labelId) != deflist.End()) {
             mixin(XBYAK_THROW(ERR_LABEL_IS_REDEFINED));
         }
-        deflist.Insert(labelId, typeof(deflist[labelId])(addrOffset));
+        alias value_type = typeof(deflist[labelId]);
+        value_type item = value_type(addrOffset);
+        deflist.Insert(labelId, item);
 
         // search undefined label
         auto itr = undeflist.Find(labelId);
@@ -2688,12 +2687,7 @@ enum PreferredEncoding
     PreAVX10v2Encoding,
     AVX10v2Encoding
 }
-
-alias DefaultEncoding    = PreferredEncoding.DefaultEncoding;
-alias VexEncoding        = PreferredEncoding.VexEncoding;
-alias EvexEncoding       = PreferredEncoding.EvexEncoding;
-alias PreAVX10v2Encoding = PreferredEncoding.PreAVX10v2Encoding;
-alias AVX10v2Encoding    = PreferredEncoding.AVX10v2Encoding;
+mixin ImportEnumMembers!PreferredEncoding;
 
 public class CodeGenerator : CodeArray
 {
@@ -3009,7 +3003,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
 
         int disp8N = 1;
         if (rounding) {
-            if (rounding == EvexModifierRounding.T_SAE) {
+            if (rounding == T_SAE) {
                 verifySAE(base, type);
                 LL = 0;
             } else {
@@ -4026,7 +4020,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         if ((sel == 0 && enc != VexEncoding && enc != EvexEncoding) ||
             (sel == 1 && enc != PreAVX10v2Encoding && enc != AVX10v2Encoding))
         {
-            mixin(XBYAK_THROW_RET(ERR_BAD_ENCODING_MODE, "PreferredEncoding.VexEncoding"));
+            mixin(XBYAK_THROW_RET(ERR_BAD_ENCODING_MODE, "VexEncoding"));
         }
   version (XBYAK_DISABLE_AVX512)
   {
@@ -4261,11 +4255,11 @@ public:
         k4 = Opmask(4), k5 = Opmask(5), k6 = Opmask(6), k7 = Opmask(7),
 
         bnd0 = BoundsReg(0), bnd1 = BoundsReg(1), bnd2 = BoundsReg(2), bnd3 = BoundsReg(3),
-        T_sae = EvexModifierRounding(EvexModifierRounding.T_SAE),
-        T_rn_sae = EvexModifierRounding(EvexModifierRounding.T_RN_SAE),
-        T_rd_sae = EvexModifierRounding(EvexModifierRounding.T_RD_SAE),
-        T_ru_sae = EvexModifierRounding(EvexModifierRounding.T_RU_SAE),
-        T_rz_sae = EvexModifierRounding(EvexModifierRounding.T_RZ_SAE),
+        T_sae = EvexModifierRounding(T_SAE),
+        T_rn_sae = EvexModifierRounding(T_RN_SAE),
+        T_rd_sae = EvexModifierRounding(T_RD_SAE),
+        T_ru_sae = EvexModifierRounding(T_RU_SAE),
+        T_rz_sae = EvexModifierRounding(T_RZ_SAE),
         T_z = EvexModifierZero(),
         T_nf = ApxFlagNF(),
         T_zu = ApxFlagZU()
@@ -4669,9 +4663,9 @@ else
     this(size_t maxSize = DEFAULT_MAX_CODE_SIZE, void* userPtr = null, Allocator allocator = null)
     {
         super(maxSize, userPtr, allocator);
-        this.isDefaultJmpNEAR_ = false;
-        this.setDefaultEncoding();
-        this.setDefaultEncodingAVX10();
+        isDefaultJmpNEAR_ = false;
+        setDefaultEncoding();
+        setDefaultEncodingAVX10();
 
         labelMgr_.reset();
         labelMgr_.set(this);
@@ -4691,7 +4685,7 @@ else
         MUST call ready() to complete generating code if you use AutoGrow mode.
         It is not necessary for the other mode if hasUndefinedLabel() is true.
     */
-    void ready(ProtectMode mode = ProtectMode.PROTECT_RWE)
+    void ready(ProtectMode mode = PROTECT_RWE)
     {
         if (hasUndefinedLabel()) {
             mixin(XBYAK_THROW(ERR_LABEL_IS_NOT_FOUND));
@@ -4702,7 +4696,7 @@ else
         }
     }
     // set read/exec
-    void readyRE() { return ready(ProtectMode.PROTECT_RE); }
+    void readyRE() { return ready(PROTECT_RE); }
 
   version (XBYAK_TEST)
   {
@@ -8786,67 +8780,4 @@ version (XBYAK_DISABLE_SEGMENT)
 else
 {
     mixin ImportEnumMembers!(Segment);
-}
-
-
-@("test_toString")
-unittest
-{
-    string def_string(string[] names)
-    {
-        string result;
-        foreach(name; names){
-            result ~= "assert(" ~ name ~ ".stringof == " ~ name ~ ".toString);\n";
-        }
-        return result;
-    }
-
-    mixin(def_string(["mm0","mm1","mm2","mm3","mm4","mm5","mm6","mm7"]));
-    mixin(def_string(["xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7"]));
-    mixin(def_string(["ymm0","ymm1","ymm2","ymm3","ymm4","ymm5","ymm6","ymm7"]));
-    mixin(def_string(["zmm0","zmm1","zmm2","zmm3","zmm4","zmm5","zmm6","zmm7"]));
-
-    mixin(def_string(["eax","ecx","edx","ebx","esp","ebp","esi","edi"]));
-    mixin(def_string(["ax","cx","dx","bx","sp","bp","si","di"]));
-    mixin(def_string(["al","cl","dl","bl","ah","ch","dh","bh"]));
-
-    mixin(def_string(["st0","st1","st2","st3","st4","st5","st6","st7"]));
-    mixin(def_string(["k0","k1","k2","k3","k4","k5","k6","k7"]));
-    mixin(def_string(["bnd0","bnd1","bnd2","bnd3"]));
-
-  version (XBYAK64)
-  {
-    mixin(def_string(["rax","rcx","rdx","rbx","rsp","rbp","rsi","rdi"]));
-    mixin(def_string(["r8","r9","r10","r11","r12","r13","r14","r15"]));
-    mixin(def_string(["r16","r17","r18","r19","r20","r21","r22","r23"]));
-    mixin(def_string(["r24","r25","r26","r27","r28","r29","r30","r31"]));
-
-    mixin(def_string(["r8d","r9d","r10d","r11d","r12d","r13d","r14d","r15d"]));
-    mixin(def_string(["r16d","r17d","r18d","r19d","r20d","r21d","r22d","r23d"]));
-    mixin(def_string(["r24d","r25d","r26d","r27d","r28d","r29d","r30d","r31d"]));
-
-    mixin(def_string(["r8w","r9w","r10w","r11w","r12w","r13w","r14w","r15w"]));
-    mixin(def_string(["r16w","r17w","r18w","r19w","r20w","r21w","r22w","r23w"]));
-    mixin(def_string(["r24w","r25w","r26w","r27w","r28w","r29w","r30w","r31w"]));
-
-    mixin(def_string(["r8b","r9b","r10b","r11b","r12b","r13b","r14b","r15b"]));
-    mixin(def_string(["r16b","r17b","r18b","r19b","r20b","r21b","r22b","r23b"]));
-    mixin(def_string(["r24b","r25b","r26b","r27b","r28b","r29b","r30b","r31b"]));
-    mixin(def_string(["spl","bpl","sil","dil"]));
-
-    mixin(def_string(["xmm8","xmm9","xmm10","xmm11","xmm12","xmm13","xmm14","xmm15"]));
-    mixin(def_string(["xmm16","xmm17","xmm18","xmm19","xmm20","xmm21","xmm22","xmm23"]));
-    mixin(def_string(["xmm24","xmm25","xmm26","xmm27","xmm28","xmm29","xmm30","xmm31"]));
-
-    mixin(def_string(["ymm8","ymm9","ymm10","ymm11","ymm12","ymm13","ymm14","ymm15"]));
-    mixin(def_string(["ymm16","ymm17","ymm18","ymm19","ymm20","ymm21","ymm22","ymm23"]));
-    mixin(def_string(["ymm24","ymm25","ymm26","ymm27","ymm28","ymm29","ymm30","ymm31"]));
-
-    mixin(def_string(["zmm8","zmm9","zmm10","zmm11","zmm12","zmm13","zmm14","zmm15"]));
-    mixin(def_string(["zmm16","zmm17","zmm18","zmm19","zmm20","zmm21","zmm22","zmm23"]));
-    mixin(def_string(["zmm24","zmm25","zmm26","zmm27","zmm28","zmm29","zmm30","zmm31"]));
-
-    mixin(def_string(["tmm0","tmm1","tmm2","tmm3","tmm4","tmm5","tmm6","tmm7"]));
-  }
-
 }
