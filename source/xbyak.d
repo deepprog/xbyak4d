@@ -2456,21 +2456,21 @@ struct LabelManager
         if (label.id == 0) label.id = labelId_++;
         return label.id;
     }
-    void define_inner(DefList, UndefList, T)(ref DefList deflist, ref UndefList undeflist, T labelId, size_t addrOffset)
+    void define_inner(DefList, UndefList, T)(ref DefList defList, ref UndefList undefList, T labelId, size_t addrOffset)
     {
         // add label
-        if (deflist.Find(labelId) != deflist.End()) {
+        if (defList.Find(labelId) != defList.End()) {
             mixin(XBYAK_THROW(ERR_LABEL_IS_REDEFINED));
         }
-        alias value_type = typeof(deflist[labelId]);
+        alias value_type = typeof(defList[labelId]);
         value_type item = value_type(addrOffset);
-        deflist.Insert(labelId, item);
+        defList.Insert(labelId, item);
 
         // search undefined label
-        auto itr = undeflist.Find(labelId);
-        if (itr == undeflist.End()) return;
+        auto itr = undefList.Find(labelId);
+        if (itr == undefList.End()) return;
 
-        foreach (JmpLabel jmp; undeflist[labelId]) {
+        foreach (JmpLabel jmp; undefList[labelId]) {
             size_t offset = jmp.endOfJmp - jmp.jmpSize;
             size_t disp;
             if (jmp.mode == inner.LaddTop) {
@@ -2497,7 +2497,7 @@ struct LabelManager
             } else {
                 base_.rewrite(offset, disp, jmp.jmpSize);
             }
-            undeflist.Erase(labelId);
+            undefList.Erase(labelId);
         }
     }
 
