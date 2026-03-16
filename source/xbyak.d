@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
  * Version: 0.7353
- * Date: 2026/03/11
+ * Date: 2026/03/16
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright (c) 2019 deepprog
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -511,7 +511,7 @@ string convertErrorToString(ERR err)
         {
             err_ = err;
             if (err_ < 0 || err_ > ERR_INTERNAL) err_ = ERR_INTERNAL;
-            super(this.what(), file, line, next);
+            super(what(), file, line, next);
         }
         int opCast(T : int)() const {
             return err_;
@@ -691,7 +691,7 @@ class Allocator
     public:
         this(string name = "xbyak")
         {
-            this.name_ = name;
+            name_ = name;
         }
 
         override uint8_t* alloc(size_t size)
@@ -891,14 +891,14 @@ public:
 
     this(Operand op)
     {
-        this.idx_ = op.idx_;
-        this.kind_ = op.kind_;
-        this.bit_ = op.bit_;
-        this.zero_ = op.zero_;
-        this.mask_ = op.mask_;
-        this.rounding_ = op.rounding_;
-        this.NF_ = op.NF_;
-        this.ZU_ = op.ZU_;
+        idx_ = op.idx_;
+        kind_ = op.kind_;
+        bit_ = op.bit_;
+        zero_ = op.zero_;
+        mask_ = op.mask_;
+        rounding_ = op.rounding_;
+        NF_ = op.NF_;
+        ZU_ = op.ZU_;
         assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
     }
 
@@ -910,7 +910,7 @@ public:
     int getKind() const { return cast(Kind) kind_; }
     int getIdx () const { return idx_ & (EXT8BIT - 1); }
     bool hasIdxBit(int bit) const { return cast(bool) (idx_ & (1<<bit)); }
-    bool isNone () const {return this.kind_ == 0; }
+    bool isNone () const {return kind_ == 0; }
     bool isMMX  () const { return isKind(MMX); }
     bool isXMM  () const { return isKind(XMM); }
     bool isYMM  () const { return isKind(YMM); }
@@ -1115,20 +1115,20 @@ public:
 
     bool isEqualIfNotInherited(Operand rhs) const
     {
-        bool Idx_ = this.idx_ == rhs.idx_;
-        bool Kind_ = this.kind_ == rhs.kind_;
-        bool Bit_ = this.bit_ == rhs.bit_;
-        bool Zero_ = this.zero_ == rhs.zero_;
-        bool Mask_ = this.mask_ == rhs.mask_;
-        bool Rounding_ = this.rounding_ == rhs.rounding_;
+        bool Idx_ = idx_ == rhs.idx_;
+        bool Kind_ = kind_ == rhs.kind_;
+        bool Bit_ = bit_ == rhs.bit_;
+        bool Zero_ = zero_ == rhs.zero_;
+        bool Mask_ = mask_ == rhs.mask_;
+        bool Rounding_ = rounding_ == rhs.rounding_;
         return Idx_ && Kind_ && Bit_ && Zero_ && Mask_ && Rounding_;
     }
     override bool opEquals(Object o) const
     {
         scope Operand rhs = cast(Operand) o;
-        if (this.isMEM() && rhs.isMEM())
+        if (isMEM() && rhs.isMEM())
         {
-            return this.getAddress() == rhs.getAddress();
+            return getAddress() == rhs.getAddress();
         }
         return isEqualIfNotInherited(rhs);
     }
@@ -1146,7 +1146,7 @@ public:
     Reg getReg() const
     {
         assert(!isMEM());
-        Reg ret = new Reg(this.getIdx(), this.getKind(), this.getBit(), this.isExt8bit());
+        Reg ret = new Reg(getIdx(), getKind(), getBit(), isExt8bit());
         return ret;
     }
 }
@@ -1182,7 +1182,7 @@ public:
     }
     Reg8 cvt8()
     {
-        Reg r = this.changeBit(8);
+        Reg r = changeBit(8);
         return new Reg8(r.getIdx(), r.isExt8bit());
     }
     Reg16 cvt16()
@@ -1328,7 +1328,7 @@ struct EvexModifierRounding
 
     this(int rounding)
     {
-        this.rounding_ = rounding;
+        rounding_ = rounding;
     }
 
     int rounding_;
@@ -1336,7 +1336,7 @@ struct EvexModifierRounding
     T opBinaryRight(string op : "|", T)(T x)
     {
         T r = new T(x);
-        r.setRounding(this.rounding_);
+        r.setRounding(rounding_);
         return r;
     }
 }
@@ -1470,7 +1470,7 @@ class Opmask : Reg
     T opBinaryRight(string op : "|", T)(T x)
     {
         T r = new T(x);
-        r.setOpmaskIdx(this.getIdx());
+        r.setOpmaskIdx(getIdx());
         return r;
     }
 }
@@ -1704,17 +1704,17 @@ version(XBYAK64)
         RegExp exp = this;
         // [reg * 2] => [reg + reg]
         if (index_.isBit(i32e) && !base_.getBit() && scale_ == 2) {
-            exp.base_ = this.index_;
+            exp.base_ = index_;
             exp.scale_ = 1;
         }
         return exp;
     }
     bool opEquals(const ref RegExp rhs) const
     {
-        bool Base_ = this.base_ == rhs.base_;
-        bool Index_ = this.index_ == rhs.index_;
-        bool Dsip_ = this.disp_ == rhs.disp_;
-        bool Scale_ = this.scale_ == rhs.scale_;
+        bool Base_ = base_ == rhs.base_;
+        bool Index_ = index_ == rhs.index_;
+        bool Dsip_ = disp_ == rhs.disp_;
+        bool Scale_ = scale_ == rhs.scale_;
         return Base_ && Index_ && Dsip_ && Scale_;
     }
 
@@ -1743,25 +1743,24 @@ version(XBYAK64)
 
     RegExp opBinary(string op : "+")(RegExp b)
     {
-        if (this.index_.getBit() && b.index_.getBit()) {
+        if (index_.getBit() && b.index_.getBit()) {
             mixin(XBYAK_THROW_RET(ERR_BAD_ADDRESSING, "RegExp()"));
         }
-        if (this.label_  && b.label_) {
+        if (label_  && b.label_) {
             mixin(XBYAK_THROW_RET(ERR_BAD_ADDRESSING, "RegExp()"));
         }
         if (b.rip_) {
             mixin(XBYAK_THROW_RET(ERR_BAD_ADDRESSING, "RegExp()"));
         }
-        if (this.rip_ && !b.isOnlyDisp()) {
+        if (rip_ && !b.isOnlyDisp()) {
             mixin(XBYAK_THROW_RET(ERR_BAD_ADDRESSING, "RegExp()"));
         }
-        if (this.asPtr_ && b.asPtr_) {
+        if (asPtr_ && b.asPtr_) {
             mixin(XBYAK_THROW_RET(ERR_BAD_ADDRESSING, "RegExp()"));
         }
         RegExp ret = this;
         if (ret.label_ == null) ret.label_ = b.label_;
         if (ret.asPtr_ == 0) ret.asPtr_ = b.asPtr_;
-
         if (!ret.index_.getBit())
         {
             ret.index_ = b.index_;
@@ -1889,10 +1888,10 @@ class CodeArray
         inner.LabelMode mode;
         this(size_t _codeOffset, size_t _jmpAddr, int _jmpSize, inner.LabelMode _mode)
         {
-            this.codeOffset = _codeOffset;
-            this.jmpAddr = _jmpAddr;
-            this.jmpSize = _jmpSize;
-            this.mode = _mode;
+            codeOffset = _codeOffset;
+            jmpAddr = _jmpAddr;
+            jmpSize = _jmpSize;
+            mode = _mode;
         }
 
         uint64_t getVal(uint8_t* top) const
@@ -1977,9 +1976,7 @@ public:
         if (maxSize_ > 0 && top_ == null) {
             mixin(XBYAK_THROW(ERR_CANT_ALLOC));
         }
-        if ((type_ == ALLOC_BUF && userPtr != DontSetProtectRWE && alloc_.useProtect()) &&
-            !this.setProtectMode(PROTECT_RWE, false)
-            )
+        if ((type_ == ALLOC_BUF && userPtr != DontSetProtectRWE && alloc_.useProtect()) && !setProtectMode(PROTECT_RWE, false))
         {
             alloc_.free(top_);
             mixin(XBYAK_THROW(ERR_CANT_PROTECT));
@@ -2236,15 +2233,15 @@ version(XBYAK64)
     override bool opEquals(Object o) const
     {
         scope Address rhs = cast(Address) o;
-        bool Bit_ = this.getBit() == rhs.getBit();
-        bool E_ = this.e_ == rhs.e_;
-        bool Label_ = this.label_ == rhs.label_;
-        bool Mode_ = this.mode_ == rhs.mode_;
-        bool ImmSize = this.immSize == rhs.immSize;
-        bool Disp8N_ = this.disp8N == rhs.disp8N;
-        bool PermitVsib = this.permitVsib == rhs.permitVsib;
-        bool Broadcast_ = this.broadcast_ == rhs.broadcast_;
-        bool Optimize_ = this.optimize_ == rhs.optimize_;
+        bool Bit_ = getBit() == rhs.getBit();
+        bool E_ = e_ == rhs.e_;
+        bool Label_ = label_ == rhs.label_;
+        bool Mode_ = mode_ == rhs.mode_;
+        bool ImmSize = immSize == rhs.immSize;
+        bool Disp8N_ = disp8N == rhs.disp8N;
+        bool PermitVsib = permitVsib == rhs.permitVsib;
+        bool Broadcast_ = broadcast_ == rhs.broadcast_;
+        bool Optimize_ = optimize_ == rhs.optimize_;
         return Bit_ && E_ && Label_ && Mode_ && ImmSize && Disp8N_&& PermitVsib && Broadcast_ && Optimize_;
     }
     bool isVsib() const { return e_.isVsib(); }
@@ -2307,12 +2304,12 @@ struct JmpLabel
     inner.LabelMode mode;
     size_t disp; // disp for [rip + disp] or [forward ref label + disp]
 
-    this(size_t endOfJmp, int jmpSize, inner.LabelMode mode = inner.LasIs, size_t disp = 0)
+    this(size_t _endOfJmp, int _jmpSize, inner.LabelMode _mode = inner.LasIs, size_t _disp = 0)
     {
-        this.endOfJmp = endOfJmp;
-        this.jmpSize = jmpSize;
-        this.mode = mode;
-        this.disp = disp;
+        endOfJmp = _endOfJmp;
+        jmpSize = _jmpSize;
+        mode = _mode;
+        disp = _disp;
     }
 }
 
@@ -2416,9 +2413,9 @@ struct LabelManager
     struct SlabelVal
     {
         size_t offset;
-        this(size_t offset)
+        this(size_t _offset)
         {
-            this.offset = offset;
+            offset = _offset;
         }
     }
     alias SlabelDefList = XBYAK_STD_UNORDERED_MAP!(string, SlabelVal);
@@ -2436,10 +2433,10 @@ struct LabelManager
     {
         size_t offset;
         int refCount;
-        this(size_t offset)
+        this(size_t _offset)
         {
-            this.offset = offset;
-            this.refCount = 1;
+            offset = _offset;
+            refCount = 1;
         }
     }
     alias ClabelDefList = XBYAK_STD_UNORDERED_MAP!(int, ClabelVal);
