@@ -2638,10 +2638,10 @@ public:
                 label = "@b";
             }
         }
-        ref SlabelState st = label[0] == '.' ? stateList_.back() : stateList_.front();
+        const ref SlabelState st = label[0] == '.' ? stateList_.back() : stateList_.front();
         return getOffset_inner(st.defList, offset, label);
     }
-    bool getOffset(size_t* offset, Label* label)
+    bool getOffset(size_t* offset, Label* label) //const
     {
         return getOffset_inner(clabelDefList_, offset, getId(label));
     }
@@ -2716,45 +2716,54 @@ else
 }
 
     // (XMM, XMM|MEM)
+    pragma(inline, true);
     bool isXMM_XMMorMEM(Operand op1, Operand op2)
     {
         return op1.isXMM() && (op2.isXMM() || op2.isMEM());
     }
     // (MMX, MMX|MEM) or (XMM, XMM|MEM)
+    pragma(inline, true);
     bool isXMMorMMX_MEM(Operand op1, Operand op2)
     {
         return (op1.isMMX() && (op2.isMMX() || op2.isMEM())) || isXMM_XMMorMEM(op1, op2);
     }
     // (XMM, MMX|MEM)
+    pragma(inline, true);
     bool isXMM_MMXorMEM(Operand op1, Operand op2)
     {
         return op1.isXMM() && (op2.isMMX() || op2.isMEM());
     }
     // (MMX, XMM|MEM)
+    pragma(inline, true);
     bool isMMX_XMMorMEM(Operand op1, Operand op2)
     {
         return op1.isMMX() && (op2.isXMM() || op2.isMEM());
     }
     // (XMM, REG32|MEM)
+    pragma(inline, true);
     bool isXMM_REG32orMEM(Operand op1, Operand op2)
     {
         return op1.isXMM() && (op2.isREG(i32e) || op2.isMEM());
     }
     // (REG32, XMM|MEM)
+    pragma(inline, true);
     bool isREG32_XMMorMEM(Operand op1, Operand op2)
     {
         return op1.isREG(i32e) && (op2.isXMM() || op2.isMEM());
     }
     // (REG32, REG32|MEM)
+    pragma(inline, true);
     bool isREG32_REG32orMEM(Operand op1, Operand op2)
     {
         return op1.isREG(i32e) && ((op2.isREG(i32e) && op1.getBit() == op2.getBit()) || op2.isMEM());
     }
+    pragma(inline, true);
     bool isValidSSE(Operand op1)
     {
         // SSE instructions do not support XMM16 - XMM31
         return !(op1.isXMM() && op1.getIdx() >= 16);
     }
+    pragma(inline, true);
     uint8_t rexRXB(int bit, int bit3, Reg r, Reg b, Reg x = Reg())
     {
         int v = bit3 ? 8 : 0;
