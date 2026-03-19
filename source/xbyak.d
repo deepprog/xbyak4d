@@ -401,6 +401,7 @@ enum ERR
 mixin ImportEnumMembers!ERR;
 
 alias ConvertErrorToString = convertErrorToString;
+pragma(inline, true);
 string convertErrorToString(ERR err)
 {
     string[] errTbl = [
@@ -473,21 +474,28 @@ version (XBYAK_NO_EXCEPTION)
     struct Local
     {
         alias GetErrorRef = getErrorRef;
+        pragma(inline, true);
         static ref int getErrorRef()
         {
             static int err = 0;
             return err;
         }
+
         alias SetError = setError;
+        pragma(inline, true);
         static void setError(int err) {
             if (local.GetErrorRef()) return; // keep the first err code
             local.GetErrorRef() = err;
         }
     } // local
     alias ClearError = clearError;
+    pragma(inline, true);
     void clearError() { local.GetErrorRef() = 0; }
+
     alias GetError = getError;
+    pragma(inline, true);
     int getError() { return local.GetErrorRef(); }
+
     string XBYAK_THROW(ERR err)
     {
         return "local.SetError(" ~ typeof(err).stringof ~ "." ~ to!string(err) ~ "); return;";
@@ -527,8 +535,11 @@ else
     }
     // dummy functions
     alias ClearError = clearError;
+    pragma(inline, true);
     void clearError() { }
+
     alias GetError = getError;
+    pragma(inline, true);
     int getError() { return 0; }
 
 
@@ -552,11 +563,14 @@ version (CRuntime_Microsoft)
     @nogc nothrow pure private extern(C) void _aligned_free(void* memblock);
 
     alias AlignedMalloc = alignedMalloc;
+    pragma(inline, true);
     void* alignedMalloc(size_t size, size_t alignment)
     {
         return _aligned_malloc(size, alignment);
     }
+
     alias AlignedFree = alignedFree;
+    pragma(inline, true);
     void alignedFree(void* p)
     {
         _aligned_free(p);
@@ -568,13 +582,16 @@ version (Posix)
     import core.sys.posix.stdlib : posix_memalign;
 
     alias AlignedMalloc = alignedMalloc;
+    pragma(inline, true);
     void* alignedMalloc(size_t size, size_t alignment)
     {
         void* p;
         int ret = posix_memalign(&p, alignment, size);
         return (ret == 0) ? p : null;
     }
+
     alias AlignedFree = alignedFree;
+    pragma(inline, true);
     void alignedFree(void* p)
     {
         free(p);
@@ -585,6 +602,7 @@ alias inner = Inner;
 struct Inner
 {
 static:
+    pragma(inline, true);
     size_t getPageSize()
     {
         size_t pageSize = 4096;
@@ -605,11 +623,15 @@ version (Posix)
     }
 
     alias IsInDisp8 = isInDisp8;
+    pragma(inline, true);
     bool isInDisp8(uint32_t x) { return 0xFFFFFF80 <= x || x <= 0x7F; }
+
     alias IsInInt32 = isInInt32;
+    pragma(inline, true);
     bool isInInt32(uint64_t x) { return ~uint64_t(0x7fffffffu) <= x || x <= 0x7FFFFFFFu; }
 
     alias VerifyInInt32 = verifyInInt32;
+    pragma(inline, true);
     uint32_t verifyInInt32(uint64_t x)
     {
         version (XBYAK64)
