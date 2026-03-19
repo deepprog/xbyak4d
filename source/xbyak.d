@@ -2507,9 +2507,9 @@ version (XBYAK64)
     bool getOffset_inner(DefList, T)(DefList defList, size_t* offset, T label)
     if(is(T == string) || is(T == int))
     {
-        auto i = defList.Find(label);
+        DefList.const_iterator i = defList.Find(label);
         if (i == defList.End()) return false;
-        *offset = defList[label].offset;
+        *offset = i.offset;
         return true;
     }
     void incRefCount(int id, Label* label)
@@ -2520,14 +2520,14 @@ version (XBYAK64)
     void decRefCount(int id, Label* label)
     {
         labelPtrList_.erase(label);
-        const i = clabelDefList_.Find(id);
+        ClabelDefList.iterator i = clabelDefList_.Find(id);
         if (i == clabelDefList_.End()) {
             return;
         }
-        if (clabelDefList_[id].refCount == 1) {
+        if (i.refCount == 1) {
             clabelDefList_.Erase(id);
         } else {
-            clabelDefList_[id].refCount -= 1;
+            --(i.refCount);
         }
     }
 
