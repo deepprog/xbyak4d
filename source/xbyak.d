@@ -967,6 +967,7 @@ else
         bit_ = kind == XMM ? 128 : kind == YMM ? 256 : kind == ZMM ? 512 : 8192;
     }
     // err if MMX/FPU/OPMASK/BNDREG
+    pragma(inline, true);
     void setBit(int bit)
     {
         if (bit != 8 && bit != 16 && bit != 32 && bit != 64 &&
@@ -1154,17 +1155,23 @@ else
         }
         return isEqualIfNotInherited(rhs);
     }
+
+    pragma(inline, true);
     Address getAddress() const
     {
         assert(isMEM());
         return cast(Address) this;
     }
+
+    pragma(inline, true);
     Address getAddress(int immSize) const
     {
         Address addr = getAddress();
         addr.immSize = immSize;
         return addr;
     }
+
+    pragma(inline, true);
     Reg getReg() const
     {
         assert(!isMEM());
@@ -1202,15 +1209,21 @@ public:
         r.setBit(bit);
         return r;
     }
+
+    pragma(inline, true);
     Reg8 cvt8()
     {
         Reg r = changeBit(8);
         return new Reg8(r.getIdx(), r.isExt8bit());
     }
+
+    pragma(inline, true);
     Reg16 cvt16()
     {
         return new Reg16(changeBit(16).getIdx());
     }
+
+    pragma(inline, true);
     Reg32 cvt32()
     {
         return new Reg32(changeBit(32).getIdx());
@@ -1218,25 +1231,32 @@ public:
 
 version (XBYAK64)
 {
+    pragma(inline, true);
     Reg64 cvt64()
     {
         return new Reg64(changeBit(64).getIdx());
     }
 }
 
+    pragma(inline, true);
     Xmm cvt128()
     {
         return new Xmm(changeBit(128).getIdx());
     }
+
+    pragma(inline, true);
     Ymm cvt256()
     {
         return new Ymm(changeBit(256).getIdx());
     }
+
+    pragma(inline, true);
     Zmm cvt512()
     {
         return new Zmm(changeBit(512).getIdx());
     }
 
+    pragma(inline, true);
     override Reg getReg() const
     {
         assert(!isMEM());
@@ -1244,37 +1264,44 @@ version (XBYAK64)
         return r;
     }
 
+    pragma(inline, true);
     RegExp opBinary(string op : "+")(Reg b)
     {
         return RegExp(this) + RegExp(b);
     }
 
+    pragma(inline, true);
     RegExp opBinary(string op : "*")(int scale)
     {
         return RegExp(this, scale);
     }
 
+    pragma(inline, true);
     RegExp opBinaryRight(string op : "*")(int scale)
     {
         return this * scale;
     }
 
+    pragma(inline, true);
     RegExp opBinary(string op : "+")(const void* addr)
     {
         return RegExp(this) + addr;
     }
 
+    pragma(inline, true);
     RegExp opBinary(string op : "+")(size_t disp)
     {
         return RegExp(this) + disp;
     }
 
+    pragma(inline, true);
     RegExp opBinaryRight(string op : "+")(size_t disp)
     {
         return RegExp(this) + disp;
     }
 
-     RegExp opBinary(string op : "-")(size_t disp)
+    pragma(inline, true);
+    RegExp opBinary(string op : "-")(size_t disp)
     {
         return RegExp(this) - disp;
     }
@@ -2130,6 +2157,7 @@ public:
         @param protectMode [in] mode(RW/RWE/RE)
         @return true(success), false(failure)
     */
+    pragma(inline, true);
     static bool protect(const void* addr, size_t size, ProtectMode protectMode_)
     {
 version (Windows)
@@ -2177,6 +2205,7 @@ else
 //  @param addr [in] address
 //  @param alingedSize [in] power of two
 //  @return aligned addr by alingedSize
+    pragma(inline, true);
     uint8_t* getAlignedAddress(uint8_t* addr, size_t alignedSize = 16)
     {
         size_t mask = alignedSize - 1;
@@ -2403,7 +2432,8 @@ public:
         return id;
     }
 
-    uint8_t* getAddress()
+    pragma(inline, true);
+    uint8_t* getAddress() //const
     {
         if (mgr is null || !mgr.isReady())
         {
@@ -2417,6 +2447,7 @@ public:
         return mgr.getCode() + offset;
     }
 
+    pragma(inline, true);
     bool isDefined() //const
     {
         return mgr && mgr.isDefined(this);
@@ -2695,6 +2726,8 @@ public:
     {
         return !base_.isAutoGrow() || base_.isCalledCalcJmpAddress();
     }
+
+    pragma(inline, true);
     bool isDefined(Label label) const
     {
         return clabelDefList_.Find(label.id) != clabelDefList_.End();
@@ -2941,11 +2974,13 @@ static const uint64_t T_ALLOW_DIFF_SIZE = 1uL << 38; // allow difference reg siz
 static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
 
     // T_66 = 1, T_F3 = 2, T_F2 = 3
+    pragma(inline, true);
     uint32_t getPP(uint64_t type)
     {
         return (type & T_66) ? 1 : (type & T_F3) ? 2 : (type & T_F2) ? 3 : 0;
     }
 
+    pragma(inline, true);
     uint32_t getMap(uint64_t type)
     {
         if (type & T_MAP6) return 6;
@@ -4595,6 +4630,7 @@ else
     // `void mov(const Operand& op, uint64_t imm)`.
     //    template <typename T1, typename T2>
     //    void mov(const T1&, const T2 *) { T1::unexpected; }
+    pragma(inline, true);
     void mov(NativeReg reg, ref Label label)
     {
         mov_imm(reg, dummyAddr);
