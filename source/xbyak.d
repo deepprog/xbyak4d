@@ -1,7 +1,7 @@
 /**
  * xbyak for the D programming language
- * Version: 0.7353
- * Date: 2026/03/16
+ * Version: 0.7354
+ * Date: 2026/09/02
  * See_Also:
  * Copyright: Copyright (c) 2007 MITSUNARI Shigeo, Copyright (c) 2019 deepprog
  * License: <http://opensource.org/licenses/BSD-3-Clause>BSD-3-Clause</a>.
@@ -315,7 +315,7 @@ alias XBYAK_STD_UNORDERED_SET = Set;
   }
 
 size_t DEFAULT_MAX_CODE_SIZE = 4096 * 8;
-size_t VERSION = 0x07353;  // 0xABCD = A.BC(D)
+size_t VERSION = 0x07354;  // 0xABCD = A.BC(D)
 
 
 version (MIE_INTEGER_TYPE_DEFINED)
@@ -4906,7 +4906,7 @@ version (XBYAK_DONT_READ_LIST)
 else
 {
 
-string getVersionString() const { return "0.7353"; }
+string getVersionString() const { return "0.7354"; }
 void aadd(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38, 0x0FC, T_APX); }
 void aand(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38|T_66, 0x0FC, T_APX|T_66); }
 void adc(Operand op, uint32_t imm) { opOI(op, imm, 0x10, 2); }
