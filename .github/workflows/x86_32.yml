@@ -19,7 +19,7 @@ jobs:
         compiler: [dmd, ldc, dmd-beta, ldc-beta]
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v5
     - name: test
       run: |
         sudo apt-get update
