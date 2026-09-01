@@ -7739,7 +7739,7 @@ else
      { opAVX_X_X_XM(x1, x2, op, T_N16|T_N_VL|T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x74); }
     void vcvt2ph2hf8(Xmm x1, Xmm x2, Operand op)
      { opAVX_X_X_XM(x1, x2, op, T_N16|T_N_VL|T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x18); }
-    void vcvt2ph2hf8s(Xmm x1, Xmm x2, Operand& op)
+    void vcvt2ph2hf8s(Xmm x1, Xmm x2, Operand op)
      { opAVX_X_X_XM(x1, x2, op, T_N16|T_N_VL|T_F2|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x1B); }
     void vcvt2ps2phx(Xmm x1, Xmm x2, Operand op)
      { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B32, 0x67); }
