@@ -21,25 +21,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # --- dub をインストール ---
-      - name: Install dub
-        run: |
-          brew update
-          brew install dub
-          dub --version
+      - name: Set up D compiler
+        uses: dlang-community/setup-dlang@v1
+        with:
+          compiler: ${{ matrix.compiler }}-latest
 
-      - name: Install latest DMD
-        if: matrix.compiler == 'dmd'
+      - name: Verify compiler version
         run: |
-          brew install dmd
-          dmd --version
-
-      - name: Install LDC
-        if: matrix.compiler == 'ldc'
-        run: |
-          brew tap dlang-community/ldc
-          brew install ldc
-          ldc2 --version
+          if [ "${{ matrix.compiler }}" = "dmd" ]; then
+            dmd --version
+          else
+            ldc2 --version
+          fi
 
       - name: Run tests
         run: |
