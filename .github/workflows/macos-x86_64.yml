@@ -37,6 +37,7 @@ jobs:
       - name: Install LDC
         if: matrix.compiler == 'ldc'
         run: |
+          brew tap dlang-community/ldc
           brew install ldc
           ldc2 --version
 
