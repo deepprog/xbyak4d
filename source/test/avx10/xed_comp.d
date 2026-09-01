@@ -30,33 +30,33 @@ version (XBYAK64)
 
             vcomxsd(xm1, xm2 | T_sae);
             sdump("62F1FF182FCA");
-            vcomxsd(xm1, ptr[rax + 128]);
-            sdump("62F1FF082F4810");
+            vcomxsd(xm1, ptr[rax + 64]);
+            sdump("62F1FF082F4808");
 
             vcomxsh(xm1, xm2 | T_sae);
             sdump("62F57E182FCA");
-            vcomxsh(xm1, ptr[rax + 128]);
-            sdump("62F57E082F4840");
+            vcomxsh(xm1, ptr[rax + 64]);
+            sdump("62F57E082F4820");
 
             vcomxss(xm1, xm2 | T_sae);
             sdump("62F17E182FCA");
-            vcomxss(xm1, ptr[rax + 128]);
-            sdump("62F17E082F4820");
+            vcomxss(xm1, ptr[rax + 64]);
+            sdump("62F17E082F4810");
 
             vucomxsd(xm1, xm2 | T_sae);
             sdump("62F1FF182ECA");
-            vucomxsd(xm1, ptr[rax + 128]);
-            sdump("62F1FF082E4810");
+            vucomxsd(xm1, ptr[rax + 64]);
+            sdump("62F1FF082E4808");
 
             vucomxsh(xm1, xm2 | T_sae);
             sdump("62F57E182ECA");
-            vucomxsh(xm1, ptr[rax + 128]);
-            sdump("62F57E082E4840");
+            vucomxsh(xm1, ptr[rax + 64]);
+            sdump("62F57E082E4820");
 
             vucomxss(xm1, xm2 | T_sae);
             sdump("62F17E182ECA");
-            vucomxss(xm1, ptr[rax + 128]);
-            sdump("62F17E082E4820");
+            vucomxss(xm1, ptr[rax + 64]);
+            sdump("62F17E082E4810");
 
         }
     }

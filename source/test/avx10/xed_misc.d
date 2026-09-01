@@ -29,304 +29,304 @@ version (XBYAK64)
             // AVX10 integer and FP16 VNNI, media and zero-extending
             vdpphps(xm1, xm2, xm3);
             sdump("62F26C0852CB");
-            vdpphps(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26C08524808");
-            vdpphps(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26C18524820");
+            vdpphps(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26C08524804");
+            vdpphps(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26C18524810");
 
             vdpphps(ym1, ym2, ym3);
             sdump("62F26C2852CB");
-            vdpphps(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26C28524804");
-            vdpphps(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26C38524820");
+            vdpphps(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26C28524802");
+            vdpphps(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26C38524810");
 
             vdpphps(zm1, zm2, zm3);
             sdump("62F26C4852CB");
-            vdpphps(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26C48524802");
-            vdpphps(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26C58524820");
+            vdpphps(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26C48524801");
+            vdpphps(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26C58524810");
             //
             vmpsadbw(xm1, xm3, xm15, 3);
             sdump("62D3660842CF03");
-            vmpsadbw(xm1 | T_z, xm4, ptr[rax + 128], 5);
-            sdump("62F35E0842480805");
+            vmpsadbw(xm1 | T_z, xm4, ptr[rax + 64], 5);
+            sdump("62F35E0842480405");
 
             vmpsadbw(ym1 | k4, ym3, ym15, 3);
             sdump("62D3662C42CF03");
-            vmpsadbw(ym1, ym4, ptr[rax + 128], 5);
-            sdump("62F35E2842480405");
+            vmpsadbw(ym1, ym4, ptr[rax + 64], 5);
+            sdump("62F35E2842480205");
 
             vmpsadbw(zm1 | k4, zm3, zm15, 3);
             sdump("62D3664C42CF03");
-            vmpsadbw(zm1, zm4, ptr[rax + 128], 5);
-            sdump("62F35E4842480205");
+            vmpsadbw(zm1, zm4, ptr[rax + 64], 5);
+            sdump("62F35E4842480105");
             //
             vpdpbssd(xm1, xm2, xm3);
             sdump("62F26F0850CB");
-            vpdpbssd(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26F08504808");
-            vpdpbssd(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26F18504820");
+            vpdpbssd(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26F08504804");
+            vpdpbssd(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26F18504810");
 
             vpdpbssd(ym1, ym2, ym3);
             sdump("62F26F2850CB");
-            vpdpbssd(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26F28504804");
-            vpdpbssd(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26F38504820");
+            vpdpbssd(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26F28504802");
+            vpdpbssd(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26F38504810");
 
             vpdpbssd(zm1, zm2, zm3);
             sdump("62F26F4850CB");
-            vpdpbssd(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26F48504802");
-            vpdpbssd(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26F58504820");
+            vpdpbssd(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26F48504801");
+            vpdpbssd(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26F58504810");
             //
             vpdpbssds(xm1, xm2, xm3);
             sdump("62F26F0851CB");
-            vpdpbssds(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26F08514808");
-            vpdpbssds(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26F18514820");
+            vpdpbssds(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26F08514804");
+            vpdpbssds(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26F18514810");
 
             vpdpbssds(ym1, ym2, ym3);
             sdump("62F26F2851CB");
-            vpdpbssds(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26F28514804");
-            vpdpbssds(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26F38514820");
+            vpdpbssds(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26F28514802");
+            vpdpbssds(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26F38514810");
 
             vpdpbssds(zm1, zm2, zm3);
             sdump("62F26F4851CB");
-            vpdpbssds(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26F48514802");
-            vpdpbssds(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26F58514820");
+            vpdpbssds(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26F48514801");
+            vpdpbssds(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26F58514810");
             //
             vpdpbsud(xm1, xm2, xm3);
             sdump("62F26E0850CB");
-            vpdpbsud(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26E08504808");
-            vpdpbsud(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26E18504820");
+            vpdpbsud(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26E08504804");
+            vpdpbsud(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26E18504810");
 
             vpdpbsud(ym1, ym2, ym3);
             sdump("62F26E2850CB");
-            vpdpbsud(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26E28504804");
-            vpdpbsud(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26E38504820");
+            vpdpbsud(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26E28504802");
+            vpdpbsud(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26E38504810");
 
             vpdpbsud(zm1, zm2, zm3);
             sdump("62F26E4850CB");
-            vpdpbsud(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26E48504802");
-            vpdpbsud(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26E58504820");
+            vpdpbsud(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26E48504801");
+            vpdpbsud(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26E58504810");
             //
             vpdpbsuds(xm1, xm2, xm3);
             sdump("62F26E0851CB");
-            vpdpbsuds(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26E08514808");
-            vpdpbsuds(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26E18514820");
+            vpdpbsuds(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26E08514804");
+            vpdpbsuds(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26E18514810");
 
             vpdpbsuds(ym1, ym2, ym3);
             sdump("62F26E2851CB");
-            vpdpbsuds(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26E28514804");
-            vpdpbsuds(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26E38514820");
+            vpdpbsuds(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26E28514802");
+            vpdpbsuds(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26E38514810");
 
             vpdpbsuds(zm1, zm2, zm3);
             sdump("62F26E4851CB");
-            vpdpbsuds(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26E48514802");
-            vpdpbsuds(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26E58514820");
+            vpdpbsuds(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26E48514801");
+            vpdpbsuds(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26E58514810");
 
             //
             vpdpbuud(xm1, xm2, xm3);
             sdump("62F26C0850CB");
-            vpdpbuud(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26C08504808");
-            vpdpbuud(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26C18504820");
+            vpdpbuud(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26C08504804");
+            vpdpbuud(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26C18504810");
 
             vpdpbuud(ym1, ym2, ym3);
             sdump("62F26C2850CB");
-            vpdpbuud(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26C28504804");
-            vpdpbuud(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26C38504820");
+            vpdpbuud(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26C28504802");
+            vpdpbuud(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26C38504810");
 
             vpdpbuud(zm1, zm2, zm3);
             sdump("62F26C4850CB");
-            vpdpbuud(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26C48504802");
-            vpdpbuud(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26C58504820");
+            vpdpbuud(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26C48504801");
+            vpdpbuud(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26C58504810");
             //
             vpdpbuuds(xm1, xm2, xm3);
             sdump("62F26C0851CB");
-            vpdpbuuds(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26C08514808");
-            vpdpbuuds(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26C18514820");
+            vpdpbuuds(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26C08514804");
+            vpdpbuuds(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26C18514810");
 
             vpdpbuuds(ym1, ym2, ym3);
             sdump("62F26C2851CB");
-            vpdpbuuds(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26C28514804");
-            vpdpbuuds(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26C38514820");
+            vpdpbuuds(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26C28514802");
+            vpdpbuuds(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26C38514810");
 
             vpdpbuuds(zm1, zm2, zm3);
             sdump("62F26C4851CB");
-            vpdpbuuds(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26C48514802");
-            vpdpbuuds(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26C58514820");
+            vpdpbuuds(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26C48514801");
+            vpdpbuuds(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26C58514810");
 
             //
             vpdpwsud(xm1, xm2, xm3);
             sdump("62F26E08D2CB");
-            vpdpwsud(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26E08D24808");
-            vpdpwsud(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26E18D24820");
+            vpdpwsud(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26E08D24804");
+            vpdpwsud(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26E18D24810");
 
             vpdpwsud(ym1, ym2, ym3);
             sdump("62F26E28D2CB");
-            vpdpwsud(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26E28D24804");
-            vpdpwsud(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26E38D24820");
+            vpdpwsud(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26E28D24802");
+            vpdpwsud(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26E38D24810");
 
             vpdpwsud(zm1, zm2, zm3);
             sdump("62F26E48D2CB");
-            vpdpwsud(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26E48D24802");
-            vpdpwsud(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26E58D24820");
+            vpdpwsud(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26E48D24801");
+            vpdpwsud(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26E58D24810");
             //
             vpdpwsuds(xm1, xm2, xm3);
             sdump("62F26E08D3CB");
-            vpdpwsuds(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26E08D34808");
-            vpdpwsuds(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26E18D34820");
+            vpdpwsuds(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26E08D34804");
+            vpdpwsuds(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26E18D34810");
 
             vpdpwsuds(ym1, ym2, ym3);
             sdump("62F26E28D3CB");
-            vpdpwsuds(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26E28D34804");
-            vpdpwsuds(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26E38D34820");
+            vpdpwsuds(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26E28D34802");
+            vpdpwsuds(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26E38D34810");
 
             vpdpwsuds(zm1, zm2, zm3);
             sdump("62F26E48D3CB");
-            vpdpwsuds(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26E48D34802");
-            vpdpwsuds(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26E58D34820");
+            vpdpwsuds(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26E48D34801");
+            vpdpwsuds(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26E58D34810");
             //
             vpdpwsud(xm1, xm2, xm3);
             sdump("62F26E08D2CB");
-            vpdpwsud(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26E08D24808");
-            vpdpwsud(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26E18D24820");
+            vpdpwsud(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26E08D24804");
+            vpdpwsud(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26E18D24810");
 
             vpdpwsud(ym1, ym2, ym3);
             sdump("62F26E28D2CB");
-            vpdpwsud(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26E28D24804");
-            vpdpwsud(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26E38D24820");
+            vpdpwsud(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26E28D24802");
+            vpdpwsud(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26E38D24810");
 
             vpdpwsud(zm1, zm2, zm3);
             sdump("62F26E48D2CB");
-            vpdpwsud(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26E48D24802");
-            vpdpwsud(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26E58D24820");
+            vpdpwsud(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26E48D24801");
+            vpdpwsud(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26E58D24810");
             //
             vpdpwsuds(xm1, xm2, xm3);
             sdump("62F26E08D3CB");
-            vpdpwsuds(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26E08D34808");
-            vpdpwsuds(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26E18D34820");
+            vpdpwsuds(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26E08D34804");
+            vpdpwsuds(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26E18D34810");
 
             vpdpwsuds(ym1, ym2, ym3);
             sdump("62F26E28D3CB");
-            vpdpwsuds(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26E28D34804");
-            vpdpwsuds(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26E38D34820");
+            vpdpwsuds(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26E28D34802");
+            vpdpwsuds(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26E38D34810");
 
             vpdpwsuds(zm1, zm2, zm3);
             sdump("62F26E48D3CB");
-            vpdpwsuds(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26E48D34802");
-            vpdpwsuds(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26E58D34820");
+            vpdpwsuds(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26E48D34801");
+            vpdpwsuds(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26E58D34810");
 
             //
             vpdpwuud(xm1, xm2, xm3);
             sdump("62F26C08D2CB");
-            vpdpwuud(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26C08D24808");
-            vpdpwuud(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26C18D24820");
+            vpdpwuud(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26C08D24804");
+            vpdpwuud(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26C18D24810");
 
             vpdpwuud(ym1, ym2, ym3);
             sdump("62F26C28D2CB");
-            vpdpwuud(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26C28D24804");
-            vpdpwuud(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26C38D24820");
+            vpdpwuud(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26C28D24802");
+            vpdpwuud(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26C38D24810");
 
             vpdpwuud(zm1, zm2, zm3);
             sdump("62F26C48D2CB");
-            vpdpwuud(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26C48D24802");
-            vpdpwuud(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26C58D24820");
+            vpdpwuud(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26C48D24801");
+            vpdpwuud(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26C58D24810");
             //
             vpdpwuuds(xm1, xm2, xm3);
             sdump("62F26C08D3CB");
-            vpdpwuuds(xm1, xm2, ptr[rax + 128]);
-            sdump("62F26C08D34808");
-            vpdpwuuds(xm1, xm2, ptr_b[rax + 128]);
-            sdump("62F26C18D34820");
+            vpdpwuuds(xm1, xm2, ptr[rax + 64]);
+            sdump("62F26C08D34804");
+            vpdpwuuds(xm1, xm2, ptr_b[rax + 64]);
+            sdump("62F26C18D34810");
 
             vpdpwuuds(ym1, ym2, ym3);
             sdump("62F26C28D3CB");
-            vpdpwuuds(ym1, ym2, ptr[rax + 128]);
-            sdump("62F26C28D34804");
-            vpdpwuuds(ym1, ym2, ptr_b[rax + 128]);
-            sdump("62F26C38D34820");
+            vpdpwuuds(ym1, ym2, ptr[rax + 64]);
+            sdump("62F26C28D34802");
+            vpdpwuuds(ym1, ym2, ptr_b[rax + 64]);
+            sdump("62F26C38D34810");
 
             vpdpwuuds(zm1, zm2, zm3);
             sdump("62F26C48D3CB");
-            vpdpwuuds(zm1, zm2, ptr[rax + 128]);
-            sdump("62F26C48D34802");
-            vpdpwuuds(zm1, zm2, ptr_b[rax + 128]);
-            sdump("62F26C58D34820");
+            vpdpwuuds(zm1, zm2, ptr[rax + 64]);
+            sdump("62F26C48D34801");
+            vpdpwuuds(zm1, zm2, ptr_b[rax + 64]);
+            sdump("62F26C58D34810");
 
             //
             vmovd(xm10, xm20);
             sdump("62317E087ED4");
             vmovd(xm1, xm2);
             sdump("62F17E087ECA");
-            vmovd(xm10, ptr[rax + 128]);
-            sdump("62717E087E5020");
-            vmovd(ptr[rax + 128], xm30);
-            sdump("62617D08D67020");
+            vmovd(xm10, ptr[rax + 64]);
+            sdump("62717E087E5010");
+            vmovd(ptr[rax + 64], xm30);
+            sdump("62617D08D67010");
             //
             vmovw(xm1, xm20);
             sdump("62B57E086ECC");
@@ -490,33 +490,33 @@ version (XBYAK64)
             prefetchrst2(ptr[rcx]);
             sdump("0F1821");
 
-            vmovrsb(xm1|k1|T_z, ptr[rax+128]);
-            sdump("62F57F896F4808");
-            vmovrsb(ym1|k1|T_z, ptr[rax+128]);
-            sdump("62F57FA96F4804");
-            vmovrsb(zm1|k1|T_z, ptr[rax+128]);
-            sdump("62F57FC96F4802");
+            vmovrsb(xm1|k1|T_z, ptr[rax+64]);
+            sdump("62F57F896F4804");
+            vmovrsb(ym1|k1|T_z, ptr[rax+64]);
+            sdump("62F57FA96F4802");
+            vmovrsb(zm1|k1|T_z, ptr[rax+64]);
+            sdump("62F57FC96F4801");
 
-            vmovrsd(xm1|k1|T_z, ptr[rax+128]);
-            sdump("62F57E896F4808");
-            vmovrsd(ym1|k1|T_z, ptr[rax+128]);
-            sdump("62F57EA96F4804");
-            vmovrsd(zm1|k1|T_z, ptr[rax+128]);
-            sdump("62F57EC96F4802");
+            vmovrsd(xm1|k1|T_z, ptr[rax+64]);
+            sdump("62F57E896F4804");
+            vmovrsd(ym1|k1|T_z, ptr[rax+64]);
+            sdump("62F57EA96F4802");
+            vmovrsd(zm1|k1|T_z, ptr[rax+64]);
+            sdump("62F57EC96F4801");
 
-            vmovrsq(xm1|k1|T_z, ptr[rax+128]);
-            sdump("62F5FE896F4808");
-            vmovrsq(ym1|k1|T_z, ptr[rax+128]);
-            sdump("62F5FEA96F4804");
-            vmovrsq(zm1|k1|T_z, ptr[rax+128]);
-            sdump("62F5FEC96F4802");
+            vmovrsq(xm1|k1|T_z, ptr[rax+64]);
+            sdump("62F5FE896F4804");
+            vmovrsq(ym1|k1|T_z, ptr[rax+64]);
+            sdump("62F5FEA96F4802");
+            vmovrsq(zm1|k1|T_z, ptr[rax+64]);
+            sdump("62F5FEC96F4801");
 
-            vmovrsw(xm1|k1|T_z, ptr[rax+128]);
-            sdump("62F5FF896F4808");
-            vmovrsw(ym1|k1|T_z, ptr[rax+128]);
-            sdump("62F5FFA96F4804");
-            vmovrsw(zm1|k1|T_z, ptr[rax+128]);
-            sdump("62F5FFC96F4802");
+            vmovrsw(xm1|k1|T_z, ptr[rax+64]);
+            sdump("62F5FF896F4804");
+            vmovrsw(ym1|k1|T_z, ptr[rax+64]);
+            sdump("62F5FFA96F4802");
+            vmovrsw(zm1|k1|T_z, ptr[rax+64]);
+            sdump("62F5FFC96F4801");
 
             vcvtsd2si(esp, xmm4|T_rd_sae); sdump("62F17F382DE4");
             vcvtsd2si(r8, xmm4|T_rd_sae); sdump("6271FF382DC4");
