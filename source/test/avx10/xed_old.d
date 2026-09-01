@@ -26,14 +26,6 @@ version (XBYAK64)
             super(name);
             setDefaultEncodingAVX10(AVX10v2Encoding);
 
-            v4fmaddps(zmm1, zmm8, ptr[rdx + 64]);
-            sdump("62F23F489A4A04");
-            v4fmaddss(xmm15, xmm8, ptr[rax + 64]);
-            sdump("62723F089B7804");
-            v4fnmaddps(zmm5 | k5, zmm2, ptr[rcx + 0x80]);
-            sdump("62F26F4DAA6908");
-            v4fnmaddss(xmm31, xmm2, ptr[rsp + 0x80]);
-            sdump("62626F08AB7C2408");
             vp4dpwssd(zmm23 | k7 | T_z, zmm1, ptr[rax + 64]);
             sdump("62E277CF527804");
             vp4dpwssds(zmm10 | k4, zmm3, ptr[rsp + rax * 4 + 64]);
