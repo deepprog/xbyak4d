@@ -7550,15 +7550,6 @@ else
     void kxord(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_66 | T_W1, 0x47); }
     void kxorq(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_W1, 0x47); }
     void kxorw(Opmask r1, Opmask r2, Opmask r3) { opVex(r1, r2, r3, T_L1 | T_0F | T_W0, 0x47); }
-
-    void v4fmaddps(Zmm z1, Zmm z2, Address addr)
-     { opAVX_X_X_XM(z1, z2, addr, T_0F38 | T_F2 | T_W0 | T_YMM | T_MUST_EVEX | T_N16, 0x9A); }
-    void v4fmaddss(Xmm x1, Xmm x2, Address addr)
-     { opAVX_X_X_XM(x1, x2, addr, T_0F38 | T_F2 | T_W0 | T_MUST_EVEX | T_N16, 0x9B); }
-    void v4fnmaddps(Zmm z1, Zmm z2, Address addr)
-     { opAVX_X_X_XM(z1, z2, addr, T_0F38 | T_F2 | T_W0 | T_YMM | T_MUST_EVEX | T_N16, 0xAA); }
-    void v4fnmaddss(Xmm x1, Xmm x2, Address addr)
-     { opAVX_X_X_XM(x1, x2, addr, T_0F38 | T_F2 | T_W0 | T_MUST_EVEX | T_N16, 0xAB); }
     void vaddbf16(Xmm x1, Xmm x2, Operand op)
      { opAVX_X_X_XM(x1, x2, op, T_66|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B16, 0x58); }
     void vaddph(Xmm xmm, Operand op1, Operand op2 = Operand())

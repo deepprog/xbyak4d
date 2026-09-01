@@ -458,6 +458,7 @@ void test_gather()
 
 version (XBYAK64)
 {
+/+
 	@("vfmaddps") unittest
 	{
 		vfmaddps();
@@ -496,7 +497,7 @@ version (XBYAK64)
 			tc.TEST_EQUAL(ctbl[i], tbl[i]);
 		}
 	}
-
++/
 	@("vaes") unittest
 	{
 		vaes();
