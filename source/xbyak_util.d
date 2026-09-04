@@ -956,19 +956,11 @@ unittest
 
 version (XBYAK64)
 {
-// Variable name 'UseRCX' does not match style guidelines.
-// Variable name 'UseRDX' does not match style guidelines.
-//  const int UseRCX = 1 << 6;
-//  const int UseRDX = 1 << 7;
-
-    enum UseRCX = 1 << 6;
-    enum UseRDX = 1 << 7;
-
     struct Pack
     {
         static const size_t maxTblNum = 15;
         Reg64[maxTblNum] tbl_;
-        size_t n_;
+        size_t n_ = 0;
 
     public:
         this(Reg64[] tbl, size_t n)
@@ -1129,12 +1121,10 @@ version (XBYAK64)
             tbl_[n_++] = t;
             return this;
         }
-// Avoid naming members 'init'. This can confuse code that depends on the '.init' property of a type.
-//      void init(Reg64[] tbl, size_t n)
         void init_(Reg64[] tbl, size_t n)
         {
             if (n > maxTblNum) {
-                fprintf(stderr, "ERR Pack::init_ bad n=%d\n", cast(int)n);
+                fprintf(stderr, "ERR Pack.init_ bad n=%d\n", cast(int)n);
                 mixin(XBYAK_THROW(ERR_BAD_PARAMETER));
             }
             n_ = n;
@@ -1177,148 +1167,352 @@ version (XBYAK64)
         }
     }
 
+// start from a bit position larger than the number of GPRs
+    enum UseRBP = 1 << 5;
+    enum UseRCX = 1 << 6;
+    enum UseRDX = 1 << 7;
+    enum UseRSI = 1 << 8;
+    enum UseRDI = 1 << 9;
+    enum UseR30R31 = 1 << 10; // reserve r30/r31 (APX EGPRs), pushed/popped unconditionally
+    enum UseRBX = 1 << 11;
+    enum UseRBPAsFramePointer = UseRBP | (1 << 30);
+    enum UsePUSH2 = 1 << 28; // use push2/pop2 where RSP is 16-byte aligned, push/pop otherwise
+    enum UsePPX   = 1 << 29; // use pushp/popp (or push2p/pop2p with UsePUSH2) with the PPX store-forwarding hint
+
+    enum local_UseVecNumShift = 16; // bits 16..21 : vector register count for UseSSE/UseAVX
+    enum local_UseVecSSE = 1 << 22;
+    enum local_UseVecAVX = 1 << 23;
+
+    enum NoVzeroupper = 1 << 24; // suppress vzeroupper in close() (UseAVX required)
+    // declare the use of xmm0, ..., xmm(n-1) with SSE instructions (0 <= n <= 16)
+    int UseSSE(int n) { return local_UseVecSSE | (n << local_UseVecNumShift); }
+    // declare the use of xmm/ymm/zmm 0, ..., n-1 with AVX instructions (0 <= n <= 32)
+    int UseAVX(int n) { return local_UseVecAVX | (n << local_UseVecNumShift); }
 
     struct StackFrame
     {
 version (XBYAK64_WIN)
 {
-        static const int noSaveNum = 6;
-        static const int rcxPos = 0;
-        static const int rdxPos = 1;
+        enum noSaveNum = 6;
 } else {
-        static const int noSaveNum = 8;
-        static const int rcxPos = 3;
-        static const int rdxPos = 2;
+        enum noSaveNum = 8;
 }
-        static const int maxRegNum = 14; // maxRegNum = 16 - rsp - rax
+        enum maxPnum = 4;
+        enum maxRegNum = 14; // maxRegNum = 16 - rsp - rax
+        enum calleeSaveNum = maxRegNum - noSaveNum;
+        enum maxSaveRegNum = calleeSaveNum + 2; // +2 for r30/r31 (UseR30R31)
+        enum UseMASK = UseRBX|UseRCX|UseRDX|UseRSI|UseRDI|UseRBP|UseR30R31|UsePUSH2|UsePPX;
+        enum UseVecMASK = (63 << local_UseVecNumShift)|local_UseVecSSE|local_UseVecAVX|NoVzeroupper;
         CodeGenerator code_;
+        Reg64[maxPnum] pTbl_;
+        Reg64[maxRegNum] tTbl_;
+        Pack p_;
+        Pack t_;
         int pNum_;
         int tNum_;
-        bool useRcx_;
-        bool useRdx_;
+        int useRegs_;
         int saveNum_;
+        int[maxSaveRegNum] saveRegs_;
         int P_;
+        int vecSaveNum_; // number of saved xmm registers (Win64 only)
+        int vecPos_; // offset of the xmm save area from rsp after the prolog
+        bool vzeroupper_; // emit vzeroupper at the top of close()
+        bool useVmovaps_; // save/restore with vmovaps instead of movaps
         bool makeEpilog_;
-        Reg64[4] pTbl_;
-        Reg64[maxRegNum] tTbl_;
+
     public:
-        Pack p; //= Pack();
-        Pack t; //= Pack();
+    @property ref Pack p() {
+        return p_;
+    }
 
-        /*
-            make stack frame
-            @param sf [in] this
-            @param pNum [in] num of function parameter(0 <= pNum <= 4)
-            @param tNum [in] num of temporary register(0 <= tNum, with UseRCX, UseRDX) #{pNum + tNum [+rcx] + [rdx]} <= 14
-            @param stackSizeByte [in] local stack size
-            @param makeEpilog [in] automatically call close() if true
+    @property ref Pack t() {
+        return t_;
+    }
+    /*
+        make stack frame
+        @param sf [in] this
+        @param pNum [in] number of function parameters(0 <= pNum <= 4)
+        @param tNum [in] number of temporary registers(0 <= tNum, can be OR-ed with Use{RBX,RCX,RDX,RSI,RDI,RBP,R30R31}, e.g., 3|UseRCX)
+        @param stackSizeByte [in] local stack size
+        @param makeEpilog [in] automatically call close() if true
 
-            you can use
-            rax
-            gp0, ..., gp(pNum - 1)
-            gt0, ..., gt(tNum-1)
-            rcx if tNum & UseRCX
-            rdx if tNum & UseRDX
-            rsp[0..stackSizeByte - 1]
-        */
+        pNum + tNum + #Use must be <= 14
+
+        you can use
+        rax
+        p[0], ..., p[pNum-1] as function parameters
+        t[0], ..., t[tNum-1] as temporary registers
+        {rbx,rcx,rdx,rsi,rdi,rbp} are explicitly available by specifying Use{RBX,RCX,RDX,RSI,RDI,RBP} in tNum
+        r30, r31 are explicitly available by specifying UseR30R31 in tNum
+        rsp[0..stackSizeByte-1] if stackSizeByte > 0
+        xmm0, ..., xmm(n-1) are declared by UseSSE(n) (0 <= n <= 16) : only SSE instructions are emitted
+        xmm/ymm/zmm 0, ..., n-1 are declared by UseAVX(n) (0 <= n <= 32) : vzeroupper is emitted at the top of close() unless NoVzeroupper is specified
+        on Win64 the lower 128 bits of xmm6, ..., xmm(min(n,16)-1) are saved/restored automatically (xmm16-31 are volatile everywhere and need not be counted in n)
+    */
         this(CodeGenerator code, int pNum, int tNum = 0, int stackSizeByte = 0, bool makeEpilog = true)
         {
             code_ = code;
             pNum_ = pNum;
-            tNum_ = (tNum & ~(UseRCX | UseRDX));
-            useRcx_ = ((tNum & UseRCX) != 0);
-            useRdx_ = ((tNum & UseRDX) != 0);
+            tNum_ = (tNum & ~(UseMASK|UseRBPAsFramePointer|UseVecMASK));
+            useRegs_ = (tNum & UseMASK); // drop UseRBPAsFramePointer bit
             saveNum_ = 0;
             P_ = 0;
+            vecSaveNum_ = 0;
+            vecPos_ = 0;
+            vzeroupper_ = false;
+            useVmovaps_ = false;
             makeEpilog_ = makeEpilog;
 
             if (pNum < 0 || pNum > 4) mixin(XBYAK_THROW(ERR_BAD_PNUM));
-            const int allRegNum = pNum + tNum_ + (useRcx_ ? 1 : 0) + (useRdx_ ? 1 : 0);
-            if (tNum_ < 0 || allRegNum > maxRegNum) mixin(XBYAK_THROW(ERR_BAD_TNUM));
-            Reg64 _rsp = code.rsp;
-            saveNum_ = local_max_(0, allRegNum - noSaveNum);
-            int[] tbl = getOrderTbl(noSaveNum);
-            for (int i = 0; i < saveNum_; i++) {
-                code.push(new Reg64(tbl[i]));
+            if (tNum_ < 0) mixin(XBYAK_THROW(ERR_BAD_TNUM));
+
+            const int vecKind = tNum & (local_UseVecSSE|local_UseVecAVX);
+            const int vecNum = (tNum >> local_UseVecNumShift) & 63;
+            if (vecKind == (local_UseVecSSE|local_UseVecAVX)) mixin(XBYAK_THROW(ERR_BAD_TNUM));
+            // NoVzeroupper requires UseAVX
+            if ((tNum & NoVzeroupper) && vecKind != local_UseVecAVX) mixin(XBYAK_THROW(ERR_BAD_TNUM));
+            if (vecKind == 0) {
+                if (vecNum > 0) mixin(XBYAK_THROW(ERR_BAD_TNUM));
+            } else {
+                // UseSSE rejects n > 16 because SSE encodings cannot reach xmm16+
+                if (vecNum > ((vecKind == local_UseVecAVX) ? 32 : 16)) mixin(XBYAK_THROW(ERR_BAD_TNUM));
+                if (vecKind == local_UseVecAVX) {
+                    if (tNum & NoVzeroupper) {
+                        // the upper state may be dirty at the prolog/epilog; avoid legacy SSE movaps
+                        useVmovaps_ = true;
+                    } else {
+                        vzeroupper_ = true;
+                    }
+                }
             }
 
-            P_ = (stackSizeByte + 7) / 8;
-            if (P_ > 0 && (P_ & 1) == (saveNum_ & 1)) P_++; // (rsp % 16) == 8, then increment P_ for 16 byte alignment
-
-            P_ *= 8;
-            if (P_ > 0) code.sub(_rsp, P_);
-
-            int pos = 0;
-            for (int i = 0; i < pNum; i++) {
-                pTbl_[i] = new Reg64(getRegIdx(pos));
-            }
-
-            for (int i = 0; i < tNum_; i++) {
-                tTbl_[i] = new Reg64(getRegIdx(pos));
-            }
-
-            if (useRcx_ && rcxPos < pNum) code_.mov(code_.r10, code_.rcx);
-            if (useRdx_ && rdxPos < pNum) code_.mov(code_.r11, code_.rdx);
-
-            p.init_(pTbl_, pNum);
-            t.init_(tTbl_, tNum_);
-        }
-        /*
-            make epilog manually
-            @param callRet [in] call ret() if true
-        */
-        void close(bool callRet = true)
-        {
-            Reg64 _rsp = code_.rsp;
-            int[] tbl = getOrderTbl(noSaveNum);
-            if (P_ > 0) code_.add(_rsp, P_);
-            for (int i = 0; i < saveNum_; i++) {
-                code_.pop(new Reg64(tbl[saveNum_ - 1 - i]));
-            }
-
-            if (callRet) code_.ret();
-        }
-        ~this()
-        {
-            if (!makeEpilog_) return;
-            close();
-        }
-
-    private:
-        int[] getOrderTbl(size_t n = 0)
-        {
-version (XBYAK64_WIN)
+version(XBYAK64_WIN)
 {
-            static int[] tbl = [
-                Operand.RCX, Operand.RDX, Operand.R8, Operand.R9, Operand.R10, Operand.R11, Operand.RDI, Operand.RSI,
-                Operand.RBX, Operand.RBP, Operand.R12, Operand.R13, Operand.R14, Operand.R15
-            ];
-} else {
-            static int[] tbl = [
-                Operand.RDI, Operand.RSI, Operand.RDX, Operand.RCX, Operand.R8, Operand.R9, Operand.R10, Operand.R11,
-                Operand.RBX, Operand.RBP, Operand.R12, Operand.R13, Operand.R14, Operand.R15
-            ];
+            // Win64 requires saving the lower 128 bits of xmm6-15; xmm16+ are volatile everywhere
+            if (vecNum > 6) vecSaveNum_ = local_min_(vecNum, 16) - 6;
 }
-            return tbl[n..$];
+
+        int[] fullTbl = getRegEntryTbl();
+        int* calleeTbl = &fullTbl[noSaveNum];
+        int callerUseNum = 0;
+        int calleeUseNum = 0;
+        for (int i = 0; i < maxRegNum; i++) {
+            if (useRegs_ & useFlagOf(fullTbl[i])) {
+                if (i < noSaveNum) {
+                    callerUseNum++;
+                } else {
+                    calleeUseNum++;
+                }
+            }
         }
-
-        int getRegIdx(ref int pos)
-        {
-            assert(pos < maxRegNum);
-
-            int[] tbl = getOrderTbl();
-            int r = tbl[pos++];
-            if (useRcx_) {
-                if (r == Operand.RCX) { return Operand.R10; }
-                if (r == Operand.R10) { r = tbl[pos++]; }
+        const int useNum = callerUseNum + calleeUseNum;
+        if (pNum + tNum_ + useNum > maxRegNum) mixin(XBYAK_THROW(ERR_BAD_TNUM));
+        const int baseSaveNum = local_max_(0, pNum + tNum_ + useNum - noSaveNum);
+        bool pushedRbp = false;
+        if (useRegs_ & UseRBP) {
+            // keep the pushp/popp pair matched because close() pops rbp with popp
+            if (useRegs_ & UsePPX) {
+                code.pushp(rbp);
+            } else {
+                code.push(rbp);
             }
-            if (useRdx_) {
-                if (r == Operand.RDX) { return Operand.R11; }
-                if (r == Operand.R11) { return tbl[pos++]; }
+            saveRegs_[saveNum_++] = Operand.RBP;
+            pushedRbp = true;
+            if ((tNum & UseRBPAsFramePointer) == UseRBPAsFramePointer) code.mov(rbp, rsp);
+        }
+        if (useRegs_ & UseR30R31) {
+            saveRegs_[saveNum_++] = Operand.R30;
+            saveRegs_[saveNum_++] = Operand.R31;
+        }
+        for (int i = 0; i < calleeSaveNum; i++) {
+            int r = calleeTbl[i];
+            if (i < baseSaveNum || isUseReg(r)) {
+                if (pushedRbp && r == Operand.RBP) continue;
+                saveRegs_[saveNum_++] = r;
             }
-            return r;
+        }
+        // RSP is 8 mod 16 at function entry; each push subtracts 8, so an odd
+        // loop index means RSP is 16-byte aligned before saveRegs_[i] is pushed.
+        for (int i = pushedRbp ? 1 : 0; i < saveNum_; i++) {
+            if ((useRegs_ & UsePUSH2) && (i & 1) && i + 1 < saveNum_) {
+                if (useRegs_ & UsePPX) {
+                    code.push2p(new Reg64(saveRegs_[i]), new Reg64(saveRegs_[i + 1]));
+                } else {
+                    code.push2(new Reg64(saveRegs_[i]), new Reg64(saveRegs_[i + 1]));
+                }
+                i++;
+            } else if (useRegs_ & UsePPX) {
+                code.pushp(new Reg64(saveRegs_[i]));
+            } else {
+                code.push(new Reg64(saveRegs_[i]));
+            }
+        }
+        if (vecSaveNum_ > 0) {
+            // layout from the lower address : local stack (stackSizeByte) / xmm save area (16-byte aligned) / padding (0 or 8)
+            vecPos_ = (stackSizeByte + 15) & ~15;
+            P_ = vecPos_ + vecSaveNum_ * 16;
+            // after the pushes (rsp % 16) == 8 * ((1 + saveNum_) % 2), so make rsp 16-byte aligned for movaps
+            if ((saveNum_ & 1) == 0) P_ += 8;
+            code.sub(rsp, P_);
+            for (int i = 0; i < vecSaveNum_; i++) {
+                if (useVmovaps_) {
+                    code.vmovaps(ptr[rsp + (vecPos_ + i * 16)], new Xmm(6 + i));
+                } else {
+                    code.movaps(ptr[rsp + (vecPos_ + i * 16)], new Xmm(6 + i));
+                }
+            }
+        } else {
+            P_ = (stackSizeByte + 7) / 8;
+            // (rsp % 16) == 8, then increment P_ for 16 byte alignment
+            if (P_ > 0 && (P_ & 1) == (saveNum_ & 1)) P_++;
+            P_ *= 8;
+            if (P_ > 0) code.sub(rsp, P_);
+        }
+        int pos = 0;
+        for (int i = 0; i < pNum; i++) {
+            pTbl_[i] = new Reg64(getRegIdx(pos));
+        }
+        for (int i = 0; i < tNum_; i++) {
+            tTbl_[i] = new Reg64(getRegIdx(pos));
+        }
+        // replace reserved reg with backup reg if needed
+        for (size_t i = 0; i < maxPnum; i++) {
+            RegSlot rp = (getRegSlotTbl())[i];
+            if (isUseReg(rp.target) && rp.pos < pNum && rp.alt >= 0) {
+                code.mov(new Reg64(rp.alt), new Reg64(rp.target));
+            }
+        }
+        p_.init_(pTbl_, pNum);
+        t_.init_(tTbl_, tNum_);
+    }
+    /*
+        make epilog manually
+        @param callRet [in] call ret() if true
+    */
+    void close(bool callRet = true)
+    {
+        // vzeroupper comes before the restores so that legacy SSE movaps does not run with a dirty upper state
+        if (vzeroupper_) code_.vzeroupper();
+        for (int i = 0; i < vecSaveNum_; i++) {
+            if (useVmovaps_) {
+                code_.vmovaps(Xmm(6 + i), ptr[rsp + (vecPos_ + i * 16)]);
+            } else {
+                code_.movaps(Xmm(6 + i), ptr[rsp + (vecPos_ + i * 16)]);
+            }
+        }
+        if (P_ > 0) code_.add(code_.rsp, P_);
+        const int start = (useRegs_ & UseRBP) ? 1 : 0;
+        for (int i = saveNum_ - 1; i >= 0; i--) {
+            if ((useRegs_ & UsePUSH2) && !(i & 1) && i - 1 >= start) {
+                if (useRegs_ & UsePPX) {
+                    code_.pop2p(new Reg64(saveRegs_[i]), new Reg64(saveRegs_[i - 1]));
+                } else {
+                    code_.pop2(new Reg64(saveRegs_[i]), new Reg64(saveRegs_[i - 1]));
+                }
+                i--;
+            } else if (useRegs_ & UsePPX) {
+                code_.popp(new Reg64(saveRegs_[i]));
+            } else {
+                code_.pop(new Reg64(saveRegs_[i]));
+            }
+        }
+        if (callRet) code_.ret();
+    }
+
+    ~this() {
+        if (!makeEpilog_) return;
+        close();
+    }
+
+private:
+    static int useFlagOf(int r)
+    {
+        switch (r) {
+        case Operand.RBX: return UseRBX;
+        case Operand.RCX: return UseRCX;
+        case Operand.RDX: return UseRDX;
+        case Operand.RSI: return UseRSI;
+        case Operand.RDI: return UseRDI;
+        case Operand.RBP: return UseRBP;
+        default: return 0;
         }
     }
+    bool isUseReg(int r) const { return (useRegs_ & useFlagOf(r)) != 0; }
+    // Register allocation for the first 4 function parameters
+    struct RegSlot {
+        int target;
+        int pos; // position of target in getRegEntryTbl()
+        int alt; // alternative if target is used for parameter. -1 means no alternative.
+    }
+    RegSlot[] getRegSlotTbl() const
+    {
+        // Win: p[] = rcx(r10), rdx(r11), r8, r9:
+        // Linux: p[] = rdi(r8), rsi(r9), rdx(r11), rcx(r10)
+        // reg(alt) means a reserved reg if Use<reg> is used.
+
+version(XBYAK64_WIN)
+{
+        static RegSlot[maxPnum] tbl = [
+            RegSlot(Operand.RCX, 0, Operand.R10),
+            RegSlot(Operand.RDX, 1, Operand.R11),
+            RegSlot(Operand.RDI, 6, -1),
+            RegSlot(Operand.RSI, 7, -1)
+        ];
+}
+else
+{
+        static RegSlot[maxPnum] tbl = [
+            RegSlot(Operand.RCX, 3, Operand.R10),
+            RegSlot(Operand.RDX, 2, Operand.R11),
+            RegSlot(Operand.RDI, 0, Operand.R8),
+            RegSlot(Operand.RSI, 1, Operand.R9)
+        ];
+}
+        return tbl;
+    }
+    int[] getRegEntryTbl() const
+    {
+version(XBYAK64_WIN)
+{
+        static int[maxRegNum] tbl = [
+            Operand.RCX, Operand.RDX, Operand.R8, Operand.R9, Operand.R10, Operand.R11, Operand.RDI, Operand.RSI,
+            Operand.RBX, Operand.RBP, Operand.R12, Operand.R13, Operand.R14, Operand.R15
+        ];
+}
+else
+{
+        static int[maxRegNum] tbl = [
+            Operand.RDI, Operand.RSI, Operand.RDX, Operand.RCX, Operand.R8, Operand.R9, Operand.R10, Operand.R11,
+            Operand.RBX, Operand.RBP, Operand.R12, Operand.R13, Operand.R14, Operand.R15
+        ];
+}
+        return tbl[];
+    }
+    // get an available register index from tbl, skipping reserved registers
+    int getRegIdx(ref int pos) const
+    {
+        int[] tbl = getRegEntryTbl();
+        RegSlot[] slotTbl = getRegSlotTbl();
+        for (;;) {
+        NEXT:;
+            assert(pos < maxRegNum);
+            int r = tbl[pos++];
+            // if r is a Use*** target with alt, return alt as backup
+            // otherwise skip Use*** targets, their alts, and UseRBP's rbp
+            for (size_t i = 0; i < maxPnum; i++) {
+                RegSlot slot = slotTbl[i];
+                if (!isUseReg(slot.target)) continue;
+                if (r == slot.alt) goto NEXT;
+                if (r == slot.target) {
+                    if (slot.alt >= 0) return slot.alt;
+                    goto NEXT;
+                }
+            }
+            if (!isUseReg(r)) return r;
+        }
+        return -1;
+    }
+}
 
 class Profiler
     {

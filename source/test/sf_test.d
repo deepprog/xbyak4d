@@ -23,7 +23,7 @@ class Code : CodeGenerator
     {
         super();
     }
-    
+
     void gen1()
     {
         StackFrame sf = StackFrame(this, 1);
@@ -348,7 +348,7 @@ void test_args()
     auto f8 = code.getCurr!(int function(int, int, int))();
     code.gen8();
     tc.TEST_EQUAL(23, f8(5, 8, 10));
- 
+
     auto f9 = code.getCurr!(int function(int, int, int))();
     code.gen9();
     tc.TEST_EQUAL(60, f9(10, 20, 30));
@@ -427,7 +427,7 @@ void pack()
         }
 
     }
-    
+
     Tbl[] tbl = [
         Tbl( 0, 10, [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] ),
         Tbl( 1, 9, [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ] ),
@@ -492,7 +492,7 @@ unittest
 {
     Close();
 }
-    
+
 void Close()
 {
     scope tc = TestCount(__FUNCTION__);

@@ -3700,6 +3700,16 @@ else
         }
         mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
     }
+version(XBYAK64)
+{
+    // PUSHP/POPP : REX2 is mandatory (carries the W=1 PPX hint),
+    // unlike ordinary push/pop where REX2 is only emitted for R16-31.
+    void opPushPopP(Reg64 r, int alt)
+    {
+        rex2(0, 1, Reg(), r);
+        db(alt | (r.getIdx() & 7));
+    }
+}
     void verifyMemHasSize(Operand op) const
     {
         if (op.isMEM && op.getBit == 0) {
@@ -7389,6 +7399,8 @@ version (XBYAK64)
     void push2p(Reg64 r1, Reg64 r2) { opROO(r1, r2, Reg64(6), T_APX|T_ND1|T_W1, 0xFF); }
     void pop2(Reg64 r1, Reg64 r2) { opROO(r1, r2, Reg64(0), T_APX|T_ND1|T_W0, 0x8F); }
     void pop2p(Reg64 r1, Reg64 r2) { opROO(r1, r2, Reg64(0), T_APX|T_ND1|T_W1, 0x8F); }
+    void pushp(Reg64 r) { opPushPopP(r, 0x50); }
+    void popp(Reg64 r) { opPushPopP(r, 0x58); }
     void cmpbexadd(Address addr, Reg32e r1, Reg32e r2) { opRRO(r1, r2, addr, T_APX|T_66|T_0F38, 0xE6); }
     void cmpbxadd(Address addr, Reg32e r1, Reg32e r2) { opRRO(r1, r2, addr, T_APX|T_66|T_0F38, 0xE2); }
     void cmplexadd(Address addr, Reg32e r1, Reg32e r2) { opRRO(r1, r2, addr, T_APX|T_66|T_0F38, 0xEE); }
