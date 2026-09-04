@@ -2190,7 +2190,7 @@ else
   {
       version (Posix)
       {
-        size_t pageSize = sysconf(_SC_PAGESIZE);
+        size_t pageSize = inner.getPageSize();
         size_t iaddr = cast(size_t) addr;
         size_t roundAddr = iaddr & ~(pageSize - cast(size_t) 1);
         return mprotect(cast(void*) roundAddr, size + (iaddr - roundAddr), mode) == 0;
