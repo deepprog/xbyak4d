@@ -545,6 +545,10 @@ version (XBYAK64)
             umonitor(r31d); sdump("67F3D591AEF7");
             umonitor(rax); sdump("F30FAEF0");
             umonitor(r31); sdump("F3D591AEF7");
+
+            tpause(eax); sdump("660FAEF0");
+            tpause(r8d); sdump("66410FAEF0");
+            tpause(r31d); sdump("66D591AEF7");
         }
     }
 }
