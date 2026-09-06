@@ -2238,8 +2238,7 @@ version (XBYAK64)
 	}
 } // version(XBYAK64)
 
-version (XBYAK32)
-{
+
 @("waitpkg") unittest
 {
 	waitpkg();
@@ -2254,8 +2253,16 @@ void waitpkg()
 		{
 			tpause(eax);
 			tpause(ebx);
-			umonitor(cx);
-			umonitor(ecx);
+			version (XBYAK32)
+			{
+				umonitor(cx);
+				umonitor(ecx);
+			}
+			else
+			{
+				umonitor(ecx);
+				umonitor(rcx);
+			}
 			umwait(eax);
 			umwait(ebx);
 		}
@@ -2268,7 +2275,7 @@ void waitpkg()
 		// umonitor
 		0x67, 0xf3, 0x0f, 0xae, 0xf1,
 		0xf3, 0x0f, 0xae, 0xf1,
-		// tpause
+		// umwait
 		0xf2, 0x0f, 0xae, 0xf0,
 		0xf2, 0x0f, 0xae, 0xf3,
 	];
@@ -2283,7 +2290,6 @@ void waitpkg()
 		tc.TEST_EQUAL(ctbl[i], tbl[i]);
 	}
 }
-} // version (XBYAK32)
 
 @("misc") unittest
 {
