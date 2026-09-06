@@ -665,6 +665,8 @@ version (Posix)
 
 /*
     custom allocator
+    alloc() must allocate the buffer with size rounded up to a multiple of
+    the page size because protect() works at page granularity.
 */
 class Allocator
 {
@@ -672,9 +674,9 @@ class Allocator
     // ~this() {}
     uint8_t* alloc(size_t size)
     {
-        void* p = AlignedMalloc(size, inner.getPageSize());
-        GC.addRange(p, (p is null ? 0 : size));
-        return cast(uint8_t*) p;
+        const size_t alignedSizeM1 = inner.getPageSize() - 1;
+        size = (size + alignedSizeM1) & ~alignedSizeM1;
+        return cast(uint8_t*)(AlignedMalloc(size, inner.getPageSize()));
     }
     void free(uint8_t* p)
     {
