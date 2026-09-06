@@ -5090,11 +5090,11 @@ void cfcmovz(Operand op1, Operand op2) { opCfcmov(Reg(), op1, op2, 0x44); }
 void cfcmovz(Reg d, Reg r, Operand op) { opCfcmov(d|T_nf, op, r, 0x44); }
 void clc() { db(0xF8); }
 void cld() { db(0xFC); }
-void cldemote(Address addr) { opMR(addr, eax, T_0F, 0x1C); }
-void clflush(Address addr) { opMR(addr, Reg32(7), T_0F, 0xAE); }
-void clflushopt(Address addr) { opMR(addr, Reg32(7), T_66 | T_0F, 0xAE); }
+void cldemote(Address addr) { opMR(addr, eax, T_0F|T_ALLOW_DIFF_SIZE, 0x1C); }
+void clflush(Address addr) { opMR(addr, Reg32(7), T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
+void clflushopt(Address addr) { opMR(addr, Reg32(7), T_66|T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
 void cli() { db(0xFA); }
-void clwb(Address addr) { opMR(addr, esi, T_66 | T_0F, 0xAE); }
+void clwb(Address addr) { opMR(addr, esi, T_66|T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
 void clzero() { db(0x0F); db(0x01); db(0xFC); }
 void cmc() { db(0xF5); }
 void cmova(Reg d, Reg reg, Operand op) { opROO(d, op, reg, T_APX|T_ND1, 0x40 | 7); }
@@ -5892,14 +5892,14 @@ void pmuludq(Mmx mmx, Operand op) { opMMX(mmx, op, 0xF4); }
 void popcnt(Reg reg, Operand op) { opCnt(reg, op, 0xB8); }
 void popf() { db(0x9D); }
 void por(Mmx mmx, Operand op) { opMMX(mmx, op, 0xEB); }
-void prefetchit0(Address addr) { opMR(addr, Reg32(7), T_0F, 0x18); }
-void prefetchit1(Address addr) { opMR(addr, Reg32(6), T_0F, 0x18); }
-void prefetchnta(Address addr) { opMR(addr, Reg32(0), T_0F, 0x18); }
-void prefetchrst2(Address addr) { opMR(addr, Reg32(4), T_0F, 0x18); }
-void prefetcht0(Address addr) { opMR(addr, Reg32(1), T_0F, 0x18); }
-void prefetcht1(Address addr) { opMR(addr, Reg32(2), T_0F, 0x18); }
-void prefetcht2(Address addr) { opMR(addr, Reg32(3), T_0F, 0x18); }
-void prefetchw(Address addr) { opMR(addr, Reg32(1), T_0F, 0x0D); }
+void prefetchit0(Address addr) { opMR(addr, Reg32(7), T_0F|T_ALLOW_DIFF_SIZE, 0x18); }
+void prefetchit1(Address addr) { opMR(addr, Reg32(6), T_0F|T_ALLOW_DIFF_SIZE, 0x18); }
+void prefetchnta(Address addr) { opMR(addr, Reg32(0), T_0F|T_ALLOW_DIFF_SIZE, 0x18); }
+void prefetchrst2(Address addr) { opMR(addr, Reg32(4), T_0F|T_ALLOW_DIFF_SIZE, 0x18); }
+void prefetcht0(Address addr) { opMR(addr, Reg32(1), T_0F|T_ALLOW_DIFF_SIZE, 0x18); }
+void prefetcht1(Address addr) { opMR(addr, Reg32(2), T_0F|T_ALLOW_DIFF_SIZE, 0x18); }
+void prefetcht2(Address addr) { opMR(addr, Reg32(3), T_0F|T_ALLOW_DIFF_SIZE, 0x18); }
+void prefetchw(Address addr) { opMR(addr, Reg32(1), T_0F|T_ALLOW_DIFF_SIZE, 0x0D); }
 void psadbw(Mmx mmx, Operand op) { opMMX(mmx, op, 0xF6); }
 void pshufb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x00, T_0F38, T_66); }
 void pshufd(Mmx mmx, Operand op, uint8_t imm8) { opMMX(mmx, op, 0x70, T_0F, T_66, imm8); }
