@@ -423,6 +423,33 @@ void kmask()
 	scope code = new Code();
 }
 
+// {z} (zeroing-masking) has no architectural meaning when the destination of a
+// downconvert store-form instruction (dispatched via opVmov) is memory; only
+// merge-masking ({k} without {z}) is valid there.
+@("vpmov_store_zero")
+unittest
+{
+	vpmov_store_zero();
+}
+
+void vpmov_store_zero()
+{
+	scope tc = TestCount(__FUNCTION__);
+	class Code : CodeGenerator
+	{
+		this(ref TestCount tc)
+		{
+			// mode=false family (narrow dest is byte-sized relative to source)
+			tc.TEST_NO_EXCEPTION({ vpmovdb(ptr[eax], xmm3|k4); });
+			tc.TEST_EXCEPTION!Exception({ vpmovdb(ptr[eax], xmm3|k4|T_z); });
+			// mode=true family (narrow dest is word/dword-sized relative to source)
+			tc.TEST_NO_EXCEPTION({ vpmovqd(ptr[eax], xmm3|k4); });
+			tc.TEST_EXCEPTION!Exception({ vpmovqd(ptr[eax], xmm3|k4|T_z); });
+		}
+	}
+	scope code = new Code(tc);
+}
+
 @("test_gather")
 unittest
 {

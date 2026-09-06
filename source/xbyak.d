@@ -4077,6 +4077,10 @@ version(XBYAK64)
                 mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
             }
         }
+        // zeroing-masking has no meaning when the destination is memory
+        if (op.isMEM() && (op.hasZero() || x.hasZero())) {
+            mixin(XBYAK_THROW(ERR_INVALID_ZERO));
+        }
         opVex(x, null, op, type, code);
     }
     void opGatherFetch(Address addr, Xmm x, uint64_t type, uint8_t code, Kind kind)
