@@ -5319,8 +5319,8 @@ void fadd(Fpu reg1, Fpu reg2) { opFpuFpu(reg1, reg2, 0xD8C0, 0xDCC0); }
 void faddp() { db(0xDE); db(0xC1); }
 void faddp(Fpu reg1) { opFpuFpu(reg1, st0, 0x0000, 0xDEC0); }
 void faddp(Fpu reg1, Fpu reg2) { opFpuFpu(reg1, reg2, 0x0000, 0xDEC0); }
-void fbld(Address addr) { opMR(addr, Reg32(4), 0, 0xDF); }
-void fbstp(Address addr) { opMR(addr, Reg32(6), 0, 0xDF); }
+void fbld(Address addr) { opMR(addr, Reg32(4), T_ALLOW_DIFF_SIZE, 0xDF); }
+void fbstp(Address addr) { opMR(addr, Reg32(6), T_ALLOW_DIFF_SIZE, 0xDF); }
 void fchs() { db(0xD9); db(0xE0); }
 void fclex() { db(0x9B); db(0xDB); db(0xE2); }
 void fcmovb(Fpu reg1) { opFpuFpu(st0, reg1, 0xDAC0, 0x00C0); }
