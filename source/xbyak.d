@@ -2306,6 +2306,13 @@ version(XBYAK64)
         return Bit_ && E_ && Label_ && Mode_ && ImmSize && Disp8N_&& PermitVsib && Broadcast_ && Optimize_;
     }
     bool isVsib() const { return e_.isVsib(); }
+    // change byte to dword etc.
+	Address changeBit(int bit)
+    {
+        Address addr = new Address(this);
+        addr.setBit(bit);
+        return addr;
+    }
 
 private:
     RegExp e_;
