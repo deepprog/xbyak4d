@@ -2307,7 +2307,7 @@ version(XBYAK64)
     }
     bool isVsib() const { return e_.isVsib(); }
     // change byte to dword etc.
-	Address changeBit(int bit)
+    Address changeBit(int bit)
     {
         Address addr = new Address(this);
         addr.setBit(bit);
@@ -3823,6 +3823,11 @@ version(XBYAK64)
     void opVex(Reg r, Operand p1, Operand op2, in uint64_t type, int code, int imm8 = NONE)
     {
         if (op2.isMEM()) {
+            // zeroing-masking has no meaning when the destination is memory
+            if ((type & T_M_K) && (r.hasZero() || (p1 && p1.hasZero()) || op2.hasZero()))
+            {
+                mixin(XBYAK_THROW(ERR_INVALID_ZERO));
+            }
             scope Address addr = op2.getAddress();
             RegExp regExp = addr.getRegExp();
             scope Reg base = regExp.getBase();
@@ -4076,10 +4081,6 @@ version(XBYAK64)
             if (!op.isMEM() && !op.isXMM()) {
                 mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
             }
-        }
-        // zeroing-masking has no meaning when the destination is memory
-        if (op.isMEM() && (op.hasZero() || x.hasZero())) {
-            mixin(XBYAK_THROW(ERR_INVALID_ZERO));
         }
         opVex(x, null, op, type, code);
     }

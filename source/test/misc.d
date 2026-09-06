@@ -424,15 +424,15 @@ void kmask()
 }
 
 // {z} (zeroing-masking) has no architectural meaning when the destination of a
-// downconvert store-form instruction (dispatched via opVmov) is memory; only
-// merge-masking ({k} without {z}) is valid there.
-@("vpmov_store_zero")
+// store-form instruction is memory; only merge-masking ({k} without {z}) is
+// valid there.
+@("store_zero")
 unittest
 {
-	vpmov_store_zero();
+	store_zero();
 }
 
-void vpmov_store_zero()
+void store_zero()
 {
 	scope tc = TestCount(__FUNCTION__);
 	class Code : CodeGenerator
@@ -445,6 +445,25 @@ void vpmov_store_zero()
 			// mode=true family (narrow dest is word/dword-sized relative to source)
 			tc.TEST_NO_EXCEPTION({ vpmovqd(ptr[eax], xmm3|k4); });
 			tc.TEST_EXCEPTION!Exception({ vpmovqd(ptr[eax], xmm3|k4|T_z); });
+			// store forms dispatched via opVex with T_M_K
+			tc.TEST_NO_EXCEPTION({ vmovaps(ptr[eax], zmm3|k4); });
+			tc.TEST_EXCEPTION!Exception({ vmovaps(ptr[eax], zmm3|k4|T_z); });
+			tc.TEST_EXCEPTION!Exception({ vmovaps(ptr[eax]|k4|T_z, zmm3); });
+			tc.TEST_NO_EXCEPTION({ vmovdqu8(ptr[eax], zmm3|k4); });
+			tc.TEST_EXCEPTION!Exception({ vmovdqu8(ptr[eax], zmm3|k4|T_z); });
+			tc.TEST_NO_EXCEPTION({ vcompressps(ptr[eax], zmm3|k4); });
+			tc.TEST_EXCEPTION!Exception({ vcompressps(ptr[eax], zmm3|k4|T_z); });
+			tc.TEST_NO_EXCEPTION({ vpcompressd(ptr[eax], zmm3|k4); });
+			tc.TEST_EXCEPTION!Exception({ vpcompressd(ptr[eax], zmm3|k4|T_z); });
+			tc.TEST_NO_EXCEPTION({ vextractf32x4(ptr[eax], zmm3|k4, 1); });
+			tc.TEST_EXCEPTION!Exception({ vextractf32x4(ptr[eax], zmm3|k4|T_z, 1); });
+			tc.TEST_NO_EXCEPTION({ vcvtps2ph(ptr[eax], zmm3|k4, 0); });
+			tc.TEST_EXCEPTION!Exception({ vcvtps2ph(ptr[eax], zmm3|k4|T_z, 0); });
+			// register destination still accepts {z}
+			tc.TEST_NO_EXCEPTION({ vmovaps(zmm1|k4|T_z, ptr[eax]); });
+			tc.TEST_NO_EXCEPTION({ vpmovdb(xmm1|k4|T_z, xmm3); });
+			tc.TEST_NO_EXCEPTION({ vpcompressd(xmm1|k4|T_z, xmm3); });
+			tc.TEST_NO_EXCEPTION({ vextractf32x4(xmm1|k4|T_z, zmm3, 1); });
 		}
 	}
 	scope code = new Code(tc);
