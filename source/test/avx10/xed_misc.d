@@ -535,6 +535,11 @@ version (XBYAK64)
             vcvttss2si(r11, xmm25|T_sae); sdump("6211FE182CD9");
             vcvttss2usi(edi, xmm25|T_sae); sdump("62917E1878F9");
             vcvttss2usi(r14, xmm25|T_sae); sdump("6211FE1878F1");
+
+            umwait(eax); sdump("F20FAEF0");
+            umwait(ebx); sdump("F20FAEF3");
+            umwait(r8d); sdump("F2410FAEF0");
+            umwait(r31d); sdump("F2D591AEF7");
         }
     }
 }
