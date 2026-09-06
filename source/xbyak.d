@@ -6116,23 +6116,19 @@ void ucomiss(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x2E, &isXMM_XMMorMEM);
 void ud2() { db(0x0F); db(0x0B); }
 void umonitor(Reg r)
 {
-    int idx = r.getIdx();
-    if (idx > 7)
-        mixin(XBYAK_THROW(ERR_BAD_PARAMETER));
     int bit = r.getBit();
-    if (BIT != bit)
+    if (bit == 8)
     {
-        if ((BIT == 32 && bit == 16) || (BIT == 64 && bit == 32))
-        {
-            db(0x67);
-        }
-        else
-        {
-            mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
-        }
+        mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
     }
-    db(0xF3); db(0x0F); db(0xAE);
-    setModRM(3, 6, idx);
+    if (BIT == 32 && r.getIdx() > 7)
+    {
+        mixin(XBYAK_THROW(ERR_INVALID_REG_IDX));
+    }
+    if (BIT == bit * 2)
+    {   db(0x67);
+        opRR(esi, r.cvt32(), T_F3|T_0F, 0xAE);
+    }
 }
 void umwait(Reg32 r) { opRR(esi, r, T_F2|T_0F, 0xAE); }
 void unpckhpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x15, &isXMM_XMMorMEM); }
