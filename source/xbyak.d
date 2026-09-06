@@ -7726,8 +7726,8 @@ else
     void vcmpunordss(Opmask k, Xmm x, Operand op) { vcmpss(k, x, op, 3); }
     void vcomisbf16(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N2|T_66|T_MAP5|T_W0|T_MUST_EVEX, 0x2F); }
     void vcomish(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N2|T_MAP5|T_W0|T_SAE_X|T_MUST_EVEX, 0x2F); }
-    void vcompresspd(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N8|T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x8A); }
-    void vcompressps(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N4|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX, 0x8A); }
+    void vcompresspd(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N8|T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x8A); }
+    void vcompressps(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N4|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x8A); }
     void vcomxsd(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N8|T_F2|T_0F|T_EW1|T_SAE_X|T_MUST_EVEX, 0x2F); }
     void vcomxsh(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N2|T_F3|T_MAP5|T_W0|T_SAE_X|T_MUST_EVEX, 0x2F); }
     void vcomxss(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_N4|T_F3|T_0F|T_W0|T_SAE_X|T_MUST_EVEX, 0x2F); }
@@ -8026,51 +8026,51 @@ else
      { opAVX_X_XM_IMM(x, op, T_N4|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX, 0x88); }
     void vextractf32x4(Operand op, Ymm r, uint8_t imm)
     {
-        if (!op.isKind(MEM|XMM))
+        if (!op.isKind(MEM | XMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-        opVex(r, null, op, T_N16|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x19, imm);
+        opVex(r, null, op, T_N16|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x19, imm);
     }
     void vextractf32x8(Operand op, Zmm r, uint8_t imm)
     {
-        if (!op.isKind(MEM|YMM))
+        if (!op.isKind(MEM | YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-        opVex(r, null, op, T_N32|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x1B, imm);
+        opVex(r, null, op, T_N32|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x1B, imm);
     }
     void vextractf64x2(Operand op, Ymm r, uint8_t imm)
     {
-        if (!op.isKind(MEM|XMM))
+        if (!op.isKind(MEM | XMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-        opVex(r, null, op, T_N16|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x19, imm);
+        opVex(r, null, op, T_N16|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x19, imm);
     }
     void vextractf64x4(Operand op, Zmm r, uint8_t imm)
     {
-        if (!op.isKind(MEM|YMM))
+        if (!op.isKind(MEM | YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-        opVex(r, null, op, T_N32|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x1B, imm);
+        opVex(r, null, op, T_N32|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x1B, imm);
     }
     void vextracti32x4(Operand op, Ymm r, uint8_t imm)
     {
-        if (!op.isKind(MEM|XMM))
+        if (!op.isKind(MEM | XMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-        opVex(r, null, op, T_N16|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x39, imm);
+        opVex(r, null, op, T_N16|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x39, imm);
     }
     void vextracti32x8(Operand op, Zmm r, uint8_t imm)
     {
-        if (!op.isKind(MEM|YMM))
+        if (!op.isKind(MEM | YMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-        opVex(r, null, op, T_N32|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x3B, imm);
+        opVex(r, null, op, T_N32|T_66|T_0F3A|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x3B, imm);
     }
     void vextracti64x2(Operand op, Ymm r, uint8_t imm)
     {
-        if (!op.isKind(MEM|XMM))
+        if (!op.isKind(MEM | XMM))
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-        opVex(r, null, op, T_N16|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x39, imm);
+        opVex(r, null, op, T_N16|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x39, imm);
     }
     void vextracti64x4(Operand op, Zmm r, uint8_t imm)
     {
-        if (!op.isKind(MEM|YMM))
-            mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-        opVex(r, null, op, T_N32|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x3B, imm);
+        if (!op.isKind(MEM | YMM))
+             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
+        opVex(r, null, op, T_N32|T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x3B, imm);
     }
     void vfcmaddcph(Xmm x1, Xmm x2, Operand op)
      { opAVX_X_X_XM(x1, x2, op, T_F2|T_MAP6|T_W0|T_YMM|T_ER_Z|T_MUST_EVEX|T_B32, 0x56); }
@@ -8430,10 +8430,10 @@ else
      { opAVX_K_X_XM(k, x, op, T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x3E, imm); }
     void vpcmpw(Opmask k, Xmm x, Operand op, uint8_t imm)
      { opAVX_K_X_XM(k, x, op, T_66|T_0F3A|T_EW1|T_YMM|T_MUST_EVEX, 0x3F, imm); }
-    void vpcompressb(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N1|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX, 0x63); }
-    void vpcompressd(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N4|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX, 0x8B); }
-    void vpcompressq(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N8|T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x8B); }
-    void vpcompressw(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N2|T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x63); }
+    void vpcompressb(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N1|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x63); }
+    void vpcompressd(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N4|T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x8B); }
+    void vpcompressq(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N8|T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x8B); }
+    void vpcompressw(Operand op, Xmm x) { opAVX_X_XM_IMM(x, op, T_N2|T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_M_K, 0x63); }
     void vpconflictd(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_0F38|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0xC4); }
     void vpconflictq(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX|T_B64, 0xC4); }
     void vpdpbssd(Xmm x1, Xmm x2, Operand op, PreferredEncoding encoding = DefaultEncoding)
