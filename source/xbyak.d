@@ -908,6 +908,13 @@ else
         rounding_ = 0;
         NF_ = 0;
         ZU_ = 0;
+version(XBYAK32)
+{
+        if (idx >= 8)
+        {
+            mixin(XBYAK_THROW(ERR_INVALID_REG_IDX));
+        }
+}
         assert((bit_ & (bit_ - 1)) == 0); // bit must be power of two
     }
 
@@ -2821,11 +2828,6 @@ else
     pragma(inline, true);
     uint8_t rexRXB(int bit, int bit3, Reg r, Reg b, Reg x = Reg())
     {
-version(XBYAK32)
-{
-		if (r.getIdx() >= 8 || b.getIdx() >= 8 || x.getIdx() >= 8)
-            mixin(XBYAK_THROW_RET(ERR_INVALID_REG_IDX, "0"));
-}
         int v = bit3 ? 8 : 0;
         if (r.hasIdxBit(bit)) v |= 4;
         if (x.hasIdxBit(bit)) v |= 2;
