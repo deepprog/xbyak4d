@@ -540,6 +540,11 @@ version (XBYAK64)
             umwait(ebx); sdump("F20FAEF3");
             umwait(r8d); sdump("F2410FAEF0");
             umwait(r31d); sdump("F2D591AEF7");
+
+            umonitor(eax); sdump("67F30FAEF0");
+            umonitor(r31d); sdump("67F3D591AEF7");
+            umonitor(rax); sdump("F30FAEF0");
+            umonitor(r31); sdump("F3D591AEF7");
         }
     }
 }

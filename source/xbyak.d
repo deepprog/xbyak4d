@@ -2821,6 +2821,11 @@ else
     pragma(inline, true);
     uint8_t rexRXB(int bit, int bit3, Reg r, Reg b, Reg x = Reg())
     {
+version(XBYAK32)
+{
+		if (r.getIdx() >= 8 || b.getIdx() >= 8 || x.getIdx() >= 8)
+            mixin(XBYAK_THROW_RET(ERR_INVALID_REG_IDX, "0"));
+}
         int v = bit3 ? 8 : 0;
         if (r.hasIdxBit(bit)) v |= 4;
         if (x.hasIdxBit(bit)) v |= 2;
@@ -6095,16 +6100,7 @@ void subss(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_F3, 0x5C, &isXMM_XMMor
 void sysenter() { db(0x0F); db(0x34); }
 void sysexit() { db(0x0F); db(0x35); }
 
-void tpause(Reg32 r)
-{
-    int idx = r.getIdx();
-    if (idx > 7)
-        mixin(XBYAK_THROW(ERR_BAD_PARAMETER));
-    db(0x66);
-    db(0x0F);
-    db(0xAE);
-    setModRM(3, 6, idx);
-}
+void tpause(Reg32 r) { opRR(esi, r, T_66 | T_0F, 0xAE); }
 void tzcnt(Reg reg, Operand op)
 {
     if (opROO(Reg(), op, reg, T_APX|T_NF, 0xF4)) return;
@@ -6117,18 +6113,9 @@ void ud2() { db(0x0F); db(0x0B); }
 void umonitor(Reg r)
 {
     int bit = r.getBit();
-    if (bit == 8)
-    {
-        mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
-    }
-    if (BIT == 32 && r.getIdx() > 7)
-    {
-        mixin(XBYAK_THROW(ERR_INVALID_REG_IDX));
-    }
-    if (BIT == bit * 2)
-    {   db(0x67);
-        opRR(esi, r.cvt32(), T_F3|T_0F, 0xAE);
-    }
+    if (bit == 8) mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
+    if (BIT == bit * 2) db(0x67);
+    opRR(esi, r.cvt32(), T_F3|T_0F, 0xAE);
 }
 void umwait(Reg32 r) { opRR(esi, r, T_F2|T_0F, 0xAE); }
 void unpckhpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x15, &isXMM_XMMorMEM); }
