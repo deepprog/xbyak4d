@@ -5624,7 +5624,7 @@ void lea(Reg reg, Address addr)
 {
     if (!reg.isBit(16 | i32e))
         mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
-    opMR(addr, reg, 0, 0x8D);
+    opMR(addr, reg, T_ALLOW_DIFF_SIZE, 0x8D);
 }
 void leave() { db(0xC9); }
 void lfence() { db(0x0F); db(0xAE); db(0xE8); }
