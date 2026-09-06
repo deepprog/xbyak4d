@@ -25,11 +25,7 @@ version (XBYAK64)
         {
             super(name);
             setDefaultEncodingAVX10(AVX10v2Encoding);
-
-            vp4dpwssd(zmm23 | k7 | T_z, zmm1, ptr[rax + 64]);
-            sdump("62E277CF527804");
-            vp4dpwssds(zmm10 | k4, zmm3, ptr[rsp + rax * 4 + 64]);
-            sdump("6272674C53548404");
+            
             vaesdec(xmm20, xmm30, ptr[rcx + 64]);
             sdump("62E20D00DE6104");
             vaesdec(ymm1, ymm2, ptr[rcx + 64]);

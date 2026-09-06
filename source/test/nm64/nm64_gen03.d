@@ -558,10 +558,6 @@ version (XBYAK64)
             sdump("670F18440803");
             prefetchnta(ptr[rdx + r15 + 0x12]);
             sdump("420F18443A12");
-            prefetchwt1(ptr[eax + ecx + 3]);
-            sdump("670F0D540803");
-            prefetchwt1(ptr[rdx + r15 + 0x12]);
-            sdump("420F0D543A12");
             prefetchw(ptr[eax + ecx + 3]);
             sdump("670F0D4C0803");
             prefetchw(ptr[rdx + r15 + 0x12]);

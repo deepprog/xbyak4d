@@ -643,12 +643,16 @@ public:
     enum tAVX512DQ              = Type(1uL << 36, 0);
     enum tAVX512_IFMA           = Type(1uL << 37, 0);
     enum tAVX512IFMA            = Type(1uL << 37, 0); // = tAVX512_IFMA;
+//  enum tAVX512PF              = Type(1uL << 37, 0); // Xeon Phi only
+//  enum tAVX512ER              = Type(1uL << 39, 0);
     enum tAVX512CD              = Type(1uL << 40, 0);
     enum tAVX512BW              = Type(1uL << 41, 0);
     enum tAVX512VL              = Type(1uL << 42, 0);
     enum tAVX512_VBMI           = Type(1uL << 43, 0);
     enum tAVX512VBMI            = Type(1uL << 43, 0); // = tAVX512_VBMI; // changed by Intel's manual
-    enum tPREFETCHWT1           = Type(1uL << 46, 0);
+//  enum tAVX512_4VNNIW         = Type(1uL << 44, 0);
+//  enum tAVX512_4FMAPS         = Type(1uL << 45, 0);
+//  enum tPREFETCHWT1           = Type(1uL << 46, 0);
     enum tPREFETCHW             = Type(1uL << 47, 0);
     enum tSHA                   = Type(1uL << 48, 0);
     enum tMPX                   = Type(1uL << 49, 0);
@@ -811,7 +815,6 @@ public:
             if (*ebx & (1U << 23)) type_ |= tCLFLUSHOPT;
             if (*ebx & (1U << 24)) type_ |= tCLWB;
             if (*ebx & (1U << 29)) type_ |= tSHA;
-            if (*ecx & (1U << 0)) type_ |= tPREFETCHWT1;
             if (*ecx & (1U << 5)) type_ |= tWAITPKG;
             if (*ecx & (1U << 8)) type_ |= tGFNI;
             if (*ecx & (1U << 9)) type_ |= tVAES;

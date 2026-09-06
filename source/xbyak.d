@@ -5900,7 +5900,6 @@ void prefetcht0(Address addr) { opMR(addr, Reg32(1), T_0F, 0x18); }
 void prefetcht1(Address addr) { opMR(addr, Reg32(2), T_0F, 0x18); }
 void prefetcht2(Address addr) { opMR(addr, Reg32(3), T_0F, 0x18); }
 void prefetchw(Address addr) { opMR(addr, Reg32(1), T_0F, 0x0D); }
-void prefetchwt1(Address addr) { opMR(addr, Reg32(2), T_0F, 0x0D); }
 void psadbw(Mmx mmx, Operand op) { opMMX(mmx, op, 0xF6); }
 void pshufb(Mmx mmx, Operand op) { opMMX(mmx, op, 0x00, T_0F38, T_66); }
 void pshufd(Mmx mmx, Operand op, uint8_t imm8) { opMMX(mmx, op, 0x70, T_0F, T_66, imm8); }
@@ -8400,10 +8399,6 @@ else
             mixin(XBYAK_THROW(ERR_OPMASK_IS_ALREADY_SET));
         opAVX_K_X_XM(k, x, op, T_F2|T_0F38|T_YMM|T_EVEX|T_EW1|T_B64, 0x68);
     }
-    void vp4dpwssd(Zmm z1, Zmm z2, Address addr)
-     { opAVX_X_X_XM(z1, z2, addr, T_0F38|T_F2|T_W0|T_YMM|T_MUST_EVEX|T_N16, 0x52); }
-    void vp4dpwssds(Zmm z1, Zmm z2, Address addr)
-     { opAVX_X_X_XM(z1, z2, addr, T_0F38|T_F2|T_W0|T_YMM|T_MUST_EVEX|T_N16, 0x53); }
     void vpabsq(Xmm x, Operand op) { opAVX_X_XM_IMM(x, op, T_66|T_0F38|T_MUST_EVEX|T_EW1|T_B64|T_YMM, 0x1F); }
     void vpandd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0xDB); }
     void vpandnd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0xDF); }
