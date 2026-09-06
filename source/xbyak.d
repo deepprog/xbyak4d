@@ -5690,7 +5690,7 @@ void movddup(Xmm xmm, Operand op)
 {
     opSSE(xmm, op, T_DUP|T_F2|T_0F|T_EW1|T_YMM|T_EVEX, 0x12, &isXMM_XMMorMEM, NONE);
 }
-void movdir64b(Reg reg, Address addr) { opMR(addr, reg.cvt32(), T_66|T_0F38, 0xF8, T_APX|T_66); }
+void movdir64b(Reg reg, Address addr) { opMR(addr, reg.cvt32(), T_66|T_0F38|T_ALLOW_DIFF_SIZE, 0xF8, T_APX|T_66); }
 void movdiri(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38, 0xF9, T_APX); }
 void movdq2q(Mmx mmx, Xmm xmm) { opSSE(mmx, xmm, T_F2|T_0F, 0xD6); }
 void movdqa(Address addr, Xmm xmm) { opSSE(xmm, addr, T_0F|T_66, 0x7F); }
