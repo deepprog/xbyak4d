@@ -1248,6 +1248,41 @@ version (XBYAK64)
 		}
 	}
 
+	@("segment") unittest
+	{
+		segment();
+	}
+
+	void segment()
+	{
+		scope tc = TestCount(__FUNCTION__);
+		class Code : CodeGenerator
+		{
+			this()
+			{
+				putSeg(es); mov(eax, ptr[eax]);
+				putSeg(cs); mov(eax, ptr[eax]);
+				putSeg(ss); mov(eax, ptr[eax]);
+				putSeg(ds); mov(eax, ptr[eax]);
+			}
+		}
+		const uint8_t[] tbl = [
+			0x26, 0x67, 0x8B, 0x00, // es
+			0x2E, 0x67, 0x8B, 0x00, // cs
+			0x36, 0x67, 0x8B, 0x00, // ss
+			0x3E, 0x67, 0x8B, 0x00, // ds
+		];
+		scope Code c = new Code();
+		const size_t n = tbl.length;
+		tc.TEST_EQUAL(c.getSize(), n);
+		auto ctbl = c.getCode();
+
+		for (int i = 0; i < n; i++)
+		{
+			tc.TEST_EQUAL(ctbl[i], tbl[i]);
+		}
+	}
+
 	@("tileloadd") unittest
 	{
 		tileloadd();
