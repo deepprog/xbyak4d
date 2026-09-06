@@ -1133,7 +1133,7 @@ else
             string[4] tbl = ["bnd0", "bnd1", "bnd2", "bnd3"];
             return tbl[idx];
         }
-        mixin(XBYAK_THROW_RET(ERR_INTERNAL, "null"));
+        mixin(XBYAK_THROW_RET(ERR_INTERNAL, ""));
     }
 
     bool isEqualIfNotInherited(Operand rhs) const
@@ -6134,16 +6134,7 @@ void umonitor(Reg r)
     db(0xF3); db(0x0F); db(0xAE);
     setModRM(3, 6, idx);
 }
-void umwait(Reg32 r)
-{
-    int idx = r.getIdx();
-    if (idx > 7)
-        mixin(XBYAK_THROW(ERR_BAD_PARAMETER));
-    db(0xF2);
-    db(0x0F);
-    db(0xAE);
-    setModRM(3, 6, idx);
-}
+void umwait(Reg32 r) { opRR(esi, r, T_F2|T_0F, 0xAE); }
 void unpckhpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x15, &isXMM_XMMorMEM); }
 void unpckhps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x15, &isXMM_XMMorMEM); }
 void unpcklpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x14, &isXMM_XMMorMEM); }
