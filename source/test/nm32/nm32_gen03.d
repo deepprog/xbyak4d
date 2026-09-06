@@ -169,8 +169,6 @@ version (XBYAK32)
             sdump("0F185C0803");
             prefetchnta(ptr[eax + ecx + 3]);
             sdump("0F18440803");
-            prefetchwt1(ptr[eax + ecx + 3]);
-            sdump("0F0D540803");
             prefetchw(ptr[eax + ecx + 3]);
             sdump("0F0D4C0803");
             maskmovdqu(xmm6, xmm4);
