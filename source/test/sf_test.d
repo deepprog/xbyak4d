@@ -505,4 +505,37 @@ void Close()
     }
 }
 
+// rbp must be pushed with pushp (not push) when UsePPX is specified
+// so that the pushp/popp pair is matched for the PPX hint
+@("rbpWithPpx")
+unittest
+{
+    rbpWithPpx();
+}
+
+void rbpWithPpx()
+{
+    scope tc = TestCount(__FUNCTION__);
+    class Code : CodeGenerator {
+		this()
+		{
+			StackFrame sf = StackFrame(this, 0, UseRBP|UsePPX);
+		}
+	}
+	const uint8_t[] tbl = [
+		0xd5, 0x08, 0x55, // pushp rbp
+		0xd5, 0x08, 0x5d, // popp rbp
+		0xc3, // ret
+    ];
+
+    scope Code c = new Code();
+	const size_t n = tbl.length;
+	tc.TEST_EQUAL(c.getSize(), n);
+	auto ctbl = c.getCode();
+	for(int i=0; i < n; i++)
+	{
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
+	}
+}
+
 } //version(XBYAK64)
