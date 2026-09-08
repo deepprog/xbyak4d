@@ -26,7 +26,4 @@ jobs:
         sudo apt install gcc-multilib
         source $(curl https://dlang.org/install.sh | bash -s -- ${{ matrix.compiler }} -a)
         dub test -ax86 --parallel -b=unittest-cov
-    - name: codecov
-      if: ${{ matrix.compiler == 'dmd' }}
-      run: bash <(curl -s https://codecov.io/bash)
-      
+
