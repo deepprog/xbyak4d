@@ -4427,6 +4427,8 @@ version (XBYAK64)
         tmm0 = Tmm(0), tmm1 = Tmm(1), tmm2 = Tmm(2), tmm3 = Tmm(3),
         tmm4 = Tmm(4), tmm5 = Tmm(5), tmm6 = Tmm(6), tmm7 = Tmm(7),
 
+        rip = RegRip(),
+
         // for my convenience
         xm8 = xmm8, xm9 = xmm9, xm10 = xmm10, xm11 = xmm11,
         xm12 = xmm12, xm13 = xmm13, xm14 = xmm14, xm15 = xmm15,
@@ -4447,9 +4449,7 @@ version (XBYAK64)
         zm16 = zmm16, zm17 = zmm17, zm18 = zmm18, zm19 = zmm19,
         zm20 = zmm20, zm21 = zmm21, zm22 = zmm22, zm23 = zmm23,
         zm24 = zmm24, zm25 = zmm25, zm26 = zmm26, zm27 = zmm28,
-        zm29 = zmm29, zm30 = zmm30, zm31 = zmm31,
-
-        rip = RegRip()
+        zm29 = zmm29, zm30 = zmm30, zm31 = zmm31
     }
 
     version (XBYAK_DISABLE_SEGMENT)
