@@ -1843,6 +1843,54 @@ void push2_pop2()
 	}
 }
 
+{
+	pushp_popp();
+}
+
+void pushp_popp()
+{
+	scope tc = TestCount(__FUNCTION__);
+	class Code : CodeGenerator {
+		this()
+		{
+			pushp(rax);
+			pushp(r8);
+			pushp(r16);
+			pushp(r24);
+			pushp(r31);
+
+			popp(rax);
+			popp(r8);
+			popp(r16);
+			popp(r24);
+			popp(r31);
+		}
+	}
+	const uint8_t[] tbl = [
+		// pushp
+		0xd5, 0x08, 0x50, // pushp(rax)
+		0xd5, 0x09, 0x50, // pushp(r8)
+		0xd5, 0x18, 0x50, // pushp(r16)
+		0xd5, 0x19, 0x50, // pushp(r24)
+		0xd5, 0x19, 0x57, // pushp(r31)
+		// popp
+		0xd5, 0x08, 0x58, // popp(rax)
+		0xd5, 0x09, 0x58, // popp(r8)
+		0xd5, 0x18, 0x58, // popp(r16)
+		0xd5, 0x19, 0x58, // popp(r24)
+		0xd5, 0x19, 0x5f, // popp(r31)
+	];
+
+	scope Code c = new Code();
+	const size_t n = tbl.length;
+	tc.TEST_EQUAL(c.getSize(), n);
+	auto ctbl = c.getCode();
+	for(int i=0; i < n; i++)
+	{
+		tc.TEST_EQUAL(ctbl[i], tbl[i]);
+	}
+}
+
 @("ccmp")
 unittest
 {

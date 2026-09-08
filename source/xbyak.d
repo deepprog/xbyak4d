@@ -3722,7 +3722,7 @@ version(XBYAK64)
     // unlike ordinary push/pop where REX2 is only emitted for R16-31.
     void opPushPopP(Reg64 r, int alt)
     {
-        rex2(0, 1, Reg(), r);
+        rex2(0, rexRXB(3, 1, Reg(), r), Reg(), r);
         db(alt | (r.getIdx() & 7));
     }
 }

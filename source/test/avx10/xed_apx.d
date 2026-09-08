@@ -66,6 +66,26 @@ version (XBYAK64)
             imul(rcx, r15, qword[rdi]);
             sdump("6274F418AF3F");
 
+            pushp(rax);
+            sdump("D50850");
+            pushp(r8);
+            sdump("D50950");
+            pushp(r16);
+            sdump("D51850");
+            pushp(r24);
+            sdump("D51950");
+            pushp(r31);
+            sdump("D51957");
+            popp(rax);
+            sdump("D50858");
+            popp(r8);
+            sdump("D50958");
+            popp(r16);
+            sdump("D51858");
+            popp(r24);
+            sdump("D51958");
+            popp(r31);
+            sdump("D5195F");
         }
     }
 }
