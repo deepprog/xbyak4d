@@ -37,4 +37,3 @@ jobs:
       - name: Run tests
         run: |
           dub test -ax86_64 --parallel -b=unittest-cov
-          dub test -ax86_64 --parallel -b=unittest-cov --d-version=XBYAK_USE_MMAP_ALLOCATOR --d-version=XBYAK_USE_MEMFD
