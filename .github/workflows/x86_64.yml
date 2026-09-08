@@ -24,9 +24,7 @@ jobs:
       run: |
         source $(curl https://dlang.org/install.sh | bash -s -- ${{ matrix.compiler }} -a)
         dub test -ax86_64 --parallel -b=unittest-cov
-    - name: test MMAP
-      run: |
-	dub test -ax86_64 --parallel -b=unittest-cov --d-version=XBYAK_USE_MMAP_ALLOCATOR --d-version=XBYAK_USE_MEMFD
+        dub test -ax86_64 --parallel -b=unittest-cov --d-version=XBYAK_USE_MMAP_ALLOCATOR --d-version=XBYAK_USE_MEMFD
     - name: codecov
       if: ${{ matrix.compiler == 'dmd' }}
       run: bash <(curl -s https://codecov.io/bash)
