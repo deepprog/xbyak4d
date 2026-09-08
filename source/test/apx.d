@@ -1843,6 +1843,8 @@ void push2_pop2()
 	}
 }
 
+@("pushp_popp")
+unittest
 {
 	pushp_popp();
 }
