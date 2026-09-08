@@ -698,6 +698,7 @@ version (XBYAK_USE_MMAP_ALLOCATOR)
     {
         struct Allocation
         {
+            uintptr_t addr;
             size_t size;
             version (XBYAK_USE_MEMFD)
             {
@@ -709,7 +710,7 @@ version (XBYAK_USE_MMAP_ALLOCATOR)
         }
 
         string name_; // only used with XBYAK_USE_MEMFD
-        alias AllocationList = Allocation[uintptr_t];
+        alias AllocationList = Allocation[];
         AllocationList allocList_;
 
     public:
@@ -748,9 +749,8 @@ version (XBYAK_USE_MMAP_ALLOCATOR)
                 mixin(XBYAK_THROW_RET(ERR_CANT_ALLOC, "0"));
             }
             assert(p);
-            uintptr_t uip = cast(uintptr_t) p;
-            allocList_[uip] = Allocation();
-            Allocation* alloc = &allocList_[uip];
+            Allocation alloc;
+            alloc.addr = cast(uintptr_t)p;
             alloc.size = size;
 
     version (XBYAK_USE_MEMFD)
@@ -758,32 +758,36 @@ version (XBYAK_USE_MMAP_ALLOCATOR)
             alloc.fd = fd;
     }
             GC.addRange(p, (p is null ? 0 : size));
+            allocList_ ~= alloc; //.push_back(alloc);
             return cast(uint8_t*) p;
         }
 
         override void free(uint8_t* p)
         {
             if (p == null) return;
-            uintptr_t uip = cast(uintptr_t) p;
-            if (null == (uip in allocList_)) {
-                mixin(XBYAK_THROW(ERR_BAD_PARAMETER));
-            }
-
-            GC.removeRange(cast(void*) p);
-            if (munmap(cast(void*) uip, allocList_[uip].size) < 0) {
-                mixin(XBYAK_THROW(ERR_MUNMAP));
-            }
-
+            for (size_t idx = 0; idx < allocList_.length; idx++)
+            {
+                ref Allocation a = *(&allocList_[idx]);
+                if (a.addr != cast(uintptr_t)p)
+                {
+                    continue;
+                }
+                if (munmap(cast(void*)a.addr, a.size) < 0)
+                {
+                    mixin(XBYAK_THROW(ERR_MUNMAP));
+                }
     version (XBYAK_USE_MEMFD)
     {
-            if (allocList_[uip].fd != -1)
-            {
-                close(allocList_[uip].fd);
+                if (a.fd != -1) close(a.fd);
+    }
+                GC.removeRange(cast(void*)p);
+                a = allocList_[$ - 1]; //.back();
+                allocList_ = allocList_[0 .. $ - 1]; //.pop_back();
+                return;
             }
+            mixin(XBYAK_THROW(ERR_BAD_PARAMETER));
+        }
     }
-            allocList_.remove(uip);
-    }
-}
 } // XBYAK_USE_MMAP_ALLOCATOR
 
 version (XBYAK_USE_MMAP_ALLOCATOR)
