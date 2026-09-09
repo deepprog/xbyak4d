@@ -7443,7 +7443,6 @@ version (XBYAK64)
     void tdpbhf8ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F2|T_MAP5|T_W0, 0xFD); }
     void tdphbf8ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_F3|T_MAP5|T_W0, 0xFD); }
     void tdphf8ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66|T_MAP5|T_W0, 0xFD); }
-    void tmmultf32ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66|T_0F38|T_W0, 0x48); }
     void tcmmimfp16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_66|T_0F38|T_W0, 0x6C); }
     void tcmmrlfp16ps(Tmm x1, Tmm x2, Tmm x3) { opVex(x1, x3, x2, T_0F38|T_W0, 0x6C); }
     void tileloadd(Tmm tm, Address addr) { opAMX(tm, addr, T_F2|T_0F38|T_W0, 0x4B); }

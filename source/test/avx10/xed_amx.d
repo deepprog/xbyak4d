@@ -94,9 +94,6 @@ version (XBYAK64)
             tdphf8ps(tmm1, tmm2, tmm3);
             sdump("C4E561FDCA");
 
-            tmmultf32ps(tmm1, tmm2, tmm3);
-            sdump("C4E26148CA");
-
             // t2rpntlvwz0(tmm1, ptr[rax + r8 * 2 + 0x80]);
             // sdump("C4A2786E8C4080000000");
             // t2rpntlvwz0(tmm7, ptr[r30 + r8 * 2 + 0x80]);
