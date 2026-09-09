@@ -2601,3 +2601,142 @@ version(XBYAK32){
 	tc.TEST_EXCEPTION!Exception({ code.genJmp(); });
 	tc.TEST_EXCEPTION!Exception({ code.genCall(); });
 }
+
+@("resetAfterReadyRE_AutoGrow")
+unittest
+{
+	resetAfterReadyRE_AutoGrow();
+}
+
+void resetAfterReadyRE_AutoGrow()
+{
+	scope tc = TestCount(__FUNCTION__);
+	class Code : CodeGenerator
+	{
+		this()
+		{ 
+			super(4096, AutoGrow);
+		}
+
+		void gen(int v)
+		{
+			mov(eax, v);
+			ret();
+		}
+	}
+
+	Code code = new Code();
+	code.gen(1);
+	code.readyRE();
+	auto f1 = cast(int function()) code.getCode();
+	int v1 = f1();
+	tc.TEST_EQUAL(v1, 1);
+
+	code.reset();
+	code.gen(2);
+	code.readyRE();
+	auto f2 = cast(int function()) code.getCode();
+	int v2 = f2();
+	tc.TEST_EQUAL(2, 2);
+}
+
+@("resetAfterReady_AutoGrow")
+unittest
+{
+	resetAfterReady_AutoGrow();
+}
+
+void resetAfterReady_AutoGrow()
+{
+	scope tc = TestCount(__FUNCTION__);
+	class Code : CodeGenerator
+	{
+		this()
+		{ 
+			super(4096, AutoGrow);
+		}
+
+		void gen(int v)
+		{
+			mov(eax, v);
+			ret();
+		}
+	}
+
+	Code code = new Code();
+	code.gen(1);
+	code.ready();
+	auto f1 = cast(int function()) code.getCode();
+	int v1 = f1();
+	tc.TEST_EQUAL(v1, 1);
+
+	code.reset();
+	code.gen(2);
+	code.ready();
+	auto f2 = cast(int function()) code.getCode();
+	int v2 = f2();
+	tc.TEST_EQUAL(v2, 2);
+}
+
+@("resetWithoutReady_NotAutoGrow")
+unittest
+{
+	resetWithoutReady_NotAutoGrow();
+}
+
+void resetWithoutReady_NotAutoGrow()
+{
+	scope tc = TestCount(__FUNCTION__);
+	class Code : CodeGenerator
+	{
+		void gen(int v)
+		{
+			mov(eax, v);
+			ret();
+		}
+	}
+
+	Code code = new Code();
+	auto f = cast(int function()) code.getCode();
+	for (int i = 0; i < 3; i++) {
+		code.gen(i);
+		tc.TEST_EQUAL(f(), i);
+		code.reset();
+	}
+}
+
+@("resetAfterProtectRE_DontSetProtectRWE")
+unittest
+{
+	resetAfterProtectRE_DontSetProtectRWE();
+}
+
+void resetAfterProtectRE_DontSetProtectRWE()
+{
+	scope tc = TestCount(__FUNCTION__);
+	class Code : CodeGenerator
+	{
+		this()
+		{
+			super(4096, DontSetProtectRWE);
+		}
+
+		void gen(int v)
+		{
+			mov(eax, v);
+			ret();
+		}
+	}
+
+	Code code = new Code();
+	code.gen(1);
+	code.setProtectModeRE();
+	auto f1 = cast(int function()) code.getCode();
+	tc.TEST_EQUAL(f1(), 1);
+
+	code.reset();
+	code.gen(2);
+	code.setProtectModeRE();
+	auto f2 = cast(int function()) code.getCode();
+	tc.TEST_EQUAL(f2(), 2);
+}

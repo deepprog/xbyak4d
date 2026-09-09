@@ -21,7 +21,7 @@ version(XBYAK64)
 
 version(XBYAK_USE_MMAP_ALLOCATOR)
 {
-@("freeUnknownPointer") 
+@("freeUnknownPointer")
 unittest
 {
 	freeUnknownPointer();
@@ -157,7 +157,7 @@ void twoInstancesAreIsolated()
 			tc.TEST_NO_EXCEPTION({ alloc.free(p0); });
 			tc.TEST_NO_EXCEPTION({ alloc.free(p1); });
 		}
-    }
+	}
 
 } // XBYAK_USE_MMAP_ALLOCATOR
 

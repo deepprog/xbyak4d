@@ -1937,11 +1937,6 @@ class CodeArray
     }
     mixin ImportEnumMembers!Type;
 
-    bool isAllocType() const
-    {
-        return type_ == ALLOC_BUF || type_ == AUTO_GROW;
-    }
-
     struct AddrInfo
     {
         size_t codeOffset; // position to write
@@ -2026,6 +2021,10 @@ public:
     }
     mixin ImportEnumMembers!ProtectMode;
 
+protected:
+    ProtectMode curMode_;
+
+public:
     this(size_t maxSize, void* userPtr = null, Allocator allocator = null)
     {
         type_ = (userPtr == AutoGrow) ?
@@ -2036,6 +2035,7 @@ public:
         top_ = type_ == USER_BUF ? cast(uint8_t*) userPtr : alloc_.alloc(max(maxSize, 1));
         size_ = 0;
         isCalledCalcJmpAddress_ = false;
+        curMode_ = PROTECT_RW;
 
         if (maxSize_ > 0 && top_ == null) {
             mixin(XBYAK_THROW(ERR_CANT_ALLOC));
@@ -2050,7 +2050,7 @@ public:
 
     ~this()
     {
-        if (isAllocType)
+        if (isAllocType())
         {
             if (alloc_.useProtect()) setProtectModeRW(false);
             alloc_.free(top_);
@@ -2060,7 +2060,10 @@ public:
     bool setProtectMode(ProtectMode mode, bool throwException = true)
     {
         bool isOK = protect(top_, maxSize_, mode);
-        if (isOK) return true;
+        if (isOK) {
+            curMode_ = mode;
+            return true;
+        }
         if (throwException) {
             mixin(XBYAK_THROW_RET(ERR_CANT_PROTECT, "false"));
         }
@@ -2166,6 +2169,7 @@ public:
         addrInfoList_.insertBack(AddrInfo(offset, val, size, mode));
     }
     bool isAutoGrow() const { return type_ == AUTO_GROW; }
+    bool isAllocType() const { return type_ == ALLOC_BUF || type_ == AUTO_GROW; }
     bool isCalledCalcJmpAddress() const { return isCalledCalcJmpAddress_; }
     /*
         change exec permission of memory
@@ -4784,6 +4788,7 @@ else
         resetSize();
         labelMgr_.reset();
         labelMgr_.set(this);
+        if (isAllocType() && useProtect() && curMode_ == PROTECT_RE) setProtectModeRW();
     }
     bool hasUndefinedLabel() //const
     {
