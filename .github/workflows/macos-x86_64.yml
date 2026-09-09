@@ -37,3 +37,5 @@ jobs:
       - name: Run tests
         run: |
           dub test -ax86_64 --parallel -b=unittest-cov
+          cd noexception
+          dub run
