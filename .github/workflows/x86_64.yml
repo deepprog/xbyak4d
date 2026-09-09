@@ -25,4 +25,6 @@ jobs:
         source $(curl https://dlang.org/install.sh | bash -s -- ${{ matrix.compiler }} -a)
         dub test -ax86_64 --parallel -b=unittest-cov
         dub test -ax86_64 --parallel -b=unittest-cov --d-version=XBYAK_USE_MMAP_ALLOCATOR --d-version=XBYAK_USE_MEMFD
+        cd noexception
+        dub run
 
