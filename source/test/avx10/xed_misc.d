@@ -549,6 +549,37 @@ version (XBYAK64)
             tpause(eax); sdump("660FAEF0");
             tpause(r8d); sdump("66410FAEF0");
             tpause(r31d); sdump("66D591AEF7");
+
+            vmovq(xm0, rax); sdump("C4E1F96EC0");
+            vmovq(xm8, r8); sdump("C441F96EC0");
+
+            vmovq(rax, xm0); sdump("C4E1F97EC0");
+            vmovq(r8, xm8); sdump("C441F97EC0");
+
+            vcvtsi2sd(xm1, xm2, rax);  sdump("C4E1EB2AC8");
+            vcvtsi2sd(xm1, xm2, r8);  sdump("C4C1EB2AC8");
+            vcvtsi2sd(xm1|T_rd_sae, xm2, rax);  sdump("62F1EF382AC8");
+            vcvtsi2sd(xm1|T_rd_sae, xm2, r9);  sdump("62D1EF382AC9");
+
+            vcvtsi2ss(xm1, xm2, rax);  sdump("C4E1EA2AC8");
+            vcvtsi2ss(xm1, xm2, r8);  sdump("C4C1EA2AC8");
+            vcvtsi2ss(xm1|T_rd_sae, xm2, rax);  sdump("62F1EE382AC8");
+            vcvtsi2ss(xm1|T_rd_sae, xm2, r9);  sdump("62D1EE382AC9");
+
+            vcvtusi2sd(xm1, xm2, rax);  sdump("62F1EF087BC8");
+            vcvtusi2sd(xm1, xm2, r8);  sdump("62D1EF087BC8");
+            vcvtusi2sd(xm1|T_rd_sae, xm2, rax);  sdump("62F1EF387BC8");
+            vcvtusi2sd(xm1|T_rd_sae, xm2, r9);  sdump("62D1EF387BC9");
+
+            vcvtusi2ss(xm1, xm2, rax);  sdump("62F1EE087BC8");
+            vcvtusi2ss(xm1, xm2, r8);  sdump("62D1EE087BC8");
+            vcvtusi2ss(xm1|T_rd_sae, xm2, rax);  sdump("62F1EE387BC8");
+            vcvtusi2ss(xm1|T_rd_sae, xm2, r9);  sdump("62D1EE387BC9");
+
+            vpextrw(eax, xm1, 0);  sdump("C5F9C5C100");
+            vpextrw(r8d, xm1, 1);  sdump("C579C5C101");
+            vpextrw(eax, xm2, 6);  sdump("C5F9C5C206");
+            vpextrw(ptr[rax+rcx*1], xm3, 7);  sdump("C4E379151C0807");
         }
     }
 }

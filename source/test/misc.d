@@ -2952,4 +2952,55 @@ version (XBYAK64)
 		}
 	}
 
+	@("vcvtsi2s_er") unittest
+	{
+		vcvtsi2s_er();
+	}
+
+	void vcvtsi2s_er()
+	{
+		scope tc = TestCount(__FUNCTION__);
+		class Code : CodeGenerator
+		{
+			this()
+			{
+				vcvtsi2sd(xm1|T_rd_sae, xm2, rax);
+				vcvtsi2sd(xm1|T_rd_sae, xm2, r9);
+
+				vcvtsi2ss(xm1|T_rd_sae, xm2, rax);
+				vcvtsi2ss(xm1|T_rd_sae, xm2, r9);
+
+				vcvtusi2sd(xm1|T_rd_sae, xm2, rax);
+				vcvtusi2sd(xm1|T_rd_sae, xm2, r9);
+
+				vcvtusi2ss(xm1|T_rd_sae, xm2, rax);
+				vcvtusi2ss(xm1|T_rd_sae, xm2, r9);
+			}
+		}
+		
+		const uint8_t[] tbl = [
+		0x62, 0xf1, 0xef, 0x38, 0x2a, 0xc8, // vcvtsi2sd(xm1|T_rd_sae,xm2,rax)
+		0x62, 0xd1, 0xef, 0x38, 0x2a, 0xc9, // vcvtsi2sd(xm1|T_rd_sae,xm2,r9)
+
+		0x62, 0xf1, 0xee, 0x38, 0x2a, 0xc8, // vcvtsi2ss(xm1|T_rd_sae,xm2,rax)
+		0x62, 0xd1, 0xee, 0x38, 0x2a, 0xc9, // vcvtsi2ss(xm1|T_rd_sae,xm2,r9)
+
+		0x62, 0xf1, 0xef, 0x38, 0x7b, 0xc8, // vcvtusi2sd(xm1|T_rd_sae,xm2,rax)
+		0x62, 0xd1, 0xef, 0x38, 0x7b, 0xc9, // vcvtusi2sd(xm1|T_rd_sae,xm2,r9)
+
+		0x62, 0xf1, 0xee, 0x38, 0x7b, 0xc8, // vcvtusi2ss(xm1|T_rd_sae,xm2,rax)
+		0x62, 0xd1, 0xee, 0x38, 0x7b, 0xc9, // vcvtusi2ss(xm1|T_rd_sae,xm2,r9)
+		];
+
+		scope Code c = new Code();
+		const size_t n = tbl.length;
+		tc.TEST_EQUAL(c.getSize(), n);
+		auto ctbl = c.getCode();
+
+		for (int i = 0; i < n; i++)
+		{
+			tc.TEST_EQUAL(ctbl[i], tbl[i]);
+		}
+	}
+
 } // version(XBYAK64)
