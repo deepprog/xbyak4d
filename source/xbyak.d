@@ -1146,7 +1146,7 @@ version(XBYAK32)
             string[4] tbl = ["bnd0", "bnd1", "bnd2", "bnd3"];
             return tbl[idx];
         }
-        mixin(XBYAK_THROW_RET(ERR_INTERNAL, ""));
+        mixin(XBYAK_THROW_RET(ERR_INTERNAL, `""`));
     }
 
     bool isEqualIfNotInherited(Operand rhs) const
@@ -2082,6 +2082,10 @@ public:
             } else {
                 mixin(XBYAK_THROW(ERR_CODE_IS_TOO_BIG));
             }
+        }
+        if (top_ == null)
+        {
+            mixin(XBYAK_THROW(ERR_CANT_ALLOC));
         }
         top_[size_++] = cast(uint8_t) code;
     }

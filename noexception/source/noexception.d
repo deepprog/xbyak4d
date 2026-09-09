@@ -46,7 +46,7 @@ void test1()
 
     auto f = cast(int function())c.getCode();
     assertEq(f(), v);
-    assertEq(xbyak.GetError(), ERR.NONE);
+    assertEq(xbyak.GetError(), ERR_NONE);
 }
 
 void test2()
@@ -61,15 +61,14 @@ void test2()
         }
     }
     auto c = new Code();
-    assertEq(xbyak.GetError(), ERR.LABEL_IS_REDEFINED);
+    assertEq(xbyak.GetError(), ERR_LABEL_IS_REDEFINED);
     xbyak.ClearError();
 }
 
 void test3()
 {
-    uint8_t[128] buf;
     class EmptyAllocator : Allocator {
-        override uint8_t* alloc(size_t size) { return buf.ptr; }
+        override uint8_t* alloc(size_t size) { return null; }
     }
     auto emptyAllocator = new EmptyAllocator();
     
@@ -78,8 +77,13 @@ void test3()
         this()
         {
             super(8, null, emptyAllocator);
-            mov(eax, 3);
+
+            assertBool(xbyak.GetError() != 0);
+            xbyak.ClearError();
             assertBool(xbyak.GetError() == 0);
+            mov(eax, 3);
+            assertBool(xbyak.GetError() != 0);
+            xbyak.ClearError();
             mov(eax, 3);
             mov(eax, 3);
             assertBool(xbyak.GetError() != 0);
