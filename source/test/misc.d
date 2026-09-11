@@ -3109,7 +3109,6 @@ version (XBYAK64)
 
 		for (int i = 0; i < n; i++)
 		{
-			writeln(i, " : ");
 			tc.TEST_EQUAL(ctbl[i], tbl[i]);
 		}
 	}
