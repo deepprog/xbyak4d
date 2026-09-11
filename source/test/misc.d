@@ -2952,6 +2952,168 @@ version (XBYAK64)
 		}
 	}
 
+	@("vmovq_egpr") unittest
+	{
+		vmovq_egpr();
+	}
+
+	void vmovq_egpr()
+	{
+		scope tc = TestCount(__FUNCTION__);
+		class Code : CodeGenerator
+		{
+			this()
+			{
+				vmovq(xm0, rax);
+				vmovq(xm8, r8);
+				vmovq(xm16, r16);
+				vmovq(xm24, r24);
+				vmovq(xm0, r24);
+				vmovq(xm8, r16);
+				vmovq(xm16, r8);
+				vmovq(xm24, rax);
+
+				vmovq(rax, xm0);
+				vmovq(r8, xm8);
+				vmovq(r16, xm16);
+				vmovq(r24, xm24);
+				vmovq(r24, xm0);
+				vmovq(r16, xm8);
+				vmovq(r8, xm16);
+				vmovq(rax, xm24);
+			}
+		}
+		const uint8_t[] tbl = [
+			0xc4, 0xe1, 0xf9, 0x6e, 0xc0, // vmovq(xm0,rax)
+			0xc4, 0x41, 0xf9, 0x6e, 0xc0, // vmovq(xm8,r8)
+			0x62, 0xe9, 0xfd, 0x08, 0x6e, 0xc0, // vmovq(xm16,r16)
+			0x62, 0x49, 0xfd, 0x08, 0x6e, 0xc0, // vmovq(xm24,r24)
+			0x62, 0xd9, 0xfd, 0x08, 0x6e, 0xc0, // vmovq(xm0,r24)
+			0x62, 0x79, 0xfd, 0x08, 0x6e, 0xc0, // vmovq(xm8,r16)
+			0x62, 0xc1, 0xfd, 0x08, 0x6e, 0xc0, // vmovq(xm16,r8)
+			0x62, 0x61, 0xfd, 0x08, 0x6e, 0xc0, // vmovq(xm24,rax)
+
+			0xc4, 0xe1, 0xf9, 0x7e, 0xc0, // vmovq(rax,xm0)
+			0xc4, 0x41, 0xf9, 0x7e, 0xc0, // vmovq(r8,xm8)
+			0x62, 0xe9, 0xfd, 0x08, 0x7e, 0xc0, // vmovq(r16,xm16)
+			0x62, 0x49, 0xfd, 0x08, 0x7e, 0xc0, // vmovq(r24,xm24)
+			0x62, 0xd9, 0xfd, 0x08, 0x7e, 0xc0, // vmovq(r24,xm0)
+			0x62, 0x79, 0xfd, 0x08, 0x7e, 0xc0, // vmovq(r16,xm8)
+			0x62, 0xc1, 0xfd, 0x08, 0x7e, 0xc0, // vmovq(r8,xm16)
+			0x62, 0x61, 0xfd, 0x08, 0x7e, 0xc0, // vmovq(rax,xm24)
+		];
+
+		scope Code c = new Code();
+		const size_t n = tbl.length;
+		tc.TEST_EQUAL(c.getSize(), n);
+		auto ctbl = c.getCode();
+
+		for (int i = 0; i < n; i++)
+		{
+			tc.TEST_EQUAL(ctbl[i], tbl[i]);
+		}
+	}
+
+	@("vcvtsi2s_egpr") unittest
+	{
+		vcvtsi2s_egpr();
+	}
+
+	void vcvtsi2s_egpr()
+	{
+		scope tc = TestCount(__FUNCTION__);
+		class Code : CodeGenerator
+		{
+			this()
+			{
+				vcvtsi2sd(xm1, xm2, rax);
+				vcvtsi2sd(xm1, xm2, r8);
+				vcvtsi2sd(xm1, xm2, r16);
+				vcvtsi2sd(xm1, xm2, r24);
+				vcvtsi2sd(xm16, xm17, eax);
+				vcvtsi2sd(xm18, xm19, r8d);
+				vcvtsi2sd(xm24, xm25, r16d);
+				vcvtsi2sd(xm26, xm27, r24d);
+
+				vcvtsi2ss(xm1, xm2, rax);
+				vcvtsi2ss(xm1, xm2, r8);
+				vcvtsi2ss(xm1, xm2, r16);
+				vcvtsi2ss(xm1, xm2, r24);
+				vcvtsi2ss(xm16, xm17, eax);
+				vcvtsi2ss(xm18, xm19, r8d);
+				vcvtsi2ss(xm24, xm25, r16d);
+				vcvtsi2ss(xm26, xm27, r24d);
+
+				vcvtusi2sd(xm1, xm2, rax);
+				vcvtusi2sd(xm1, xm2, r8);
+				vcvtusi2sd(xm1, xm2, r16);
+				vcvtusi2sd(xm1, xm2, r24);
+				vcvtusi2sd(xm16, xm17, eax);
+				vcvtusi2sd(xm18, xm19, r8d);
+				vcvtusi2sd(xm24, xm25, r16d);
+				vcvtusi2sd(xm26, xm27, r24d);
+
+				vcvtusi2ss(xm1, xm2, rax);
+				vcvtusi2ss(xm1, xm2, r8);
+				vcvtusi2ss(xm1, xm2, r16);
+				vcvtusi2ss(xm1, xm2, r24);
+				vcvtusi2ss(xm16, xm17, eax);
+				vcvtusi2ss(xm18, xm19, r8d);
+				vcvtusi2ss(xm24, xm25, r16d);
+				vcvtusi2ss(xm26, xm27, r24d);
+			}
+		}
+
+		const uint8_t[] tbl = [
+			0xc4, 0xe1, 0xeb, 0x2a, 0xc8, // vcvtsi2sd(xm1,xm2,rax)
+			0xc4, 0xc1, 0xeb, 0x2a, 0xc8, // vcvtsi2sd(xm1,xm2,r8)
+			0x62, 0xf9, 0xef, 0x08, 0x2a, 0xc8, // vcvtsi2sd(xm1,xm2,r16)
+			0x62, 0xd9, 0xef, 0x08, 0x2a, 0xc8, // vcvtsi2sd(xm1,xm2,r24)
+			0x62, 0xe1, 0x77, 0x00, 0x2a, 0xc0, // vcvtsi2sd(xm16,xm17,eax)
+			0x62, 0xc1, 0x67, 0x00, 0x2a, 0xd0, // vcvtsi2sd(xm18,xm19,r8d)
+			0x62, 0x69, 0x37, 0x00, 0x2a, 0xc0, // vcvtsi2sd(xm24,xm25,r16d)
+			0x62, 0x49, 0x27, 0x00, 0x2a, 0xd0, // vcvtsi2sd(xm26,xm27,r24d)
+
+			0xc4, 0xe1, 0xea, 0x2a, 0xc8, // vcvtsi2ss(xm1,xm2,rax)
+			0xc4, 0xc1, 0xea, 0x2a, 0xc8, // vcvtsi2ss(xm1,xm2,r8)
+			0x62, 0xf9, 0xee, 0x08, 0x2a, 0xc8, // vcvtsi2ss(xm1,xm2,r16)
+			0x62, 0xd9, 0xee, 0x08, 0x2a, 0xc8, // vcvtsi2ss(xm1,xm2,r24)
+			0x62, 0xe1, 0x76, 0x00, 0x2a, 0xc0, // vcvtsi2ss(xm16,xm17,eax)
+			0x62, 0xc1, 0x66, 0x00, 0x2a, 0xd0, // vcvtsi2ss(xm18,xm19,r8d)
+			0x62, 0x69, 0x36, 0x00, 0x2a, 0xc0, // vcvtsi2ss(xm24,xm25,r16d)
+			0x62, 0x49, 0x26, 0x00, 0x2a, 0xd0, // vcvtsi2ss(xm26,xm27,r24d)
+
+			0x62, 0xf1, 0xef, 0x08, 0x7b, 0xc8, // vcvtusi2sd(xm1,xm2,rax)
+			0x62, 0xd1, 0xef, 0x08, 0x7b, 0xc8, // vcvtusi2sd(xm1,xm2,r8)
+			0x62, 0xf9, 0xef, 0x08, 0x7b, 0xc8, // vcvtusi2sd(xm1,xm2,r16)
+			0x62, 0xd9, 0xef, 0x08, 0x7b, 0xc8, // vcvtusi2sd(xm1,xm2,r24)
+			0x62, 0xe1, 0x77, 0x00, 0x7b, 0xc0, // vcvtusi2sd(xm16,xm17,eax)
+			0x62, 0xc1, 0x67, 0x00, 0x7b, 0xd0, // vcvtusi2sd(xm18,xm19,r8d)
+			0x62, 0x69, 0x37, 0x00, 0x7b, 0xc0, // vcvtusi2sd(xm24,xm25,r16d)
+			0x62, 0x49, 0x27, 0x00, 0x7b, 0xd0, // vcvtusi2sd(xm26,xm27,r24d)
+
+			0x62, 0xf1, 0xee, 0x08, 0x7b, 0xc8, // vcvtusi2ss(xm1,xm2,rax)
+			0x62, 0xd1, 0xee, 0x08, 0x7b, 0xc8, // vcvtusi2ss(xm1,xm2,r8)
+			0x62, 0xf9, 0xee, 0x08, 0x7b, 0xc8, // vcvtusi2ss(xm1,xm2,r16)
+			0x62, 0xd9, 0xee, 0x08, 0x7b, 0xc8, // vcvtusi2ss(xm1,xm2,r24)
+			0x62, 0xe1, 0x76, 0x00, 0x7b, 0xc0, // vcvtusi2ss(xm16,xm17,eax)
+			0x62, 0xc1, 0x66, 0x00, 0x7b, 0xd0, // vcvtusi2ss(xm18,xm19,r8d)
+			0x62, 0x69, 0x36, 0x00, 0x7b, 0xc0, // vcvtusi2ss(xm24,xm25,r16d)
+			0x62, 0x49, 0x26, 0x00, 0x7b, 0xd0, // vcvtusi2ss(xm26,xm27,r24d)
+		];
+
+		scope Code c = new Code();
+		const size_t n = tbl.length;
+		tc.TEST_EQUAL(c.getSize(), n);
+		auto ctbl = c.getCode();
+
+		for (int i = 0; i < n; i++)
+		{
+			writeln(i, " : ");
+			tc.TEST_EQUAL(ctbl[i], tbl[i]);
+		}
+	}
+
 	@("vcvtsi2s_er") unittest
 	{
 		vcvtsi2s_er();
@@ -2990,6 +3152,50 @@ version (XBYAK64)
 
 		0x62, 0xf1, 0xee, 0x38, 0x7b, 0xc8, // vcvtusi2ss(xm1|T_rd_sae,xm2,rax)
 		0x62, 0xd1, 0xee, 0x38, 0x7b, 0xc9, // vcvtusi2ss(xm1|T_rd_sae,xm2,r9)
+		];
+
+		scope Code c = new Code();
+		const size_t n = tbl.length;
+		tc.TEST_EQUAL(c.getSize(), n);
+		auto ctbl = c.getCode();
+
+		for (int i = 0; i < n; i++)
+		{
+			tc.TEST_EQUAL(ctbl[i], tbl[i]);
+		}
+	}
+
+	@("vpextrw_egpr") unittest
+	{
+		vpextrw_egpr();
+	}
+
+	void vpextrw_egpr()
+	{
+		scope tc = TestCount(__FUNCTION__);
+		class Code : CodeGenerator
+		{
+			this()
+			{
+				vpextrw(eax, xm1, 0);
+				vpextrw(r8d, xm1, 1);
+				vpextrw(r16d, xm1, 2);
+				vpextrw(r24d, xm1, 3);
+				vpextrw(eax, xm16, 4);
+				vpextrw(r16d, xm24, 5);
+				vpextrw(eax, xm2, 6);
+				vpextrw(ptr[rax+rcx*1], xm3, 7);
+			}
+		}
+		const uint8_t[] tbl = [
+			0xc5, 0xf9, 0xc5, 0xc1, 0x00, // vpextrw(eax,xm1,0)
+			0xc5, 0x79, 0xc5, 0xc1, 0x01, // vpextrw(r8d,xm1,1)
+			0x62, 0xfb, 0x7d, 0x08, 0x15, 0xc8, 0x02, // vpextrw(r16d,xm1,2)
+			0x62, 0xdb, 0x7d, 0x08, 0x15, 0xc8, 0x03, // vpextrw(r24d,xm1,3)
+			0x62, 0xe3, 0x7d, 0x08, 0x15, 0xc0, 0x04, // vpextrw(eax,xm16,4)
+			0x62, 0x6b, 0x7d, 0x08, 0x15, 0xc0, 0x05, // vpextrw(r16d,xm24,5)
+			0xc5, 0xf9, 0xc5, 0xc2, 0x06, // vpextrw(eax,xm2,6)
+			0xc4, 0xe3, 0x79, 0x15, 0x1c, 0x08, 0x07, // vpextrw(ptr[rax+rcx*1],xm3,7)
 		];
 
 		scope Code c = new Code();
