@@ -426,6 +426,38 @@ version(XBYAK64)
 		}
 	}
 
+	// negative tests for the operand guards (opCvt1/opCvt7/opVmov)
+	@("ace_1_bad_combination")
+	unittest{
+		ace_1_bad_combination();
+	}
+
+	void ace_1_bad_combination()
+	{
+		scope tc = TestCount(__FUNCTION__);
+		class Code : CodeGenerator
+		{
+			this(ref TestCount tc)
+		    {
+				// vcvt{bf,hf}82ps : src is xmm or mem regardless of dst width
+				tc.TEST_EXCEPTION!Exception({ vcvtbf82ps(zm1, ym2); });
+				tc.TEST_EXCEPTION!Exception({ vcvthf82ps(xm1, zm2); });
+				// vcvtbf42hf8 : (x|y, x/m), (z, y/m)
+				tc.TEST_EXCEPTION!Exception({ vcvtbf42hf8(zm1, xm2); });
+				tc.TEST_EXCEPTION!Exception({ vcvtbf42hf8(xm1, ym2); });
+				// vcvtbiasps2* : dst is fixed xmm and bias/src widths must match
+				tc.TEST_EXCEPTION!Exception({ vcvtbiasps2bf8(ym1, zm2, zm3); });
+				tc.TEST_EXCEPTION!Exception({ vcvtbiasps2bf8(xm1, ym2, zm3); });
+				tc.TEST_EXCEPTION!Exception({ vcvtbiasps2hf8s(xm1, zm2, ym3); });
+				// vcvt{bf,hf}82bf4s : (x, x), (x, y), (y, z) only
+				tc.TEST_EXCEPTION!Exception({ vcvtbf82bf4s(ym1, ym2); });
+				tc.TEST_EXCEPTION!Exception({ vcvthf82bf4s(xm1, zm2); });
+				// vpmovssdb : dst is xmm or mem
+				tc.TEST_EXCEPTION!Exception({ vpmovssdb(ym1, ym2); });
+			}
+		}
+		scope code = new Code(tc);
+	}
 
 	@("ace_1_pmovssdb")
 	unittest{
