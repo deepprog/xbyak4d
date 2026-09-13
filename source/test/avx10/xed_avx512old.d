@@ -21,7 +21,7 @@ version (XBYAK64)
         scope Code c = new Code("xed_avx512old");
     }
 
-    class Code : TestCode //Generator
+    class Code : TestCode
     {
         this(string name)
         {
