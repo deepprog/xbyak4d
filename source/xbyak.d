@@ -8834,6 +8834,12 @@ else
 
     version (XBYAK64)
     {
+        void bsrinit(Bsr b) { vex(b, b, null, T_F2|T_0F38|T_W1, 0x49); setModRM(3, b.getIdx(), 0); }
+        void bsrmovf(Bsr b, Zmm z1, Operand op) { opVex(b, z1, op, T_MUST_EVEX|T_MAP6|T_EW1|T_N1, 0x95); }
+        void bsrmovh(Bsr b, Operand op) { opVex(b, null, op, T_N1|T_F2|T_MAP6|T_EW1|T_MUST_EVEX, 0x95); }
+        void bsrmovh(Operand op, Bsr b) { opVex(b, null, op, T_N1|T_F2|T_MAP6|T_W0|T_MUST_EVEX, 0x95); }
+        void bsrmovl(Bsr b, Operand op) { opVex(b, null, op, T_N1|T_F3|T_MAP6|T_EW1|T_MUST_EVEX, 0x95); }
+        void bsrmovl(Operand op, Bsr b) { opVex(b, null, op, T_N1|T_F3|T_MAP6|T_W0|T_MUST_EVEX, 0x95); }
         void kmovq(Reg64 r, Opmask k) { opKmov(k, r, true, 64); }
         void tcvtrowd2ps(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_F3|T_0F38|T_W0|T_MUST_EVEX, 0x4A); }
         void tcvtrowd2ps(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_F3|T_0F3A|T_W0|T_MUST_EVEX, 0x07, imm); }
@@ -8845,23 +8851,12 @@ else
         void tcvtrowps2phh(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_0F3A|T_W0|T_MUST_EVEX, 0x07, imm); }
         void tcvtrowps2phl(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_66|T_0F38|T_W0|T_MUST_EVEX, 0x6D); }
         void tcvtrowps2phl(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_F2|T_0F3A|T_W0|T_MUST_EVEX, 0x77, imm); }
-        void tilemovrow(Tmm t, Zmm z, Reg32 r) { opVex(t, r, z, T_66|T_0F38|T_EW1|T_MUST_EVEX, 0x4A); }
-        void tilemovrow(Tmm t, Zmm z, uint8_t imm) { opVex(t, null, z, T_66|T_0F3A|T_EW1|T_MUST_EVEX, 0x07, imm); }
-        void tilemovrow(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_66|T_0F38|T_W0|T_MUST_EVEX, 0x4A); }
-        void tilemovrow(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_66|T_0F3A|T_W0|T_MUST_EVEX, 0x07, imm); }
-        void vmovrsb(Xmm x, Address addr) { opVex(x, null, addr, T_F2|T_MAP5|T_W0|T_MUST_EVEX, 0x6F); }
-        void vmovrsd(Xmm x, Address addr) { opVex(x, null, addr, T_F3|T_MAP5|T_W0|T_MUST_EVEX, 0x6F); }
-        void vmovrsq(Xmm x, Address addr) { opVex(x, null, addr, T_F3|T_MAP5|T_EW1|T_MUST_EVEX, 0x6F); }
-        void vmovrsw(Xmm x, Address addr) { opVex(x, null, addr, T_F2|T_MAP5|T_EW1|T_MUST_EVEX, 0x6F); }
-        void vpbroadcastq(Xmm x, Reg64 r) { opVex(x, null, r, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x7C); }
-        void bsrinit(Bsr b) { vex(b, b, null, T_F2|T_0F38|T_W1, 0x49); setModRM(3, b.getIdx(), 0); }
-        void bsrmovf(Bsr b, Zmm z1, Operand op) { opVex(b,z1, op, T_MUST_EVEX|T_MAP6|T_EW1|T_N1, 0x95); }
-        void bsrmovh(Bsr b, Operand op) { opVex(b, null, op, T_N1|T_F2|T_MAP6|T_EW1|T_MUST_EVEX, 0x95); }
-        void bsrmovh(Operand op, Bsr b) { opVex(b, null, op, T_N1|T_F2|T_MAP6|T_W0|T_MUST_EVEX, 0x95); }
-        void bsrmovl(Bsr b, Operand op) { opVex(b, null, op, T_N1|T_F3|T_MAP6|T_EW1|T_MUST_EVEX, 0x95); }
-        void bsrmovl(Operand op, Bsr b) { opVex(b, null, op, T_N1|T_F3|T_MAP6|T_W0|T_MUST_EVEX, 0x95); }
         void tilemovcol(Tmm t1, Zmm z2, Reg32 r) { opVex(t1, r, z2, T_66|T_0F38|T_EW1|T_MUST_EVEX, 0x4B); }
         void tilemovcol(Tmm t1, Zmm z2, uint8_t imm) { opVex(t1, null, z2, T_66|T_0F3A|T_EW1|T_MUST_EVEX, 0x2F, imm); }
+        void tilemovrow(Tmm t1, Zmm z2, Reg32 r) { opVex(t1, r, z2, T_66|T_0F38|T_EW1|T_MUST_EVEX, 0x4A); }
+        void tilemovrow(Tmm t1, Zmm z2, uint8_t imm) { opVex(t1, null, z2, T_66|T_0F3A|T_EW1|T_MUST_EVEX, 0x07, imm); }
+        void tilemovrow(Zmm z, Tmm t, Reg32 r) { opVex(z, r, t, T_66|T_0F38|T_W0|T_MUST_EVEX, 0x4A); }
+        void tilemovrow(Zmm z, Tmm t, uint8_t imm) { opVex(z, null, t, T_66|T_0F3A|T_W0|T_MUST_EVEX, 0x07, imm); }
         void top2bf16ps(Tmm t1, Zmm z2, Zmm z3) { opVex(t1,z3, z2, T_F3|T_0F38|T_W0|T_MUST_EVEX, 0x5C); }
         void top4bssd(Tmm t1, Zmm z2, Zmm z3) { opVex(t1,z3, z2, T_F2|T_0F38|T_W0|T_MUST_EVEX, 0x5E); }
         void top4bsud(Tmm t1, Zmm z2, Zmm z3) { opVex(t1,z3, z2, T_F3|T_0F38|T_W0|T_MUST_EVEX, 0x5E); }
@@ -8891,6 +8886,11 @@ else
         void vcvtps2hf8s(Xmm x, Operand op) { opCvt5(x, op, T_F3|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x3A); }
         void vcvtrops2hf8(Xmm x, Operand op) { opCvt5(x, op, T_66|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x38); }
         void vcvtrops2hf8s(Xmm x, Operand op) { opCvt5(x, op, T_66|T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x3A); }
+        void vmovrsb(Xmm x, Address addr) { opVex(x, null, addr, T_F2|T_MAP5|T_W0|T_MUST_EVEX, 0x6F); }
+        void vmovrsd(Xmm x, Address addr) { opVex(x, null, addr, T_F3|T_MAP5|T_W0|T_MUST_EVEX, 0x6F); }
+        void vmovrsq(Xmm x, Address addr) { opVex(x, null, addr, T_F3|T_MAP5|T_EW1|T_MUST_EVEX, 0x6F); }
+        void vmovrsw(Xmm x, Address addr) { opVex(x, null, addr, T_F2|T_MAP5|T_EW1|T_MUST_EVEX, 0x6F); }
+        void vpbroadcastq(Xmm x, Reg64 r) { opVex(x, null, r, T_66|T_0F38|T_EW1|T_YMM|T_MUST_EVEX, 0x7C); }
         void vpmovssdb(Operand op, Xmm x) { opVmov(op, x, T_N4|T_N_VL|T_F3|T_0F38|T_W0|T_YMM|T_MUST_EVEX|T_M_K, 0x41, false); }
         void vunpackb(Xmm x, Operand op, uint8_t imm) { opAVX_X_XM_IMM(x, op, T_0F3A|T_W0|T_YMM|T_MUST_EVEX, 0x3D, imm); }
     }
