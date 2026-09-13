@@ -4018,6 +4018,15 @@ version(XBYAK64)
         }
         mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
     }
+    // (x, x, x/m), (x, y, y/m), (x, z, z/m) : dst is fixed XMM regardless of VL
+    void opCvt7(Xmm x1, Xmm x2, Operand op, uint64_t type, int code)
+    {
+        if (!(x1.isXMM() && (op.isMEM() || op.getBit() == x2.getBit())))
+        {
+            mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
+        }
+        opVex(x1, x2, op, type, code);
+	}
     Xmm cvtIdx0(Operand x)
     {
         return x.isZMM() ? zm0 : x.isYMM() ? ym0 : xm0;
@@ -8868,26 +8877,10 @@ else
         void vcvtbf82bf4s(Operand op, Xmm x) { opVmov(op, x, T_N8|T_N_VL|T_F3|T_MAP5|T_EW1|T_YMM|T_MUST_EVEX, 0x3D, true); }
         void vcvtbf82bf6s(Xmm x, Xmm op) { opVex(op, null, x, T_F3|T_MAP5|T_EW1|T_YMM|T_MUST_EVEX, 0x3E); }
         void vcvtbf82ps(Xmm x, Operand op) { opVmov(op, x, T_N4|T_N_VL|T_MAP5|T_EW1|T_YMM|T_MUST_EVEX, 0x36, false); }
-        void vcvtbiasps2bf8(Xmm x1, Xmm x2, Operand op)
-        {
-            if (!(x1.isXMM() && (op.isMEM() || op.getBit() == x2.getBit()))) mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-            opVex(x1, x2, op, T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x39);
-        }
-        void vcvtbiasps2bf8s(Xmm x1, Xmm x2, Operand op)
-        {
-            if (!(x1.isXMM() && (op.isMEM() || op.getBit() == x2.getBit()))) mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-            opVex(x1, x2, op, T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x3B);
-        }
-        void vcvtbiasps2hf8(Xmm x1, Xmm x2, Operand op)
-        {
-            if (!(x1.isXMM() && (op.isMEM() || op.getBit() == x2.getBit()))) mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-            opVex(x1, x2, op, T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x38);
-        }
-        void vcvtbiasps2hf8s(Xmm x1, Xmm x2, Operand op)
-        {
-            if (!(x1.isXMM() && (op.isMEM() || op.getBit() == x2.getBit()))) mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
-            opVex(x1, x2, op, T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x3A);
-        }
+        void vcvtbiasps2bf8(Xmm x1, Xmm x2, Operand op) { opCvt7(x1, x2, op, T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x39); }
+        void vcvtbiasps2bf8s(Xmm x1, Xmm x2, Operand op) { opCvt7(x1, x2, op, T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x3B); }
+        void vcvtbiasps2hf8(Xmm x1, Xmm x2, Operand op) { opCvt7(x1, x2, op, T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x38); }
+        void vcvtbiasps2hf8s(Xmm x1, Xmm x2, Operand op) { opCvt7(x1, x2, op, T_MAP5|T_W0|T_YMM|T_MUST_EVEX|T_B32, 0x3A); }
         void vcvthf62hf8(Xmm x, Xmm op) { opVex(x, null, op, T_66|T_MAP5|T_W0|T_YMM|T_MUST_EVEX, 0x37); }
         void vcvthf82bf4s(Operand op, Xmm x) { opVmov(op, x, T_N8|T_N_VL|T_F3|T_MAP5|T_W0|T_YMM|T_MUST_EVEX, 0x3D, true); }
         void vcvthf82hf6s(Xmm x, Xmm op) { opVex(op, null, x, T_F3|T_MAP5|T_W0|T_YMM|T_MUST_EVEX, 0x3C); }
