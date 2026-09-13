@@ -25,7 +25,7 @@ version (XBYAK64)
     {
         this(string name)
         {
-            super(name); sdump("");
+            super(name);
             setDefaultEncodingAVX10(AVX10v2Encoding);
 
             bsrinit(bsr0); sdump("");
@@ -222,6 +222,11 @@ version (XBYAK64)
             vcvtps2bf8(xm8, yword [r8+r9*2+0x20]); sdump("");
             vcvtps2bf8(xm16, zword [r16+r17*4+0x40]); sdump("");
             vcvtps2bf8(xm24, zword [r24+r25*8+0x7f]); sdump("");
+            vcvtps2bf8(xm0, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtps2bf8(xm8, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtps2bf8(xm16, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtps2bf8(xm0|k4|T_z, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtps2bf8(xm8|k5, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtps2bf8(xm0|k4, xm8); sdump("");
             vcvtps2bf8(xm8|k5, xm16); sdump("");
             vcvtps2bf8(xm16|k6, xm24); sdump("");
@@ -264,6 +269,11 @@ version (XBYAK64)
             vcvtps2bf8s(xm8, yword [r8+r9*2+0x20]); sdump("");
             vcvtps2bf8s(xm16, zword [r16+r17*4+0x40]); sdump("");
             vcvtps2bf8s(xm24, zword [r24+r25*8+0x7f]); sdump("");
+            vcvtps2bf8s(xm0, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtps2bf8s(xm8, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtps2bf8s(xm16, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtps2bf8s(xm0|k4|T_z, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtps2bf8s(xm8|k5, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtps2bf8s(xm0|k4, xm8); sdump("");
             vcvtps2bf8s(xm8|k5, xm16); sdump("");
             vcvtps2bf8s(xm16|k6, xm24); sdump("");
@@ -306,6 +316,11 @@ version (XBYAK64)
             vcvtps2hf8(xm8, yword [r8+r9*2+0x20]); sdump("");
             vcvtps2hf8(xm16, zword [r16+r17*4+0x40]); sdump("");
             vcvtps2hf8(xm24, zword [r24+r25*8+0x7f]); sdump("");
+            vcvtps2hf8(xm0, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtps2hf8(xm8, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtps2hf8(xm16, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtps2hf8(xm0|k4|T_z, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtps2hf8(xm8|k5, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtps2hf8(xm0|k4, xm8); sdump("");
             vcvtps2hf8(xm8|k5, xm16); sdump("");
             vcvtps2hf8(xm16|k6, xm24); sdump("");
@@ -348,6 +363,11 @@ version (XBYAK64)
             vcvtps2hf8s(xm8, yword [r8+r9*2+0x20]); sdump("");
             vcvtps2hf8s(xm16, zword [r16+r17*4+0x40]); sdump("");
             vcvtps2hf8s(xm24, zword [r24+r25*8+0x7f]); sdump("");
+            vcvtps2hf8s(xm0, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtps2hf8s(xm8, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtps2hf8s(xm16, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtps2hf8s(xm0|k4|T_z, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtps2hf8s(xm8|k5, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtps2hf8s(xm0|k4, xm8); sdump("");
             vcvtps2hf8s(xm8|k5, xm16); sdump("");
             vcvtps2hf8s(xm16|k6, xm24); sdump("");
@@ -390,6 +410,11 @@ version (XBYAK64)
             vcvtrops2hf8(xm8, yword [r8+r9*2+0x20]); sdump("");
             vcvtrops2hf8(xm16, zword [r16+r17*4+0x40]); sdump("");
             vcvtrops2hf8(xm24, zword [r24+r25*8+0x7f]); sdump("");
+            vcvtrops2hf8(xm0, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtrops2hf8(xm8, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtrops2hf8(xm16, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtrops2hf8(xm0|k4|T_z, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtrops2hf8(xm8|k5, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtrops2hf8(xm0|k4, xm8); sdump("");
             vcvtrops2hf8(xm8|k5, xm16); sdump("");
             vcvtrops2hf8(xm16|k6, xm24); sdump("");
@@ -432,6 +457,11 @@ version (XBYAK64)
             vcvtrops2hf8s(xm8, yword [r8+r9*2+0x20]); sdump("");
             vcvtrops2hf8s(xm16, zword [r16+r17*4+0x40]); sdump("");
             vcvtrops2hf8s(xm24, zword [r24+r25*8+0x7f]); sdump("");
+            vcvtrops2hf8s(xm0, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtrops2hf8s(xm8, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtrops2hf8s(xm16, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtrops2hf8s(xm0|k4|T_z, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtrops2hf8s(xm8|k5, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtrops2hf8s(xm0|k4, xm8); sdump("");
             vcvtrops2hf8s(xm8|k5, xm16); sdump("");
             vcvtrops2hf8s(xm16|k6, xm24); sdump("");
@@ -461,6 +491,11 @@ version (XBYAK64)
             vcvtbiasps2bf8(xm0, xm1, xword [rax+rcx*1+0x10]); sdump("");
             vcvtbiasps2bf8(xm8, ym9, yword [r8+r9*2+0x20]); sdump("");
             vcvtbiasps2bf8(xm16, zm17, zword [r16+r17*4+0x40]); sdump("");
+            vcvtbiasps2bf8(xm0, xm1, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtbiasps2bf8(xm8, ym9, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtbiasps2bf8(xm16, zm17, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtbiasps2bf8(xm0|k4|T_z, xm1, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtbiasps2bf8(xm8|k5, zm9, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtbiasps2bf8(xm0|k4, xm8, xm8); sdump("");
             vcvtbiasps2bf8(xm8|k5, xm16, xm16); sdump("");
             vcvtbiasps2bf8(xm16|k6, xm24, xm24); sdump("");
@@ -490,6 +525,11 @@ version (XBYAK64)
             vcvtbiasps2bf8s(xm0, xm1, xword [rax+rcx*1+0x10]); sdump("");
             vcvtbiasps2bf8s(xm8, ym9, yword [r8+r9*2+0x20]); sdump("");
             vcvtbiasps2bf8s(xm16, zm17, zword [r16+r17*4+0x40]); sdump("");
+            vcvtbiasps2bf8s(xm0, xm1, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtbiasps2bf8s(xm8, ym9, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtbiasps2bf8s(xm16, zm17, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtbiasps2bf8s(xm0|k4|T_z, xm1, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtbiasps2bf8s(xm8|k5, zm9, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtbiasps2bf8s(xm0|k4, xm8, xm8); sdump("");
             vcvtbiasps2bf8s(xm8|k5, xm16, xm16); sdump("");
             vcvtbiasps2bf8s(xm16|k6, xm24, xm24); sdump("");
@@ -519,6 +559,11 @@ version (XBYAK64)
             vcvtbiasps2hf8(xm0, xm1, xword [rax+rcx*1+0x10]); sdump("");
             vcvtbiasps2hf8(xm8, ym9, yword [r8+r9*2+0x20]); sdump("");
             vcvtbiasps2hf8(xm16, zm17, zword [r16+r17*4+0x40]); sdump("");
+            vcvtbiasps2hf8(xm0, xm1, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtbiasps2hf8(xm8, ym9, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtbiasps2hf8(xm16, zm17, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtbiasps2hf8(xm0|k4|T_z, xm1, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtbiasps2hf8(xm8|k5, zm9, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtbiasps2hf8(xm0|k4, xm8, xm8); sdump("");
             vcvtbiasps2hf8(xm8|k5, xm16, xm16); sdump("");
             vcvtbiasps2hf8(xm16|k6, xm24, xm24); sdump("");
@@ -548,6 +593,11 @@ version (XBYAK64)
             vcvtbiasps2hf8s(xm0, xm1, xword [rax+rcx*1+0x10]); sdump("");
             vcvtbiasps2hf8s(xm8, ym9, yword [r8+r9*2+0x20]); sdump("");
             vcvtbiasps2hf8s(xm16, zm17, zword [r16+r17*4+0x40]); sdump("");
+            vcvtbiasps2hf8s(xm0, xm1, xword_b [rax+rcx*1+0x10]); sdump("");
+            vcvtbiasps2hf8s(xm8, ym9, yword_b [r8+r9*2+0x20]); sdump("");
+            vcvtbiasps2hf8s(xm16, zm17, zword_b [r16+r17*4+0x40]); sdump("");
+            vcvtbiasps2hf8s(xm0|k4|T_z, xm1, xword [rax+rcx*1+0x10]); sdump("");
+            vcvtbiasps2hf8s(xm8|k5, zm9, zword_b [r8+r9*2+0x40]); sdump("");
             vcvtbiasps2hf8s(xm0|k4, xm8, xm8); sdump("");
             vcvtbiasps2hf8s(xm8|k5, xm16, xm16); sdump("");
             vcvtbiasps2hf8s(xm16|k6, xm24, xm24); sdump("");
@@ -577,6 +627,8 @@ version (XBYAK64)
             vcvtbf82ps(xm0, dword [rax+rcx*1+0x10]); sdump("");
             vcvtbf82ps(ym8, qword [r8+r9*2+0x20]); sdump("");
             vcvtbf82ps(zm16, xword [r16+r17*4+0x40]); sdump("");
+            vcvtbf82ps(xm0|k4|T_z, dword [rax+rcx*1+0x10]); sdump("");
+            vcvtbf82ps(zm16|k6, xword [r16+r17*4+0x40]); sdump("");
             vcvtbf82ps(xm0|k4, xm8); sdump("");
             vcvtbf82ps(ym8|k5, xm16); sdump("");
             vcvtbf82ps(zm16|k6|T_z, xm24); sdump("");
@@ -598,6 +650,8 @@ version (XBYAK64)
             vcvthf82ps(xm0, dword [rax+rcx*1+0x10]); sdump("");
             vcvthf82ps(ym8, qword [r8+r9*2+0x20]); sdump("");
             vcvthf82ps(zm16, xword [r16+r17*4+0x40]); sdump("");
+            vcvthf82ps(xm0|k4|T_z, dword [rax+rcx*1+0x10]); sdump("");
+            vcvthf82ps(zm16|k6, xword [r16+r17*4+0x40]); sdump("");
             vcvthf82ps(xm0|k4, xm8); sdump("");
             vcvthf82ps(ym8|k5, xm16); sdump("");
             vcvthf82ps(zm16|k6|T_z, xm24); sdump("");
@@ -619,6 +673,8 @@ version (XBYAK64)
             vcvtbf42hf8(xm0, qword [rax+rcx*1+0x10]); sdump("");
             vcvtbf42hf8(ym8, xword [r8+r9*2+0x20]); sdump("");
             vcvtbf42hf8(zm16, yword [r16+r17*4+0x40]); sdump("");
+            vcvtbf42hf8(xm0|k4|T_z, qword [rax+rcx*1+0x10]); sdump("");
+            vcvtbf42hf8(zm16|k6, yword [r16+r17*4+0x40]); sdump("");
             vcvtbf42hf8(xm0|k4, xm8); sdump("");
             vcvtbf42hf8(ym8|k5, xm16); sdump("");
             vcvtbf42hf8(zm16|k6|T_z, ym24); sdump("");
