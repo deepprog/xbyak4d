@@ -36,6 +36,8 @@ version (XBYAK64)
             sdump("C4E2784900");
             sttilecfg(ptr[rsp + rax * 8 + 64]);
             sdump("C4E2794944C440");
+            sttilecfg(ptr[rsp + rax * 8 + 128]);
+            sdump("C4E2794984C480000000");   
             sttilecfg(ptr[r30 + r29 * 4 + 0x12]);
             sdump("629A79084944AE12");
             sttilecfg(ptr [r30]);

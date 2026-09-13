@@ -487,6 +487,10 @@ version (XBYAK64)
             sdump("0F183540000000");
             prefetchit0(ptr[rip+64]);
             sdump("0F183D40000000");
+            prefetchit0(ptr[rax]);
+            sdump("0F1838");
+            prefetchit1(ptr[rax]);
+            sdump("0F1830");
             prefetchrst2(ptr[rcx]);
             sdump("0F1821");
 
@@ -542,11 +546,14 @@ version (XBYAK64)
             umwait(r31d); sdump("F2D591AEF7");
 
             umonitor(eax); sdump("67F30FAEF0");
+            umonitor(ecx); sdump("67F30FAEF1");
             umonitor(r31d); sdump("67F3D591AEF7");
             umonitor(rax); sdump("F30FAEF0");
+            umonitor(rcx); sdump("F30FAEF1");
             umonitor(r31); sdump("F3D591AEF7");
 
             tpause(eax); sdump("660FAEF0");
+            tpause(ebx); sdump("660FAEF3");
             tpause(r8d); sdump("66410FAEF0");
             tpause(r31d); sdump("66D591AEF7");
 
