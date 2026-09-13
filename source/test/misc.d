@@ -402,12 +402,33 @@ void kmask()
 			checkT_z();
 		}
 
+		// T_z is dropped when no mask register is specified because
+		// EVEX.z=1 with EVEX.aaa=000 is an invalid encoding (#UD),
+		// so the encoded bytes are the same as without T_z.
 		void checkT_z()
 		{
 			const uint8_t* p1 = getCurr();
 			vmovaps(zm0, ptr[eax]);
+			vaddpd(zm1, zm1, zm1);
+			vaddpd(zm1, zm1, zm1|T_rn_sae);
+			vaddpd(zm1, zm1, zm1|T_rz_sae);
+			vmpsadbw(xm1, xm4, ptr[eax+64], 5);
+			vcvt2ph2bf8(xm1, xm2, ptr_b[eax+64]);
+			vcvt2ph2bf8s(ym1, ym2, ptr_b[eax+64]);
+			vcvt2ph2hf8(zm1, zm2, ptr_b[eax+64]);
+			vcvt2ph2hf8s(xm1, xm2, ptr_b[eax+64]);
+
 			const uint8_t* p2 = getCurr();
-			vmovaps(zm0 | T_z, ptr[eax]);
+			vmovaps(zm0|T_z, ptr[eax]);
+			vaddpd(zm1|T_z, zm1, zm1);
+			vaddpd(zm1|T_z, zm1, zm1|T_rn_sae);
+			vaddpd(zm1|T_z, zm1, zm1|T_rz_sae);
+			vmpsadbw(xm1|T_z, xm4, ptr[eax+64], 5);
+			vcvt2ph2bf8(xm1|T_z, xm2, ptr_b[eax+64]);
+			vcvt2ph2bf8s(ym1|T_z, ym2, ptr_b[eax+64]);
+			vcvt2ph2hf8(zm1|T_z, zm2, ptr_b[eax+64]);
+			vcvt2ph2hf8s(xm1|T_z, xm2, ptr_b[eax+64]);
+
 			const uint8_t* end = getCurr();
 			tc.TEST_EQUAL(p2 - p1, end - p2);
 

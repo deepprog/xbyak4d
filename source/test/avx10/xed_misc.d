@@ -50,7 +50,7 @@ version (XBYAK64)
             //
             vmpsadbw(xm1, xm3, xm15, 3);
             sdump("62D3660842CF03");
-            vmpsadbw(xm1 | T_z, xm4, ptr[rax + 64], 5);
+            vmpsadbw(xm1, xm4, ptr[rax + 64], 5);
             sdump("62F35E0842480405");
 
             vmpsadbw(ym1 | k4, ym3, ym15, 3);
