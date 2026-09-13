@@ -1079,6 +1079,7 @@ version(XBYAK32)
 
     override string toString() const
     {
+        if (isBSR()) return "bsr0";
         const int idx = getIdx();
         if (kind_ == REG) {
             if (isExt8bit()) {
