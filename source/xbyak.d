@@ -1917,6 +1917,11 @@ version(XBYAK64)
         return this + cast(ulong)disp;
     }
 
+    RegExp  opBinaryRight(string op : "+")(int disp)
+    {
+        return this + cast(ulong)disp;
+    }
+
     RegExp  opBinary(string op : "+")(long disp)
     {
         return this + cast(ulong)disp;
@@ -6588,7 +6593,7 @@ void vinserti128(Ymm y1, Ymm y2, Operand op, uint8_t imm)
     opVex(y1, y2, op, T_0F3A | T_66 | T_W0 | T_YMM, 0x38, imm);
 }
 void vinsertps(Xmm x1, Xmm x2, Operand op, uint8_t imm)
- { opAVX_X_X_XM(x1, x2, op, T_N4 | T_66 | T_0F3A | T_W0 || T_EVEX, 0x21, imm); }
+ { opAVX_X_X_XM(x1, x2, op, T_N4 | T_66 | T_0F3A | T_W0 | T_EVEX, 0x21, imm); }
 void vlddqu(Xmm x, Address addr) { opAVX_X_X_XM(x, cvtIdx0(x), addr, T_0F | T_F2 | T_W0 | T_YMM, 0xF0); }
 void vldmxcsr(Address addr) { opAVX_X_X_XM(xm2, xm0, addr, T_0F, 0xAE); }
 void vmaskmovdqu(Xmm x1, Xmm x2) { opAVX_X_X_XM(x1, xm0, x2, T_0F | T_66, 0xF7); }

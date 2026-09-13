@@ -148,9 +148,10 @@ class TestCode : CodeGenerator
 {
     TestCount tc_;
 
-    this(string name, string file = __FILE__, size_t line = __LINE__)
+    this(string name, size_t maxSize = DEFAULT_MAX_CODE_SIZE, string file = __FILE__, size_t line = __LINE__)
     {
         tc_ = TestCount(name, file, line);
+        super(maxSize);
     }
 
     void sdump(string hexStr, string file = __FILE__, size_t line = __LINE__)
