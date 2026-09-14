@@ -196,6 +196,21 @@ class Code : CodeGenerator
         }
         mov(rax, ptr[rsp]);
     }
+    // use rbx
+    void gen16(ref TestCount  tc)
+    {
+        {
+            // sf.t[8] is rbx on windows/linux
+            StackFrame sf = StackFrame(this, 0, 9);
+            tc.TEST_ASSERT(sf.t[8] == rbx);
+        }
+        {
+            // sf.t[8] is rbp (not rbx) on windows/linux
+            // getRegEntryTbl() in xbyak_util.d
+            StackFrame sf = StackFrame(this, 0, 9|UseRBX);
+            tc.TEST_ASSERT(sf.t[8] == rbp);
+        }
+    }
 }
 
 class Code2 : CodeGenerator
@@ -379,6 +394,9 @@ void test_args()
     auto f15 = code.getCurr!(int function())();
     code.gen15();
     tc.TEST_EQUAL((1 << 15) - 1, f15());
+
+    // UserRBP test
+    code.gen16(tc);
 }
 
 
@@ -517,25 +535,25 @@ void rbpWithPpx()
 {
     scope tc = TestCount(__FUNCTION__);
     class Code : CodeGenerator {
-		this()
-		{
-			StackFrame sf = StackFrame(this, 0, UseRBP|UsePPX);
-		}
-	}
-	const uint8_t[] tbl = [
-		0xd5, 0x08, 0x55, // pushp rbp
-		0xd5, 0x08, 0x5d, // popp rbp
-		0xc3, // ret
+        this()
+        {
+            StackFrame sf = StackFrame(this, 0, UseRBP|UsePPX);
+        }
+    }
+    const uint8_t[] tbl = [
+        0xd5, 0x08, 0x55, // pushp rbp
+        0xd5, 0x08, 0x5d, // popp rbp
+        0xc3, // ret
     ];
 
     scope Code c = new Code();
-	const size_t n = tbl.length;
-	tc.TEST_EQUAL(c.getSize(), n);
-	auto ctbl = c.getCode();
-	for(int i=0; i < n; i++)
-	{
-		tc.TEST_EQUAL(ctbl[i], tbl[i]);
-	}
+    const size_t n = tbl.length;
+    tc.TEST_EQUAL(c.getSize(), n);
+    auto ctbl = c.getCode();
+    for(int i=0; i < n; i++)
+    {
+        tc.TEST_EQUAL(ctbl[i], tbl[i]);
+    }
 }
 
 } //version(XBYAK64)
