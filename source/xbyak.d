@@ -3003,7 +3003,7 @@ static const uint64_t T_MEM_EVEX = 1uL << 30; // use evex if mem
 static const uint64_t T_MAP6 = 1uL << 31;
 static const uint64_t T_NF = 1uL << 32; // T_nf
 static const uint64_t T_CODE1_IF1 = 1uL << 33; // code|=1 if !r.isBit(8)
-
+static const uint64_t T_NO_CODE1 = 1uL << 34; // marker to suppress the default code|=1 of writeCode() for a legacy insn whose type has no other bits (lds/les)
 static const uint64_t T_ND1 = 1uL << 35; // ND=1
 static const uint64_t T_ZU = 1uL << 36; // ND=ZU
 static const uint64_t T_F2 = 1uL << 37; // pp = 3
@@ -3276,6 +3276,8 @@ version (XBYAK64)
         }
     }
     LabelManager labelMgr_;
+    // r is used only to determine the w bit (code|=1 unless r is 8-bit).
+    // opROO passes d here, which is often Reg() (bit=0), assuming that !r.isBit(8) is true then.
     void writeCode(uint64_t type, Reg r, int code, bool rex2 = false)
     {
         if (!(type & T_APX || rex2)) {
@@ -3320,14 +3322,7 @@ version (XBYAK64)
         if (addr.is64bitDisp()) {
             mixin(XBYAK_THROW(ERR_CANT_USE_64BIT_DISP));
         }
-        if (reg.isBit(8)) {
-            mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
-        }
-        // can't use opMR
-        rex(addr, reg, type);
-        if (type & T_0F) db(0x0F);
-        db(code);
-        opAddr(addr, reg.getIdx());
+        opMR(addr, reg, type, code);
     }
     // for only MPX(bnd*)
     void opMIB(Address addr, Reg reg, uint64_t type, int code)
@@ -5634,8 +5629,8 @@ void lea(Reg reg, Address addr)
 }
 void leave() { db(0xC9); }
 void lfence() { db(0x0F); db(0xAE); db(0xE8); }
-void lfs(Reg reg, Address addr) { opLoadSeg(addr, reg, T_0F, 0xB4); }
-void lgs(Reg reg, Address addr) { opLoadSeg(addr, reg, T_0F, 0xB5); }
+void lfs(Reg reg, Address addr) { opLoadSeg(addr, reg, T_0F|T_ALLOW_DIFF_SIZE, 0xB4); }
+void lgs(Reg reg, Address addr) { opLoadSeg(addr, reg, T_0F|T_ALLOW_DIFF_SIZE, 0xB5); }
 void lock() { db(0xF0); }
 void lodsb() { db(0xAC); }
 void lodsd() { db(0xAD); }
@@ -5649,7 +5644,7 @@ void loope(string label) { opJmp(label, T_SHORT, 0xE1, 0, 0); }
 void loopne(ref Label label) { opJmp(label, T_SHORT, 0xE0, 0, 0); }
 void loopne(const char* label) { loopne(to!string(label)); }
 void loopne(string label) { opJmp(label, T_SHORT, 0xE0, 0, 0); }
-void lss(Reg reg, Address addr) { opLoadSeg(addr, reg, T_0F, 0xB2); }
+void lss(Reg reg, Address addr) { opLoadSeg(addr, reg, T_0F|T_ALLOW_DIFF_SIZE, 0xB2); }
 void lzcnt(Reg reg, Operand op)
 {
     if (opROO(Reg(), op, reg, T_APX|T_NF, 0xF5))
@@ -7442,8 +7437,8 @@ else
     void pushad() { db(0x60); }
     void pushfd() { db(0x9C); }
     void popa() { db(0x61); }
-    void lds(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NONE, 0xC5); }
-    void les(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NONE, 0xC4); }
+    void lds(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NO_CODE1|T_ALLOW_DIFF_SIZE, 0xC5); }
+    void les(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NO_CODE1|T_ALLOW_DIFF_SIZE, 0xC4); }
 }
 
 version (XBYAK_NO_OP_NAMES)

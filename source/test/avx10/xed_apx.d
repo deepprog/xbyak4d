@@ -86,6 +86,17 @@ version (XBYAK64)
             sdump("D51958");
             popp(r31);
             sdump("D5195F");
+
+            // lss/lfs/lgs with EGPR (REX2)
+            lss(r30, ptr[r29]); sdump("D5DDB27500");
+            lss(r8d, ptr[r24]); sdump("D595B200");
+            lfs(eax, ptr[r16]); sdump("D590B400");
+            lfs(r16d, ptr[rax]); sdump("D5C0B400");
+            lfs(r16w, ptr[rax]); sdump("66D5C0B400");
+            lfs(r16, ptr[rax]); sdump("D5C8B400");
+            lfs(r31d, ptr[r16+r17*8+0x40]); sdump("D5F4B47CC840");
+            lgs(r20d, ptr[r21]); sdump("D5D0B56500");
+            lgs(ax, ptr[r18+r19]); sdump("66D5B0B5041A");
         }
     }
 }
