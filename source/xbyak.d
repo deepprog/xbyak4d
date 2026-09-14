@@ -2892,7 +2892,7 @@ else
             if (type & (T_0F38|T_0F3A)) {
                 mixin(XBYAK_THROW_RET(ERR_CANT_USE_REX2, "false"));
             }
-            rex2((type & T_0F), w, r, b, x);
+            rex2(!!(type & T_0F), w, r, b, x);
             return true;
         }
         if (rex || r.isExt8bit() || b.isExt8bit() || x.isExt8bit()) rex |= 0x40;
