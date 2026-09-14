@@ -2864,12 +2864,6 @@ else
     {
         return op1.isREG(i32e) && (op2.isXMM() || op2.isMEM());
     }
-    // (REG32, REG32|MEM)
-    pragma(inline, true);
-    bool isREG32_REG32orMEM(Operand op1, Operand op2)
-    {
-        return op1.isREG(i32e) && ((op2.isREG(i32e) && op1.getBit() == op2.getBit()) || op2.isMEM());
-    }
     pragma(inline, true);
     bool isValidSSE(Operand op1)
     {
