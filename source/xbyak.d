@@ -3675,11 +3675,11 @@ version (XBYAK64)
         db(imm, immBit / 8);
     }
     // (r, r/m, imm)
-    void opROI(Reg d, Operand op, uint32_t imm, uint64_t type, int ext)
+    void opROI(Reg d, Operand op, uint32_t imm, uint64_t type, int ext, int sc = NONE)
     {
         uint32_t immBit = getImmBit(d, imm);
         int code = immBit < min(d.getBit(), 32U) ? 2 : 0;
-        opROO(d, op, Reg(ext, REG, d.getBit()), type, 0x80 | code, immBit / 8);
+        opROO(d, op, Reg(ext, REG, d.getBit()), type, 0x80 | code, immBit / 8, sc);
         db(imm, immBit / 8);
     }
     void opIncDec(Reg d, Operand op, int ext)
@@ -4154,19 +4154,8 @@ version (XBYAK_DISABLE_AVX512)
         if (dfv < 0 || 15 < dfv) {
             mixin(XBYAK_THROW(ERR_INVALID_DFV));
         }
-        uint32_t immBit = getImmBit(op, imm);
-        uint32_t opBit = op.getBit();
-        int tmp = immBit < min(opBit, 32U) ? 2 : 0;
-        opROO(
-            Reg(15 - dfv, REG, opBit),
-            op,
-            Reg(15, REG, opBit),
-            T_APX | T_CODE1_IF1,
-            0x80 | tmp,
-            immBit / 8,
-            sc
-        );
-        db(imm, immBit / 8);
+        verifyMemHasSize(op);
+        opROI(Reg(15 - dfv, REG, op.getBit()), op, imm, T_APX|T_CODE1_IF1, 15, sc);
     }
     void opTesti(Operand op, int imm, int dfv, int sc)
     {
