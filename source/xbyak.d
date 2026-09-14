@@ -3091,18 +3091,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         }
         return v;
     }
-    int evex(
-            Reg reg,
-            Reg base,
-            Operand v,
-            uint64_t type,
-            int code,
-            Reg x = null,
-            bool b = false,
-            int aaa = 0,
-            uint32_t VL = 0,
-            bool Hi16Vidx = false
-        )
+    int evex(Reg reg,  Reg base, Operand v, uint64_t type, int code, Reg x = null, bool b = false, int aaa = 0)
     {
         if (!(type & (T_EVEX | T_MUST_EVEX))) {
             mixin(XBYAK_THROW_RET(ERR_EVEX_IS_INVALID, "0"));
@@ -3138,6 +3127,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
             }
             b = true;
         } else {
+            uint32_t VL = (x && x.isSIMD()) ? x.getBit() : 0; // vsib
             if (v) VL = max(VL, v.getBit());
             VL = max(max(reg.getBit(), base.getBit()), VL);
             LL = (VL >= 512 /* tmm */) ? 2 : (VL == 256) ? 1 : 0;
@@ -3156,7 +3146,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
                 }
             }
         }
-        bool V4 = ((v ? v.isExtIdx2() : 0) | Hi16Vidx);
+        bool V4 = (v && v.isExtIdx2()) || (x && x.isSIMD() && x.isExtIdx2());
         bool z = reg.hasZero() || base.hasZero() || (v ? v.hasZero() : false);
         if (aaa == 0)
         {
@@ -3866,6 +3856,7 @@ version(XBYAK64)
     }
     void opVex(Reg r, Operand p1, Operand op2, in uint64_t type, int code, int imm8 = NONE)
     {
+        const bool useEvex = (type & T_MUST_EVEX) || r.hasEvex() || (p1 && p1.hasEvex());
         if (op2.isMEM()) {
             // zeroing-masking has no meaning when the destination is memory
             if ((type & T_M_K) && (r.hasZero() || (p1 && p1.hasZero()) || op2.hasZero()))
@@ -3877,14 +3868,7 @@ version(XBYAK64)
             scope Reg base = regExp.getBase();
             scope Reg index = regExp.getIndex();
             if (BIT == 64 && addr.is32bit()) db(0x67);
-            int disp8N = 0;
-            if ((type & (T_MUST_EVEX | T_MEM_EVEX)) ||
-                r.hasEvex() ||
-                (p1 && p1.hasEvex()) ||
-                addr.isBroadcast() ||
-                addr.getOpmaskIdx() ||
-                addr.hasRex2()
-                )
+            if (useEvex || (type & T_MEM_EVEX) || addr.isBroadcast() || addr.getOpmaskIdx() || addr.hasRex2())
             {
                 int aaa = addr.getOpmaskIdx();
                 if (aaa && !(type & T_M_K)) {
@@ -3897,18 +3881,16 @@ version(XBYAK64)
                     }
                     b = true;
                 }
-                int VL = regExp.isVsib() ? index.getBit() : 0;
-                disp8N = evex(r, base, p1, type, code, index, b, aaa, VL, index.isSIMD() && index.isExtIdx2());
+                addr.disp8N = evex(r, base, p1, type, code, index, b, aaa);
             } else {
                 vex(r, base, p1, type, code, index.isExtIdx());
             }
             if (type & T_VSIB) addr.permitVsib = true;
-            if (disp8N) addr.disp8N = disp8N;
             if (imm8 != NONE) addr.immSize = 1;
             opAddr(addr, r.getIdx());
         } else {
             scope Reg base = op2.getReg();
-            if ((type & T_MUST_EVEX) || r.hasEvex() || (p1 && p1.hasEvex()) || base.hasEvex()) {
+            if (useEvex || base.hasEvex()) {
                 evex(r, base, p1, type, code);
             } else {
                 vex(r, base, p1, type, code);
@@ -4026,7 +4008,7 @@ version(XBYAK64)
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         }
         opVex(x1, x2, op, type, code);
-	}
+    }
     Xmm cvtIdx0(Operand x)
     {
         return x.isZMM() ? zm0 : x.isYMM() ? ym0 : xm0;
