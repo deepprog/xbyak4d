@@ -2984,7 +2984,6 @@ static const uint64_t T_F3 = 1uL << 6; // pp = 2
 static const uint64_t T_F2 = 1uL << 7; // pp = 3
 // map field (bit8-10) : the value is the same as the EVEX mmm field
 static const uint64_t T_0F = 1uL << 8;
-
 static const uint64_t T_0F38 = 2uL << 8;
 static const uint64_t T_0F3A = 3uL << 8;
 static const uint64_t T_MAP5 = 5uL << 8;
@@ -3004,23 +3003,25 @@ static const uint64_t T_W1 = 1uL << 15; // for VEX
 static const uint64_t T_EW1 = 1uL << 16; // for EVEX
 static const uint64_t T_L1 = 1uL << 17;
 static const uint64_t T_YMM = 1uL << 18; // support YMM, ZMM
-static const uint64_t T_EVEX = 1uL << 19;
-static const uint64_t T_MUST_EVEX = 1uL << 20; // contains T_EVEX
-static const uint64_t T_MEM_EVEX = 1uL << 21; // use evex if mem
-// broadcast field (bit22-23)
-static const uint64_t T_B32 = 1uL << 22; // m32bcst
-static const uint64_t T_B64 = 2uL << 22; // m64bcst
+// evex field (bit19-20) : which encodings the insn has
+static const uint64_t T_EVEX = 1uL << 19; // both VEX and EVEX
+static const uint64_t T_MUST_EVEX = 2uL << 19; // EVEX only
+static const uint64_t T_EVEX_IF_MEM = 3uL << 19; // both, but the mem operand form exists only in EVEX
+static const uint64_t T_EVEX_MASK = 3uL << 19;
+// broadcast field (bit21-22)
+static const uint64_t T_B32 = 1uL << 21; // m32bcst
+static const uint64_t T_B64 = 2uL << 21; // m64bcst
 static const uint64_t T_B16 = T_B32 | T_B64; // m16bcst
-static const uint64_t T_M_K = 1uL << 24; // mem{k}
-static const uint64_t T_VSIB = 1uL << 25;
-static const uint64_t T_NF = 1uL << 26; // T_nf
-static const uint64_t T_CODE1_IF1 = 1uL << 27; // code|=1 if !r.isBit(8)
-static const uint64_t T_NO_CODE1 = 1uL << 28; // marker to suppress the default code|=1 of writeCode() for a legacy insn whose type has no other bits (lds/les)
-static const uint64_t T_ND1 = 1uL << 29; // ND=1
-static const uint64_t T_ZU = 1uL << 30; // ND=ZU
-static const uint64_t T_SENTRY = (1uL << 31)-1; // attribute(>=T_SENTRY) is for error check
-static const uint64_t T_ALLOW_DIFF_SIZE = 1uL << 31; // allow difference reg size
-static const uint64_t T_ALLOW_ABCDH = 1uL << 32; // allow [abcd]h reg
+static const uint64_t T_M_K = 1uL << 23; // mem{k}
+static const uint64_t T_VSIB = 1uL << 24;
+static const uint64_t T_NF = 1uL << 25; // T_nf
+static const uint64_t T_CODE1_IF1 = 1uL << 26; // code|=1 if !r.isBit(8)
+static const uint64_t T_NO_CODE1 = 1uL << 27; // marker to suppress the default code|=1 of writeCode() for a legacy insn whose type has no other bits (lds/les)
+static const uint64_t T_ND1 = 1uL << 28; // ND=1
+static const uint64_t T_ZU = 1uL << 29; // ND=ZU
+static const uint64_t T_SENTRY = (1uL << 30)-1; // attribute(>=T_SENTRY) is for error check
+static const uint64_t T_ALLOW_DIFF_SIZE = 1uL << 30; // allow difference reg size
+static const uint64_t T_ALLOW_ABCDH = 1uL << 31; // allow [abcd]h reg
 
     // T_66 = 1, T_F3 = 2, T_F2 = 3
     pragma(inline, true);
@@ -3095,7 +3096,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 32; // allow [abcd]h reg
             }
             b = true;
         }
-        if (!(type & (T_EVEX | T_MUST_EVEX))) {
+        if (!(type & T_EVEX_MASK)) {
             mixin(XBYAK_THROW_RET(ERR_EVEX_IS_INVALID, "0"));
         }
         int w = (type & T_EW1) ? 1 : 0;
@@ -3536,10 +3537,10 @@ version (XBYAK64)
     // (r, r, m) or (r, m, r)
     bool opROO(Reg d, Operand op1, Operand op2, uint64_t type, int code, int immSize = 0, int sc = NONE)
     {
-        if (!(type & T_MUST_EVEX) && !d.isREG() && !(d.hasRex2NFZU() ||
-            op1.hasRex2NFZU() ||
-            op2.hasRex2NFZU())
-            )
+        if ((type & T_EVEX_MASK) != T_MUST_EVEX &&
+            !d.isREG() &&
+            !(d.hasRex2NFZU() || op1.hasRex2NFZU() || op2.hasRex2NFZU())
+        )
         {
             return false;
         }
@@ -3573,7 +3574,7 @@ version (XBYAK64)
         bool disableRex = false,
         int immSize = 0,
         Reg d = null
-        )
+    )
     {
         int opBit = op.getBit();
         if (disableRex && opBit == 64) opBit = 32;
@@ -3861,7 +3862,7 @@ version(XBYAK64)
     }
     void opVex(Reg r, Operand p1, Operand op2, in uint64_t type, int code, int imm8 = NONE)
     {
-        const bool useEvex = (type & T_MUST_EVEX) || r.hasEvex() || (p1 && p1.hasEvex());
+        const bool useEvex = (type & T_EVEX_MASK) == T_MUST_EVEX || r.hasEvex() || (p1 && p1.hasEvex());
         if (op2.isMEM()) {
             // zeroing-masking has no meaning when the destination is memory
             if ((type & T_M_K) && (r.hasZero() || (p1 && p1.hasZero()) || op2.hasZero()))
@@ -3873,10 +3874,12 @@ version(XBYAK64)
             scope Reg base = regExp.getBase();
             scope Reg index = regExp.getIndex();
             if (BIT == 64 && addr.is32bit()) db(0x67);
-            if (useEvex || (type & T_MEM_EVEX) || addr.isBroadcast() || addr.getOpmaskIdx() || addr.hasRex2())
+            if (useEvex || (type & T_EVEX_MASK) == T_EVEX_IF_MEM || addr.isBroadcast() || addr.getOpmaskIdx() || addr.hasRex2())
             {
                 addr.disp8N = evex(r, base, p1, type, code, addr);
-            } else {
+            }
+            else
+            {
                 vex(r, base, p1, type, code, index.isExtIdx());
             }
             if (type & T_VSIB) addr.permitVsib = true;
@@ -6918,43 +6921,43 @@ void vpsignb(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|
 void vpsignd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_YMM, 0x0A); }
 void vpsignw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_YMM, 0x09); }
 void vpslld(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66 | T_0F | T_W0 | T_YMM | T_EVEX | T_B32 | T_MEM_EVEX, 0x72, imm); }
+ { opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66|T_0F|T_W0|T_YMM|T_EVEX_IF_MEM|T_B32, 0x72, imm); }
 void vpslld(Xmm x1, Xmm x2, Operand op)
  { opAVX_X_X_XM(x1, x2, op, T_N16 | T_66 | T_0F | T_W0 | T_YMM | T_EVEX, 0xF2); }
 void vpslldq(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 7), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x73, imm); }
+ { opAVX_X_X_XM(Xmm(x.getKind(), 7), x, op, T_66|T_0F|T_YMM|T_EVEX_IF_MEM, 0x73, imm); }
 void vpsllq(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66 | T_0F | T_EW1 | T_YMM | T_EVEX | T_B64 | T_MEM_EVEX, 0x73, imm); }
+ { opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66|T_0F|T_EW1|T_YMM|T_EVEX_IF_MEM|T_B64, 0x73, imm); }
 void vpsllq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_EW1|T_YMM|T_EVEX, 0xF3); }
 void vpsllvd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_YMM|T_EVEX|T_B32, 0x47); }
 void vpsllvq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x47); }
 void vpsllw(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x71, imm); }
+{ opAVX_X_X_XM(Xmm(x.getKind(), 6), x, op, T_66|T_0F|T_YMM|T_EVEX_IF_MEM, 0x71, imm); }
 void vpsllw(Xmm x1, Xmm x2, Operand op)
  { opAVX_X_X_XM(x1, x2, op, T_N16 | T_66 | T_0F | T_YMM | T_EVEX, 0xF1); }
 void vpsrad(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 4), x, op, T_66 | T_0F | T_W0 | T_YMM | T_EVEX | T_B32 | T_MEM_EVEX, 0x72, imm); }
+ { opAVX_X_X_XM(Xmm(x.getKind(), 4), x, op, T_66|T_0F|T_W0|T_YMM|T_EVEX_IF_MEM|T_B32, 0x72, imm); }
 void vpsrad(Xmm x1, Xmm x2, Operand op)
  { opAVX_X_X_XM(x1, x2, op, T_N16 | T_66 | T_0F | T_W0 | T_YMM | T_EVEX, 0xE2); }
 void vpsravd(Xmm x1, Xmm x2, Operand op)
  { opAVX_X_X_XM(x1, x2, op, T_66 | T_0F38 | T_W0 | T_YMM | T_EVEX | T_B32, 0x46); }
 void vpsraw(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 4), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x71, imm); }
+ { opAVX_X_X_XM(Xmm(x.getKind(), 4), x, op, T_66|T_0F|T_YMM|T_EVEX_IF_MEM, 0x71, imm); }
 void vpsraw(Xmm x1, Xmm x2, Operand op)
  { opAVX_X_X_XM(x1, x2, op, T_N16 | T_66 | T_0F | T_YMM | T_EVEX, 0xE1); }
 void vpsrld(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66 | T_0F | T_W0 | T_YMM | T_EVEX | T_B32 | T_MEM_EVEX, 0x72, imm); }
+ { opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66|T_0F|T_W0|T_YMM|T_EVEX_IF_MEM|T_B32, 0x72, imm); }
 void vpsrld(Xmm x1, Xmm x2, Operand op)
  { opAVX_X_X_XM(x1, x2, op, T_N16 | T_66 | T_0F | T_W0 | T_YMM | T_EVEX, 0xD2); }
 void vpsrldq(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 3), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x73, imm); }
+ { opAVX_X_X_XM(Xmm(x.getKind(), 3), x, op, T_66|T_0F|T_YMM|T_EVEX_IF_MEM, 0x73, imm); }
 void vpsrlq(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66 | T_0F | T_EW1 | T_YMM | T_EVEX | T_B64 | T_MEM_EVEX, 0x73, imm); }
+ { opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66|T_0F|T_EW1|T_YMM|T_EVEX_IF_MEM|T_B64, 0x73, imm); }
 void vpsrlq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_EW1|T_YMM|T_EVEX, 0xD3); }
 void vpsrlvd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W0|T_YMM|T_EVEX|T_B32, 0x45); }
 void vpsrlvq(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F38|T_W1|T_EW1|T_YMM|T_EVEX|T_B64, 0x45); }
 void vpsrlw(Xmm x, Operand op, uint8_t imm)
- { opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66 | T_0F | T_YMM | T_EVEX | T_MEM_EVEX, 0x71, imm); }
+ { opAVX_X_X_XM(Xmm(x.getKind(), 2), x, op, T_66|T_0F|T_YMM|T_EVEX_IF_MEM, 0x71, imm); }
 void vpsrlw(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_N16|T_66|T_0F|T_YMM|T_EVEX, 0xD1); }
 void vpsubb(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_YMM|T_EVEX, 0xF8); }
 void vpsubd(Xmm x1, Xmm x2, Operand op) { opAVX_X_X_XM(x1, x2, op, T_66|T_0F|T_W0|T_YMM|T_EVEX|T_B32, 0xFA); }
