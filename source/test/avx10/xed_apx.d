@@ -98,7 +98,6 @@ version (XBYAK64)
             lgs(r20d, ptr[r21]); sdump("D5D0B56500");
             lgs(ax, ptr[r18+r19]); sdump("66D5B0B5041A");
 
-            // ---- moved from test/apx.cpp (simple encoding tests) ----
             // reg_rm
             adc(r17, ptr [rax]); sdump("");
             adc(ptr [r18], rdx); sdump("");
@@ -1027,6 +1026,97 @@ version (XBYAK64)
             aor(ptr [r16+r31*1], r17); sdump("");
             axor(ptr [r16+r31*1], r17d); sdump("");
             axor(ptr [r16+r31*1], r17); sdump("");
+
+            // NF
+            add(rax, rcx, rdx); sdump("");
+            add(rax|T_nf, rcx, rdx); sdump("");
+            and_(rax, rcx, rdx); sdump("");
+            and_(rax|T_nf, rcx, rdx); sdump("");
+            or_(rax, rcx, rdx); sdump("");
+            or_(rax|T_nf, rcx, rdx); sdump("");
+            sub(rax, rcx, rdx); sdump("");
+            sub(rax|T_nf, rcx, rdx); sdump("");
+            xor_(rax, rcx, rdx); sdump("");
+            xor_(rax|T_nf, rcx, rdx); sdump("");
+            add(rax, rcx, 3); sdump("");
+            add(rax|T_nf, rcx, 3); sdump("");
+            and_(rax, rcx, 3); sdump("");
+            and_(rax|T_nf, rcx, 3); sdump("");
+            or_(rax, rcx, 3); sdump("");
+            or_(rax|T_nf, rcx, 3); sdump("");
+            sub(rax, rcx, 3); sdump("");
+            sub(rax|T_nf, rcx, 3); sdump("");
+            xor_(rax, rcx, 3); sdump("");
+            xor_(rax|T_nf, rcx, 3); sdump("");
+
+            // andn_etc
+            andn(r29|T_nf, r30, r31); sdump("");
+
+            // bextr_etc
+            bextr(r29|T_nf, r30, r31); sdump("");
+            bzhi(r29|T_nf, r30, r31); sdump("");
+            blsi(r30|T_nf, r31); sdump("");
+            blsmsk(r30|T_nf, r31); sdump("");
+            blsr(r30|T_nf, r31); sdump("");
+
+            // inc_dec
+            inc(r30w|T_nf, r31w); sdump("");
+            dec(r30w|T_nf, r31w); sdump("");
+
+            // div_op1
+            div(r20|T_nf); sdump("");
+            div(eax|T_nf); sdump("");
+            idiv(r20|T_nf); sdump("");
+            idiv(eax|T_nf); sdump("");
+            imul(r20|T_nf); sdump("");
+            imul(eax|T_nf); sdump("");
+            mul(r20|T_nf); sdump("");
+            mul(eax|T_nf); sdump("");
+            neg(r20|T_nf); sdump("");
+            neg(eax|T_nf); sdump("");
+
+            // imul_2op
+            imul(r30|T_nf, rax); sdump("");
+            imul(rcx|T_nf, rax); sdump("");
+            neg(r30|T_nf, rax); sdump("");
+            neg(rcx|T_nf, rax); sdump("");
+
+            // imul_zu
+            imul(ax|T_zu, cx, 0x1234); sdump("");
+            imul(ax|T_nf, cx, 0x1234); sdump("");
+            imul(ax|T_zu|T_nf, cx, 0x1234); sdump("");
+            imul(r30|T_zu, rax, 0x12345678); sdump("");
+            imul(r30|T_nf, rax, 0x12345678); sdump("");
+            imul(r30|T_nf|T_zu, rax, 0x12345678); sdump("");
+
+            // lzcnt
+            lzcnt(r16|T_nf, r17); sdump("");
+            lzcnt(rax|T_nf, rcx); sdump("");
+            tzcnt(r16|T_nf, r17); sdump("");
+            tzcnt(rax|T_nf, rcx); sdump("");
+            popcnt(r16|T_nf, r17); sdump("");
+            popcnt(rax|T_nf, rcx); sdump("");
+
+            // shld
+            shld(rax|T_nf, rcx, cl); sdump("");
+            shld(r16|T_nf, rcx, 0x9); sdump("");
+            shld(r20|T_nf, r16, rcx, cl); sdump("");
+            shld(r20|T_nf, r16, rcx, 0x9); sdump("");
+            shrd(rax|T_nf, rcx, cl); sdump("");
+            shrd(r16|T_nf, rcx, 0x9); sdump("");
+            shrd(r20|T_nf, r16, rcx, cl); sdump("");
+            shrd(r20|T_nf, r16, rcx, 0x9); sdump("");
+
+            // mov_misc
+            setb(r31b|T_zu); sdump("");
+            setb(r15b|T_zu); sdump("");
+
+            // shift_2op
+            shl(r16|T_nf, cl); sdump("");
+            shr(r16|T_nf, cl); sdump("");
+            sar(r16|T_nf, cl); sdump("");
+            ror(r16|T_nf, cl); sdump("");
+            rol(r16|T_nf, cl); sdump("");
 
         }
     }
