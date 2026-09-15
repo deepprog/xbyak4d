@@ -3730,26 +3730,19 @@ else
     }
     void opPushPop(Operand op, int code, int ext, int alt)
     {
-        if (op.isREG() && op.hasRex2()) {
-            Reg r = cast(Reg) op;
-            rex2(0, 0, Reg(), r);
-            db(alt | (r.getIdx() & 7));
-            return;
-        }
         int bit = op.getBit();
-        if (bit == 16 || bit == BIT) {
-            if (bit == 16) db(0x66);
-            if (op.isREG()) {
-                if (op.getReg().getIdx() >= 8) db(0x41);
-                db(alt | (op.getIdx() & 7));
-                return;
-            }
-            if (op.isMEM()) {
-                opMR(op.getAddress(), Reg(ext, REG, 32), T_ALLOW_DIFF_SIZE, code);
-                return;
-            }
+        if (bit != 16 && bit != BIT) {
+            mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
         }
-        mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
+        if (bit == 16) db(0x66);
+        if (op.isREG()) {
+            setRex(0, Reg(), op.getReg(), Reg(), 0); // 0x41 or REX2 if necessary
+            db(alt | (op.getIdx() & 7));
+        } else if (op.isMEM()) {
+            opMR(op.getAddress(), Reg(ext, REG, 32), T_ALLOW_DIFF_SIZE, code);
+        } else {
+            mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
+        }
     }
 version(XBYAK64)
 {
