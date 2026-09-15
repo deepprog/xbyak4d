@@ -3015,8 +3015,8 @@ static const uint64_t T_B16 = T_B32 | T_B64; // m16bcst
 static const uint64_t T_M_K = 1uL << 23; // mem{k}
 static const uint64_t T_VSIB = 1uL << 24;
 static const uint64_t T_NF = 1uL << 25; // T_nf
-static const uint64_t T_CODE1_IF1 = 1uL << 26; // code|=1 if !r.isBit(8)
-static const uint64_t T_NO_CODE1 = 1uL << 27; // marker to suppress the default code|=1 of writeCode() for a legacy insn whose type has no other bits (lds/les)
+static const uint64_t T_OP_W1 = 1uL << 26; // opcode bit0 is the w (operand-size) bit; code|=1 unless the operand is 8-bit
+static const uint64_t T_OP_W0 = 1uL << 27; // the opcode has no w bit; suppress the default code|=1 of writeCode() (lds/les)
 static const uint64_t T_ND1 = 1uL << 28; // ND=1
 static const uint64_t T_ZU = 1uL << 29; // ND=ZU
 static const uint64_t T_SENTRY = (1uL << 30)-1; // attribute(>=T_SENTRY) is for error check
@@ -3309,7 +3309,7 @@ version (XBYAK64)
                     break;
             }
         }
-        db(code | (((type & T_SENTRY) == 0 || (type & T_CODE1_IF1)) && !r.isBit(8)));
+        db(code | (((type & T_SENTRY) == 0 || (type & T_OP_W1)) && !r.isBit(8)));
     }
     void opRR(Reg r1, Reg r2, uint64_t type, int code)
     {
@@ -3605,7 +3605,7 @@ version (XBYAK64)
         if (d && op.getBit() != 0 && d.getBit() != op.getBit()) {
             mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
         }
-        uint64_t type = T_APX|T_CODE1_IF1;
+        uint64_t type = T_APX|T_OP_W1;
         if (ext & 8) type |= T_NF;
         if (d) type |= T_ND1;
         opRext(op, 0, ext&7, type, code, false, immSize, d);
@@ -3624,7 +3624,7 @@ version (XBYAK64)
         if (d && op.getBit() != 0 && d.getBit() != op.getBit()) {
             mixin(XBYAK_THROW(ERR_BAD_SIZE_OF_REGISTER));
         }
-        uint64_t type = T_APX|T_CODE1_IF1; if (ext & 8) type |= T_NF; if (d) type |= T_ND1;
+        uint64_t type = T_APX|T_OP_W1; if (ext & 8) type |= T_NF; if (d) type |= T_ND1;
         opRext(op, 0, ext&7, type, 0xD2, false, 0, d);
     }
     // condR assumes that op.isREG() is true
@@ -4184,13 +4184,13 @@ version (XBYAK_DISABLE_AVX512)
     void opCcmp(Operand op1, Operand op2, int dfv, int code, int sc) // cmp = 0x38, test = 0x84
     {
         verifyDfv(dfv);
-        opROO(Reg(15 - dfv, REG, (op1.getBit() | op2.getBit())), op1, op2, T_APX|T_CODE1_IF1, code, 0, sc);
+        opROO(Reg(15 - dfv, REG, (op1.getBit() | op2.getBit())), op1, op2, T_APX|T_OP_W1, code, 0, sc);
     }
     void opCcmpi(Operand op, int imm, int dfv, int sc)
     {
         verifyDfv(dfv);
         verifyMemHasSize(op);
-        opROI(Reg(15 - dfv, REG, op.getBit()), op, imm, T_APX|T_CODE1_IF1, 15, sc);
+        opROI(Reg(15 - dfv, REG, op.getBit()), op, imm, T_APX|T_OP_W1, 15, sc);
     }
     void opTesti(Operand op, int imm, int dfv, int sc)
     {
@@ -4200,7 +4200,7 @@ version (XBYAK_DISABLE_AVX512)
             mixin(XBYAK_THROW(ERR_MEM_SIZE_IS_NOT_SPECIFIED));
         }
         int immBit = min(opBit, 32U);
-        opROO(Reg(15 - dfv, REG, opBit), op, Reg(0, REG, opBit), T_APX|T_CODE1_IF1, 0xF6, immBit / 8, sc);
+        opROO(Reg(15 - dfv, REG, opBit), op, Reg(0, REG, opBit), T_APX|T_OP_W1, 0xF6, immBit / 8, sc);
         db(imm, immBit / 8);
     }
     void opCfcmov(Reg d, Operand op1, Operand op2, int code)
@@ -4961,8 +4961,8 @@ void adcx(Reg32e reg, Operand op)
 }
 void add(Operand op, uint32_t imm) { opOI(op, imm, 0x00, 0); }
 void add(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x00); }
-void add(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_CODE1_IF1, 0); }
-void add(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_CODE1_IF1, 0x00); }
+void add(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_OP_W1, 0); }
+void add(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_OP_W1, 0x00); }
 void addpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x58, &isXMM_XMMorMEM); }
 void addps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x58, &isXMM_XMMorMEM); }
 void addsd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_F2, 0x58, &isXMM_XMMorMEM); }
@@ -4986,8 +4986,8 @@ void aesimc(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F38|T_W0, 0xDB, &isXMM
 void aeskeygenassist(Xmm xmm, Operand op, uint8_t imm) { opSSE(xmm, op, T_66|T_0F3A, 0xDF, &isXMM_XMMorMEM, imm); }
 void and_(Operand op, uint32_t imm) { opOI(op, imm, 0x20, 4); }
 void and_(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x20); }
-void and_(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_CODE1_IF1, 4); }
-void and_(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_CODE1_IF1, 0x20); }
+void and_(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_OP_W1, 4); }
+void and_(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_OP_W1, 0x20); }
 void andn(Reg32e r1, Reg32e r2, Operand op) { opRRO(r1, r2, op, T_APX|T_0F38|T_NF, 0xf2); }
 void andnpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x55, &isXMM_XMMorMEM); }
 void andnps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x55, &isXMM_XMMorMEM); }
@@ -5324,7 +5324,7 @@ void cwde() { db(0x98); }
 
 void dec(Operand op) { opIncDec(Reg(), op, 1); }
 void dec(Reg d, Operand op) { opIncDec(d, op, 1); }
-void div(Operand op) { opRext(op, 0, 6, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
+void div(Operand op) { opRext(op, 0, 6, T_APX|T_NF|T_OP_W1, 0xF6); }
 void divpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x5E, &isXMM_XMMorMEM); }
 void divps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x5E, &isXMM_XMMorMEM); }
 void divsd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_F2, 0x5E, &isXMM_XMMorMEM); }
@@ -5506,8 +5506,8 @@ void hlt() { db(0xF4); }
 void hsubpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_66|T_0F|T_YMM, 0x7D, &isXMM_XMMorMEM); }
 void hsubps(Xmm xmm, Operand op) { opSSE(xmm, op, T_F2|T_0F|T_YMM, 0x7D, &isXMM_XMMorMEM); }
 
-void idiv(Operand op) { opRext(op, 0, 7, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
-void imul(Operand op) { opRext(op, 0, 5, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
+void idiv(Operand op) { opRext(op, 0, 7, T_APX|T_NF|T_OP_W1, 0xF6); }
+void imul(Operand op) { opRext(op, 0, 5, T_APX|T_NF|T_OP_W1, 0xF6); }
 void imul(Reg d, Reg reg, Operand op) { opROO(d, op, reg, T_APX|T_ND1|T_NF, 0xAF); }
 void imul(Reg reg, Operand op)
 {
@@ -5784,7 +5784,7 @@ void movups(Address addr, Xmm xmm) { opSSE(xmm, addr, T_0F|T_NONE, 0x11); }
 void movups(Xmm xmm, Operand op) { opMMX(xmm, op, 0x10, T_0F, T_NONE); }
 void movzx(Reg reg, Operand op) { opMovxx(reg, op, 0xB6); }
 void mpsadbw(Xmm xmm, Operand op, int imm) { opSSE(xmm, op, T_66 | T_0F3A, 0x42, &isXMM_XMMorMEM, cast(uint8_t) imm); }
-void mul(Operand op) { opRext(op, 0, 4, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
+void mul(Operand op) { opRext(op, 0, 4, T_APX|T_NF|T_OP_W1, 0xF6); }
 void mulpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x59, &isXMM_XMMorMEM); }
 void mulps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x59, &isXMM_XMMorMEM); }
 void mulsd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_F2, 0x59, &isXMM_XMMorMEM); }
@@ -5793,15 +5793,15 @@ void mulx(Reg32e r1, Reg32e r2, Operand op) { opRRO(r1, r2, op, T_APX|T_F2|T_0F3
 void mwait() { db(0x0F); db(0x01); db(0xC9); }
 void mwaitx() { db(0x0F); db(0x01); db(0xFB); }
 
-void neg(Operand op) { opRext(op, 0, 3, T_APX|T_NF|T_CODE1_IF1, 0xF6); }
-void neg(Reg d, Operand op) { opROO(d, op, Reg(3, REG, d.getBit()), T_APX|T_NF|T_CODE1_IF1|T_ND1, 0xF6); }
-void not_(Operand op) { opRext(op, 0, 2, T_APX|T_CODE1_IF1, 0xF6); }
-void not_(Reg d, Operand op) { opROO(d, op, Reg(2, REG, d.getBit()), T_APX|T_CODE1_IF1|T_ND1, 0xF6); }
+void neg(Operand op) { opRext(op, 0, 3, T_APX|T_NF|T_OP_W1, 0xF6); }
+void neg(Reg d, Operand op) { opROO(d, op, Reg(3, REG, d.getBit()), T_APX|T_NF|T_OP_W1|T_ND1, 0xF6); }
+void not_(Operand op) { opRext(op, 0, 2, T_APX|T_OP_W1, 0xF6); }
+void not_(Reg d, Operand op) { opROO(d, op, Reg(2, REG, d.getBit()), T_APX|T_OP_W1|T_ND1, 0xF6); }
 
 void or_(Operand op, uint32_t imm) { opOI(op, imm, 0x08, 1); }
 void or_(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x08); }
-void or_(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_CODE1_IF1, 1); }
-void or_(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_CODE1_IF1, 0x08); }
+void or_(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_OP_W1, 1); }
+void or_(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_OP_W1, 0x08); }
 void orpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x56, &isXMM_XMMorMEM); }
 void orps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x56, &isXMM_XMMorMEM); }
 void out_(Reg d, Reg a) { opInOut(a, d, 0xEE); }
@@ -6113,8 +6113,8 @@ void stosd() { db(0xAB); }
 void stosw() { db(0x66); db(0xAB); }
 void sub(Operand op, uint32_t imm) { opOI(op, imm, 0x28, 5); }
 void sub(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x28); }
-void sub(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_CODE1_IF1, 5); }
-void sub(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_CODE1_IF1, 0x28); }
+void sub(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_OP_W1, 5); }
+void sub(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_OP_W1, 0x28); }
 void subpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x5C, &isXMM_XMMorMEM); }
 void subps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x5C, &isXMM_XMMorMEM); }
 void subsd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_F2, 0x5C, &isXMM_XMMorMEM); }
@@ -7053,8 +7053,8 @@ void xgetbv() { db(0x0F); db(0x01); db(0xD0); }
 void xlatb() { db(0xD7); }
 void xor_(Operand op, uint32_t imm) { opOI(op, imm, 0x30, 6); }
 void xor_(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x30); }
-void xor_(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_CODE1_IF1, 6); }
-void xor_(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_CODE1_IF1, 0x30); }
+void xor_(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NF|T_OP_W1, 6); }
+void xor_(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NF|T_OP_W1, 0x30); }
 void xorpd(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F | T_66, 0x57, &isXMM_XMMorMEM); }
 void xorps(Xmm xmm, Operand op) { opSSE(xmm, op, T_0F, 0x57, &isXMM_XMMorMEM); }
 void xresldtrk() { db(0xF2); db(0x0F); db(0x01); db(0xE9); }
@@ -7463,8 +7463,8 @@ else
     void pushad() { db(0x60); }
     void pushfd() { db(0x9C); }
     void popa() { db(0x61); }
-    void lds(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NO_CODE1|T_ALLOW_DIFF_SIZE, 0xC5); }
-    void les(Reg reg, Address addr) { opLoadSeg(addr, reg, T_NO_CODE1|T_ALLOW_DIFF_SIZE, 0xC4); }
+    void lds(Reg reg, Address addr) { opLoadSeg(addr, reg, T_OP_W0|T_ALLOW_DIFF_SIZE, 0xC5); }
+    void les(Reg reg, Address addr) { opLoadSeg(addr, reg, T_OP_W0|T_ALLOW_DIFF_SIZE, 0xC4); }
 }
 
 version (XBYAK_NO_OP_NAMES)
