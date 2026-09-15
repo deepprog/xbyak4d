@@ -2900,10 +2900,11 @@ else
     {
         uint8_t rex = rexRXB(3, w, r, b, x);
         if (r.hasRex2() || b.hasRex2() || x.hasRex2()) {
-            if (type & (T_0F38|T_0F3A)) {
+            uint32_t map = getMap(type);
+            if (map == 2 || map == 3) {
                 mixin(XBYAK_THROW_RET(ERR_CANT_USE_REX2, "false"));
             }
-            rex2(!!(type & T_0F), w, r, b, x);
+            rex2(map == 1, w, r, b, x);
             return true;
         }
         if (rex || r.isExt8bit() || b.isExt8bit() || x.isExt8bit()) rex |= 0x40;
@@ -2966,7 +2967,7 @@ else
     }
 
 static const uint64_t T_NONE = 0;
-// low 3 bit
+// N field (bit0-2) : disp8N = 1 << (value - 1), T_DUP is a sentinel
 static const uint64_t T_N1 = 1uL;
 static const uint64_t T_N2 = 2uL;
 static const uint64_t T_N4 = 3uL;
@@ -2974,46 +2975,52 @@ static const uint64_t T_N8 = 4uL;
 static const uint64_t T_N16 = 5uL;
 static const uint64_t T_N32 = 6uL;
 static const uint64_t T_NX_MASK = 7uL;
-static const uint64_t T_DUP = T_NX_MASK; // 1 << 4, // N = (8, 32, 64)
+static const uint64_t T_DUP = T_NX_MASK; // N = (8, 32, 64)
 static const uint64_t T_N_VL = 1uL << 3; // N * (1, 2, 4) for VL
 static const uint64_t T_APX = 1uL << 4;
+// pp : one bit each (not a 2-bit field) because rex() emits 0x66 and 0xF2/0xF3 independently (e.g. crc32 uses T_66|T_F2)
 static const uint64_t T_66 = 1uL << 5; // pp = 1
 static const uint64_t T_F3 = 1uL << 6; // pp = 2
-static const uint64_t T_ER_R = 1uL << 7; // reg{er}
+static const uint64_t T_F2 = 1uL << 7; // pp = 3
+// map field (bit8-10) : the value is the same as the EVEX mmm field
 static const uint64_t T_0F = 1uL << 8;
-static const uint64_t T_0F38 = 1uL << 9;
-static const uint64_t T_0F3A = 1uL << 10;
-static const uint64_t T_MAP5 = 1uL << 11;
-static const uint64_t T_L1 = 1uL << 12;
-static const uint64_t T_W0 = 1uL << 13; // T_EW0 = T_W0
-static const uint64_t T_W1 = 1uL << 14; // for VEX
 
+static const uint64_t T_0F38 = 2uL << 8;
+static const uint64_t T_0F3A = 3uL << 8;
+static const uint64_t T_MAP5 = 5uL << 8;
+static const uint64_t T_MAP6 = 6uL << 8;
+static const uint64_t T_MAP_MASK = 7uL << 8;
+// er/sae field (bit11-13) : an insn has at most one of these
+static const uint64_t T_ER_X = 1uL << 11; // xmm{er}
+static const uint64_t T_ER_Y = 2uL << 11; // ymm{er}
+static const uint64_t T_ER_Z = 3uL << 11; // zmm{er}
+static const uint64_t T_ER_R = 4uL << 11; // reg{er}
+static const uint64_t T_SAE_X = 5uL << 11; // xmm{sae}
+static const uint64_t T_SAE_Y = 6uL << 11; // ymm{sae}
+static const uint64_t T_SAE_Z = 7uL << 11; // zmm{sae}
+static const uint64_t T_ER_SAE_MASK = 7uL << 11;
+static const uint64_t T_W0 = 1uL << 14; // T_EW0 = T_W0
+static const uint64_t T_W1 = 1uL << 15; // for VEX
 static const uint64_t T_EW1 = 1uL << 16; // for EVEX
-static const uint64_t T_YMM = 1uL << 17; // support YMM, ZMM
-static const uint64_t T_EVEX = 1uL << 18;
-static const uint64_t T_ER_X = 1uL << 19; // xmm{er}
-static const uint64_t T_ER_Y = 1uL << 20; // ymm{er}
-static const uint64_t T_ER_Z = 1uL << 21; // zmm{er}
-static const uint64_t T_SAE_X = 1uL << 22; // xmm{sae}
-static const uint64_t T_SAE_Y = 1uL << 23; // ymm{sae}
-static const uint64_t T_SAE_Z = 1uL << 24; // zmm{sae}
-static const uint64_t T_MUST_EVEX = 1uL << 25; // contains T_EVEX
-static const uint64_t T_B32 = 1uL << 26; // m32bcst
-static const uint64_t T_B64 = 1uL << 27; // m64bcst
-static const uint64_t T_B16 = T_B32 | T_B64; // m16bcst (Be carefuL)
-static const uint64_t T_M_K = 1uL << 28; // mem{k}
-static const uint64_t T_VSIB = 1uL << 29;
-static const uint64_t T_MEM_EVEX = 1uL << 30; // use evex if mem
-static const uint64_t T_MAP6 = 1uL << 31;
-static const uint64_t T_NF = 1uL << 32; // T_nf
-static const uint64_t T_CODE1_IF1 = 1uL << 33; // code|=1 if !r.isBit(8)
-static const uint64_t T_NO_CODE1 = 1uL << 34; // marker to suppress the default code|=1 of writeCode() for a legacy insn whose type has no other bits (lds/les)
-static const uint64_t T_ND1 = 1uL << 35; // ND=1
-static const uint64_t T_ZU = 1uL << 36; // ND=ZU
-static const uint64_t T_F2 = 1uL << 37; // pp = 3
-static const uint64_t T_SENTRY = (1uL << 38) - 1; // attribute(>=T_SENTRY) is for error check
-static const uint64_t T_ALLOW_DIFF_SIZE = 1uL << 38; // allow difference reg size
-static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
+static const uint64_t T_L1 = 1uL << 17;
+static const uint64_t T_YMM = 1uL << 18; // support YMM, ZMM
+static const uint64_t T_EVEX = 1uL << 19;
+static const uint64_t T_MUST_EVEX = 1uL << 20; // contains T_EVEX
+static const uint64_t T_MEM_EVEX = 1uL << 21; // use evex if mem
+// broadcast field (bit22-23)
+static const uint64_t T_B32 = 1uL << 22; // m32bcst
+static const uint64_t T_B64 = 2uL << 22; // m64bcst
+static const uint64_t T_B16 = T_B32 | T_B64; // m16bcst
+static const uint64_t T_M_K = 1uL << 24; // mem{k}
+static const uint64_t T_VSIB = 1uL << 25;
+static const uint64_t T_NF = 1uL << 26; // T_nf
+static const uint64_t T_CODE1_IF1 = 1uL << 27; // code|=1 if !r.isBit(8)
+static const uint64_t T_NO_CODE1 = 1uL << 28; // marker to suppress the default code|=1 of writeCode() for a legacy insn whose type has no other bits (lds/les)
+static const uint64_t T_ND1 = 1uL << 29; // ND=1
+static const uint64_t T_ZU = 1uL << 30; // ND=ZU
+static const uint64_t T_SENTRY = (1uL << 31)-1; // attribute(>=T_SENTRY) is for error check
+static const uint64_t T_ALLOW_DIFF_SIZE = 1uL << 31; // allow difference reg size
+static const uint64_t T_ALLOW_ABCDH = 1uL << 32; // allow [abcd]h reg
 
     // T_66 = 1, T_F3 = 2, T_F2 = 3
     pragma(inline, true);
@@ -3023,12 +3030,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
     }
 
     pragma(inline, true);
-    uint32_t getMap(uint64_t type)
-    {
-        if (type & T_MAP6) return 6;
-        if (type & T_MAP5) return 5;
-        return (type & T_0F) ? 1 : (type & T_0F38) ? 2 : (type & T_0F3A) ? 3 : 0;
-    }
+    uint32_t getMap(uint64_t type) { return cast(uint32_t)((type & T_MAP_MASK) >> 8); }
 
     void vex(Reg reg, Reg base, Operand v, uint64_t type, int code, bool x = false)
     {
@@ -3042,27 +3044,30 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 39; // allow [abcd]h reg
         }
         uint32_t pp = getPP(type);
         uint32_t vvvv = (((~idx) & 15) << 3) | (is256 ? 4 : 0) | pp;
-        if (!b && !x && !w && (type & T_0F)) {
-            db(0xC5); db((r ? 0 : 0x80) | vvvv);
+        if (!b && !x && !w && getMap(type) == 1) {
+            db(0xC5);
+            db((r ? 0 : 0x80) | vvvv);
         } else {
             uint32_t mmmm = getMap(type);
-            db(0xC4); db((r ? 0 : 0x80) | (x ? 0 : 0x40) | (b ? 0 : 0x20) | mmmm); db((w << 7) | vvvv);
+            db(0xC4);
+            db((r ? 0 : 0x80) | (x ? 0 : 0x40) | (b ? 0 : 0x20) | mmmm);
+            db((w << 7) | vvvv);
         }
         db(code);
     }
 
     void verifySAE(Reg r, uint64_t type) const
     {
-        if (((type & T_SAE_X) && r.isXMM()) ||
-            ((type & T_SAE_Y) && r.isYMM()) ||
-            ((type & T_SAE_Z) && r.isZMM())) return;
+        uint64_t v = type & T_ER_SAE_MASK;
+        if ((v == T_SAE_X && r.isXMM()) || (v == T_SAE_Y && r.isYMM()) || (v == T_SAE_Z && r.isZMM())) return;
         mixin(XBYAK_THROW(ERR_SAE_IS_INVALID));
     }
 
     void verifyER(Reg r, uint64_t type) const
     {
-        if ((type & T_ER_R) && r.isREG(32|64)) return;
-        if (((type & T_ER_X) && r.isXMM()) || ((type & T_ER_Y) && r.isYMM()) || ((type & T_ER_Z) && r.isZMM())) return;
+        uint64_t v = type & T_ER_SAE_MASK;
+        if (v == T_ER_R && r.isREG(32|64)) return;
+        if ((v == T_ER_X && r.isXMM()) || (v == T_ER_Y && r.isYMM()) || (v == T_ER_Z && r.isZMM())) return;
         mixin(XBYAK_THROW(ERR_ER_IS_INVALID));
     }
     // (a, b, c) contains non zero two or three values then err
@@ -3284,13 +3289,23 @@ version (XBYAK64)
     // opROO passes d here, which is often Reg() (bit=0), assuming that !r.isBit(8) is true then.
     void writeCode(uint64_t type, Reg r, int code, bool rex2 = false)
     {
-        if (!(type & T_APX || rex2)) {
-            if (type & T_0F) {
-                db(0x0F);
-            } else if (type & T_0F38) {
-                db(0x0F); db(0x38);
-            } else if (type & T_0F3A) {
-                db(0x0F); db(0x3A);
+        if (!(type & T_APX || rex2))
+        {
+            switch (getMap(type))
+            {
+                case 1:
+                    db(0x0F);
+                    break;
+                case 2:
+                    db(0x0F);
+                    db(0x38);
+                    break;
+                case 3:
+                    db(0x0F);
+                    db(0x3A);
+                    break;
+                default:
+                    break;
             }
         }
         db(code | (((type & T_SENTRY) == 0 || (type & T_CODE1_IF1)) && !r.isBit(8)));
@@ -3945,6 +3960,8 @@ version(XBYAK64)
         }
         opCvt(x, op, type, code);
     }
+    // type is or-merged with type64/type32, so a packed field (N, map, er/sae, broadcast) must not have
+    // different non-zero values on both sides (checked by checkTypeMergeable() in the generator)
     void opCvt3(Xmm x1, Xmm x2, Operand op, uint64_t type, uint64_t type64, uint64_t type32, uint8_t code)
     {
         if (!(x1.isXMM() && x2.isXMM() && (op.isREG(i32e) || op.isMEM()))) {
@@ -4081,6 +4098,8 @@ version(XBYAK64)
         }
         opVex(x, null, addr, type, code);
     }
+    // type is or-merged with typeVex/typeEvex, so a packed field (N, map, er/sae, broadcast) must not have
+    // different non-zero values on both sides (checked by checkTypeMergeable() in the generator)
     void opEncoding(
         Xmm x1,
         Xmm x2,
@@ -4092,7 +4111,7 @@ version(XBYAK64)
         uint64_t typeVex = 0,
         uint64_t typeEvex = 0,
         int sel = 0
-        )
+    )
     {
         opAVX_X_X_XM(x1, x2, op, type | orEvexIf(encoding, typeVex, typeEvex, sel), code, imm);
     }
