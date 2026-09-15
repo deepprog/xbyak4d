@@ -3707,10 +3707,7 @@ version (XBYAK64)
 version (XBYAK64)
 {
         if (d.isREG()) {
-            int code = d.isBit(8) ? 0xFE : 0xFF;
-            uint64_t type = T_APX|T_NF|T_ND1;
-            if (d.isBit(16)) type |= T_66;
-            opROO(d, op, Reg(ext, REG, d.getBit()), type, code);
+            opROO(d, op, Reg(ext, REG, d.getBit()), T_APX|T_NF|T_ND1|T_OP_W1, 0xFE);
             return;
         }
 }
