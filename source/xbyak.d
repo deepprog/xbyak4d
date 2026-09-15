@@ -2109,6 +2109,10 @@ public:
     }
     void db(int code)
     {
+version(XBYAK_NO_EXCEPTION)
+{
+        if (local.GetErrorRef()) return;
+}
         if (size_ >= maxSize_) {
             if (type_ == AUTO_GROW) {
                 growMemory();
