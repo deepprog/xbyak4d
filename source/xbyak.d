@@ -4257,22 +4257,6 @@ version (XBYAK64)
         if (opROO(Reg(), p2, p1, T_APX|type, code)) return;
         opVex(cast(Reg) p1, null, p2, type, code);
     }
-    void opEncodeKey(Reg32 r1, Reg32 r2, uint8_t code1, uint8_t code2)
-    {
-        if (r1.getIdx() < 8 && r2.getIdx() < 8) {
-            db(0xF3); db(0x0F); db(0x38); db(code1); setModRM(3, r1.getIdx(), r2.getIdx());
-            return;
-        }
-        opROO(Reg(), r2, r1, T_MUST_EVEX|T_F3, code2);
-    }
-    void opSSE_APX(Xmm x, Operand op, uint64_t type1, uint8_t code1, uint64_t type2, uint8_t code2, int imm = NONE)
-    {
-        if (x.getIdx() <= 15 && op.hasRex2() && opROO(Reg(), op, x, type2, code2, imm != NONE ? 1 : 0)) {
-            if (imm != NONE) db(imm);
-            return;
-        }
-        opSSE(x, op, type1, code1, &isXMM_XMMorMEM, imm);
-    }
     // AVX10 zero-extending for vmovd, vmovw
     void opAVX10ZeroExt(Operand op1, Operand op2, uint64_t[4] typeTbl, int[4] codeTbl, PreferredEncoding enc, int bit)
     {
@@ -6062,13 +6046,13 @@ void setpo(Operand op) { opSetCC(op, 11); }
 void sets(Operand op) { opSetCC(op, 8); }
 void setz(Operand op) { opSetCC(op, 4); }
 void sfence() { db(0x0F); db(0xAE); db(0xF8); }
-void sha1msg1(Xmm x, Operand op) { opSSE_APX(x, op, T_0F38, 0xC9, T_MUST_EVEX, 0xD9); }
-void sha1msg2(Xmm x, Operand op) { opSSE_APX(x, op, T_0F38, 0xCA, T_MUST_EVEX, 0xDA); }
-void sha1nexte(Xmm x, Operand op) { opSSE_APX(x, op, T_0F38, 0xC8, T_MUST_EVEX, 0xD8); }
-void sha1rnds4(Xmm x, Operand op, uint8_t imm) { opSSE_APX(x, op, T_0F3A, 0xCC, T_MUST_EVEX, 0xD4, imm); }
-void sha256msg1(Xmm x, Operand op) { opSSE_APX(x, op, T_0F38, 0xCC, T_MUST_EVEX, 0xDC); }
-void sha256msg2(Xmm x, Operand op) { opSSE_APX(x, op, T_0F38, 0xCD, T_MUST_EVEX, 0xDD); }
-void sha256rnds2(Xmm x, Operand op) { opSSE_APX(x, op, T_0F38, 0xCB, T_MUST_EVEX, 0xDB); }
+void sha1msg1(Xmm x, Operand op) { opSSE(x, op, T_0F38, 0xC9, &isXMM_XMMorMEM); }
+void sha1msg2(Xmm x, Operand op) { opSSE(x, op, T_0F38, 0xCA, &isXMM_XMMorMEM); }
+void sha1nexte(Xmm x, Operand op) { opSSE(x, op, T_0F38, 0xC8, &isXMM_XMMorMEM); }
+void sha1rnds4(Xmm x, Operand op, uint8_t imm) { opSSE(x, op, T_0F3A, 0xCC, &isXMM_XMMorMEM, imm); }
+void sha256msg1(Xmm x, Operand op) { opSSE(x, op, T_0F38, 0xCC, &isXMM_XMMorMEM); }
+void sha256msg2(Xmm x, Operand op) { opSSE(x, op, T_0F38, 0xCD, &isXMM_XMMorMEM); }
+void sha256rnds2(Xmm x, Operand op) { opSSE(x, op, T_0F38, 0xCB, &isXMM_XMMorMEM); }
 void shl(Operand op, Reg8 _cl) { opShift(op, _cl, 12); }
 void shl(Operand op, int imm) { opShift(op, imm, 12); }
 void shl(Reg d, Operand op, Reg8 _cl) { opShift(op, _cl, 12, d); }
@@ -7398,16 +7382,16 @@ version (XBYAK64)
     void cmppxadd(Address addr, Reg32e r1, Reg32e r2) { opRRO(r1, r2, addr, T_APX|T_66|T_0F38, 0xEA); }
     void cmpsxadd(Address addr, Reg32e r1, Reg32e r2) { opRRO(r1, r2, addr, T_APX|T_66|T_0F38, 0xE8); }
     void cmpzxadd(Address addr, Reg32e r1, Reg32e r2) { opRRO(r1, r2, addr, T_APX|T_66|T_0F38, 0xE4); }
-    void aesdec128kl(Xmm x, Address addr) { opSSE_APX(x, addr, T_F3|T_0F38, 0xDD, T_F3|T_MUST_EVEX, 0xDD); }
-    void aesdec256kl(Xmm x, Address addr) { opSSE_APX(x, addr, T_F3|T_0F38, 0xDF, T_F3|T_MUST_EVEX, 0xDF); }
-    void aesdecwide128kl(Address addr) { opSSE_APX(xmm1, addr, T_F3|T_0F38, 0xD8, T_F3|T_MUST_EVEX, 0xD8); }
-    void aesdecwide256kl(Address addr) { opSSE_APX(xmm3, addr, T_F3|T_0F38, 0xD8, T_F3|T_MUST_EVEX, 0xD8); }
-    void aesenc128kl(Xmm x, Address addr) { opSSE_APX(x, addr, T_F3|T_0F38, 0xDC, T_F3|T_MUST_EVEX, 0xDC); }
-    void aesenc256kl(Xmm x, Address addr) { opSSE_APX(x, addr, T_F3|T_0F38, 0xDE, T_F3|T_MUST_EVEX, 0xDE); }
-    void aesencwide128kl(Address addr) { opSSE_APX(xmm0, addr, T_F3|T_0F38, 0xD8, T_F3|T_MUST_EVEX, 0xD8); }
-    void aesencwide256kl(Address addr) { opSSE_APX(xmm2, addr, T_F3|T_0F38, 0xD8, T_F3|T_MUST_EVEX, 0xD8); }
-    void encodekey128(Reg32 r1, Reg32 r2) { opEncodeKey(r1, r2, 0xFA, 0xDA); }
-    void encodekey256(Reg32 r1, Reg32 r2) { opEncodeKey(r1, r2, 0xFB, 0xDB); }
+    void aesdec128kl(Xmm x, Address addr) { opSSE(x, addr, T_F3|T_0F38, 0xDD, &isXMM_XMMorMEM); }
+    void aesdec256kl(Xmm x, Address addr) { opSSE(x, addr, T_F3|T_0F38, 0xDF, &isXMM_XMMorMEM); }
+    void aesdecwide128kl(Address addr) { opSSE(xmm1, addr, T_F3|T_0F38, 0xD8, &isXMM_XMMorMEM); }
+    void aesdecwide256kl(Address addr) { opSSE(xmm3, addr, T_F3|T_0F38, 0xD8, &isXMM_XMMorMEM); }
+    void aesenc128kl(Xmm x, Address addr) { opSSE(x, addr, T_F3|T_0F38, 0xDC, &isXMM_XMMorMEM); }
+    void aesenc256kl(Xmm x, Address addr) { opSSE(x, addr, T_F3|T_0F38, 0xDE, &isXMM_XMMorMEM); }
+    void aesencwide128kl(Address addr) { opSSE(xmm0, addr, T_F3|T_0F38, 0xD8, &isXMM_XMMorMEM); }
+    void aesencwide256kl(Address addr) { opSSE(xmm2, addr, T_F3|T_0F38, 0xD8, &isXMM_XMMorMEM); }
+    void encodekey128(Reg32 r1, Reg32 r2) { opRR(r1, r2, T_F3|T_0F38, 0xFA); }
+    void encodekey256(Reg32 r1, Reg32 r2) { opRR(r1, r2, T_F3|T_0F38, 0xFB); }
     void rdfsbase(Reg32e r) { opRR(eax, r, T_F3|T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
     void rdgsbase(Reg32e r) { opRR(ecx, r, T_F3|T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
     void wrfsbase(Reg32e r) { opRR(edx, r, T_F3|T_0F|T_ALLOW_DIFF_SIZE, 0xAE); }
