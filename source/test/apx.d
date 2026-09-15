@@ -1361,6 +1361,33 @@ void base()
 	}
 }
 
+// negative tests for the operand guard of push/pop (8/32-bit are invalid in 64-bit mode)
+@("push_pop_bad_combination")
+unittest
+{
+	push_pop_bad_combination();
+}
+
+void push_pop_bad_combination()
+{
+	scope tc = TestCount(__FUNCTION__);
+	class Code : CodeGenerator {
+		this(ref TestCount tc)
+		{
+			tc.TEST_EXCEPTION!Exception({ push(r16b); });
+			tc.TEST_EXCEPTION!Exception({ push(r16d); });
+			tc.TEST_EXCEPTION!Exception({ pop(r20b); });
+			tc.TEST_EXCEPTION!Exception({ pop(r20d); });
+			// same guard as the classic registers
+			tc.TEST_EXCEPTION!Exception({ push(al); });
+			tc.TEST_EXCEPTION!Exception({ push(eax); });
+			tc.TEST_EXCEPTION!Exception({ pop(cl); });
+			tc.TEST_EXCEPTION!Exception({ pop(edx); });
+		}
+	}
+	scope Code c = new Code(tc);
+}
+
 @("mov_misc")
 unittest
 {

@@ -465,6 +465,18 @@ version (XBYAK64)
             sdump("D5115E");
             pop(r31);
             sdump("D5115F");
+            push(r24w);
+            sdump("66D51150");
+            push(word[r16]);
+            sdump("66D510FF30");
+            push(qword[r24]);
+            sdump("D511FF30");
+            pop(r20w);
+            sdump("66D5105C");
+            pop(word[r24]);
+            sdump("66D5118F00");
+            pop(qword[r16]);
+            sdump("D5108F00");
 
             movrs(rcx, ptr[rax]);
             sdump("480F388B08");
