@@ -3667,30 +3667,31 @@ version (XBYAK64)
             opRO(cast(Reg)op2, op1, 0, code, op1.getKind() == op2.getKind());
         }
     }
-    bool isInDisp16(uint32_t x) const { return 0xFFFF8000 <= x || x <= 0x7FFF; }
     // allow add(ax, 0x8000);
     bool isInDisp16relaxed(uint32_t x) const { uint32_t v = x & 0xffff0000; return v == 0 || v == 0xffff0000; }
+    // size of imm to be encoded for op (8, 16 or 32)
     uint32_t getImmBit(Operand op, uint32_t imm)
     {
         verifyMemHasSize(op);
+        if (op.isBit(8)) return 8;
         uint32_t immBit = inner.IsInDisp8(imm) ? 8 : isInDisp16relaxed(imm) ? 16 : 32;
-        if (op.isBit(8)) immBit = 8;
         if (op.getBit() < immBit) {
             mixin(XBYAK_THROW_RET(ERR_IMM_IS_TOO_BIG, "0"));
         }
-        if (op.isBit(32|64) && immBit == 16) immBit = 32; /* don't use MEM16 if 32/64bit mode */
+        if (immBit == 16 && op.isBit(32|64)) immBit = 32; // don't use imm16 for 32/64-bit ops
         return immBit;
     }
+    // s bit of the 0x80 group : 0x83 = r/m, imm8 (sign-extended)
+    int getSbit(Operand op, uint32_t immBit) const { return (immBit == 8 && !op.isBit(8)) ? 2 : 0; }
     // (REG|MEM, IMM)
     void opOI(Operand op, uint32_t imm, int code, int ext)
     {
         uint32_t immBit = getImmBit(op, imm);
-        if (op.isREG() && op.getIdx() == 0 && (op.getBit() == immBit || (op.isBit(64) && immBit == 32))) { // rax, eax, ax, al
+        if (op.isREG() && op.getIdx() == 0 && immBit == (op.isBit(64) ? 32U : op.getBit())) { // short form for al/ax/eax/rax
             rex(op);
             db(code | 4 | (immBit == 8 ? 0 : 1));
         } else {
-            int tmp = immBit < min(op.getBit(), 32U) ? 2 : 0;
-            opRext(op, 0, ext, 0, 0x80 | tmp, false, immBit / 8);
+            opRext(op, 0, ext, 0, 0x80 | getSbit(op, immBit), false, immBit / 8);
         }
         db(imm, immBit / 8);
     }
@@ -3698,8 +3699,7 @@ version (XBYAK64)
     void opROI(Reg d, Operand op, uint32_t imm, uint64_t type, int ext, int sc = NONE)
     {
         uint32_t immBit = getImmBit(d, imm);
-        int code = immBit < min(d.getBit(), 32U) ? 2 : 0;
-        opROO(d, op, Reg(ext, REG, d.getBit()), type, 0x80 | code, immBit / 8, sc);
+        opROO(d, op, Reg(ext, REG, d.getBit()), type, 0x80 | getSbit(d, immBit), immBit / 8, sc);
         db(imm, immBit / 8);
     }
     void opIncDec(Reg d, Operand op, int ext)
