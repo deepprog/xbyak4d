@@ -5890,7 +5890,7 @@ void pmulhw(Mmx mmx, Operand op) { opMMX(mmx, op, 0xE5); }
 void pmulld(Xmm xmm, Operand op) { opSSE(xmm, op, T_66 | T_0F38, 0x40, &isXMM_XMMorMEM); }
 void pmullw(Mmx mmx, Operand op) { opMMX(mmx, op, 0xD5); }
 void pmuludq(Mmx mmx, Operand op) { opMMX(mmx, op, 0xF4); }
-void popcnt(Reg reg, Operand op) { opCnt(reg, op, 0xB8); }
+void popcnt(Reg reg, Operand op) { if (opROO(Reg(), op, reg, T_APX|T_NF, 0x88)) return; opCnt(reg, op, 0xB8); }
 void popf() { db(0x9D); }
 void por(Mmx mmx, Operand op) { opMMX(mmx, op, 0xEB); }
 void prefetchit0(Address addr) { opMR(addr, Reg32(7), T_0F|T_ALLOW_DIFF_SIZE, 0x18); }
