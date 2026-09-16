@@ -338,133 +338,95 @@ T MIE_PACK(T)(T x, T y, T z, T w)
     return x * 64 + y * 16 + z * 4 + w;
 }
 
-enum ERR
-{
-    ERR_NONE = 0,
-    ERR_BAD_ADDRESSING,
-    ERR_CODE_IS_TOO_BIG,
-    ERR_BAD_SCALE,
-    ERR_ESP_CANT_BE_INDEX,
-    ERR_BAD_COMBINATION,
-    ERR_BAD_SIZE_OF_REGISTER,
-    ERR_IMM_IS_TOO_BIG,
-    ERR_BAD_ALIGN,
-    ERR_LABEL_IS_REDEFINED,
-    ERR_LABEL_IS_TOO_FAR,
-    ERR_LABEL_IS_NOT_FOUND,
-    ERR_CODE_ISNOT_COPYABLE,
-    ERR_BAD_PARAMETER,
-    ERR_CANT_PROTECT,
-    ERR_CANT_USE_64BIT_DISP,
-    ERR_OFFSET_IS_TOO_BIG,
-    ERR_MEM_SIZE_IS_NOT_SPECIFIED,
-    ERR_BAD_MEM_SIZE,
-    ERR_BAD_ST_COMBINATION,
-    ERR_OVER_LOCAL_LABEL, // not used
-    ERR_UNDER_LOCAL_LABEL,
-    ERR_CANT_ALLOC,
-    ERR_ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW,
-    ERR_BAD_PROTECT_MODE,
-    ERR_BAD_PNUM,
-    ERR_BAD_TNUM,
-    ERR_BAD_VSIB_ADDRESSING,
-    ERR_CANT_CONVERT,
-    ERR_LABEL_ISNOT_SET_BY_L,
-    ERR_LABEL_IS_ALREADY_SET_BY_L,
-    ERR_BAD_LABEL_STR,
-    ERR_MUNMAP,
-    ERR_OPMASK_IS_ALREADY_SET,
-    ERR_ROUNDING_IS_ALREADY_SET,
-    ERR_K0_IS_INVALID,
-    ERR_EVEX_IS_INVALID,
-    ERR_SAE_IS_INVALID,
-    ERR_ER_IS_INVALID,
-    ERR_INVALID_BROADCAST,
-    ERR_INVALID_OPMASK_WITH_MEMORY,
-    ERR_INVALID_ZERO,
-    ERR_INVALID_RIP_IN_AUTO_GROW,
-    ERR_INVALID_MIB_ADDRESS,
-    ERR_X2APIC_IS_NOT_SUPPORTED,
-    ERR_NOT_SUPPORTED,
-    ERR_SAME_REGS_ARE_INVALID,
-    ERR_INVALID_NF,
-    ERR_INVALID_ZU,
-    ERR_CANT_USE_REX2,
-    ERR_INVALID_DFV,
-    ERR_INVALID_REG_IDX,
-    ERR_BAD_ENCODING_MODE,
-    ERR_CANT_USE_ABCDH,
-    ERR_CANT_INIT_CPUTOPOLOGY,
-    ERR_INVALID_CPUMASK_INDEX,
-    ERR_INTERNAL // Put it at last.
+enum XBYAK_ERR_LIST = [
+    ["ERR_NONE = 0", "none"],
+    ["ERR_BAD_ADDRESSING", "bad addressing"],
+    ["ERR_CODE_IS_TOO_BIG", "code is too big"],
+    ["ERR_BAD_SCALE", "bad scale"],
+    ["ERR_ESP_CANT_BE_INDEX", "esp can`t be index"],
+    ["ERR_BAD_COMBINATION", "bad combination"],
+    ["ERR_BAD_SIZE_OF_REGISTER", "bad size of register"],
+    ["ERR_IMM_IS_TOO_BIG", "imm is too big"],
+    ["ERR_BAD_ALIGN", "bad align"],
+    ["ERR_LABEL_IS_REDEFINED", "label is redefined"],
+    ["ERR_LABEL_IS_TOO_FAR", "label is too far"],
+    ["ERR_LABEL_IS_NOT_FOUND", "label is not found"],
+    ["ERR_CODE_ISNOT_COPYABLE", "code is not copyable"],
+    ["ERR_BAD_PARAMETER", "bad parameter"],
+    ["ERR_CANT_PROTECT", "can`t protect"],
+    ["ERR_CANT_USE_64BIT_DISP", "can`t use 64bit disp(use (void*))"],
+    ["ERR_OFFSET_IS_TOO_BIG", "offset is too big"],
+    ["ERR_MEM_SIZE_IS_NOT_SPECIFIED", "MEM size is not specified"],
+    ["ERR_BAD_MEM_SIZE", "bad mem size"],
+    ["ERR_BAD_ST_COMBINATION", "bad st combination"],
+    ["ERR_OVER_LOCAL_LABEL", "over local label"], // not used
+    ["ERR_UNDER_LOCAL_LABEL", "under local label"],
+    ["ERR_CANT_ALLOC", "can`t alloc"],
+    ["ERR_ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW", "T_SHORT is not supported in AutoGrow"],
+    ["ERR_BAD_PROTECT_MODE", "bad protect mode"],
+    ["ERR_BAD_PNUM", "bad pNum"],
+    ["ERR_BAD_TNUM", "bad tNum"],
+    ["ERR_BAD_VSIB_ADDRESSING", "bad vsib addressing"],
+    ["ERR_CANT_CONVERT", "can`t convert"],
+    ["ERR_LABEL_ISNOT_SET_BY_L", "label is not set by L()"],
+    ["ERR_LABEL_IS_ALREADY_SET_BY_L", "label is already set by L()"],
+    ["ERR_BAD_LABEL_STR", "bad label string"],
+    ["ERR_MUNMAP", "err munmap"],
+    ["ERR_OPMASK_IS_ALREADY_SET", "opmask is already set"],
+    ["ERR_ROUNDING_IS_ALREADY_SET", "rounding is already set"],
+    ["ERR_K0_IS_INVALID", "k0 is invalid"],
+    ["ERR_EVEX_IS_INVALID", "evex is invalid"],
+    ["ERR_SAE_IS_INVALID", "sae(suppress all exceptions) is invalid"],
+    ["ERR_ER_IS_INVALID", "er(embedded rounding) is invalid"],
+    ["ERR_INVALID_BROADCAST", "invalid broadcast"],
+    ["ERR_INVALID_OPMASK_WITH_MEMORY", "invalid opmask with memory"],
+    ["ERR_INVALID_ZERO", "invalid zero"],
+    ["ERR_INVALID_RIP_IN_AUTO_GROW", "invalid rip in AutoGrow"],
+    ["ERR_INVALID_MIB_ADDRESS", "invalid mib address"],
+    ["ERR_X2APIC_IS_NOT_SUPPORTED", "x2APIC is not supported"],
+    ["ERR_NOT_SUPPORTED", "not supported"],
+    ["ERR_SAME_REGS_ARE_INVALID", "same regs are invalid"],
+    ["ERR_INVALID_NF", "invalid NF"],
+    ["ERR_INVALID_ZU", "invalid ZU"],
+    ["ERR_CANT_USE_REX2", "can`t use rex2"],
+    ["ERR_INVALID_DFV", "invalid dfv"],
+    ["ERR_INVALID_REG_IDX", "invalid reg index"],
+    ["ERR_BAD_ENCODING_MODE", "bad encoding mode"],
+    ["ERR_CANT_USE_ABCDH", "can`t use [abcd]h with rex"],
+    ["ERR_CANT_INIT_CPUTOPOLOGY", "can`t init CpuTopology"],
+    ["ERR_INVALID_CPUMASK_INDEX", "invalid cpumask index"],
+    ["ERR_INTERNAL", "internal error"] // Put it at last.
+];
+
+string make_enum_ERR() {
+    string result = "enum ERR { ";
+    foreach (xbyak_err; XBYAK_ERR_LIST) {
+        result ~= xbyak_err[0] ~ ", ";
+    }
+    result ~= "}";
+    return result;
 }
+
+string make_errTbl() {
+    string result = "string[] errTbl = [ ";
+    foreach (xbyak_err; XBYAK_ERR_LIST) {
+        result ~= `"` ~ xbyak_err[1] ~ `", `;
+    }
+    result ~= "];";
+    return result;
+}
+
+// enum ERR
+mixin(make_enum_ERR());
 mixin ImportEnumMembers!ERR;
 
 alias ConvertErrorToString = convertErrorToString;
 pragma(inline, true);
 string convertErrorToString(ERR err)
 {
-    string[] errTbl = [
-        "none",
-        "bad addressing",
-        "code is too big",
-        "bad scale",
-        "esp can't be index",
-        "bad combination",
-        "bad size of register",
-        "imm is too big",
-        "bad align",
-        "label is redefined",
-        "label is too far",
-        "label is not found",
-        "code is not copyable",
-        "bad parameter",
-        "can't protect",
-        "can't use 64bit disp(use (void*))",
-        "offset is too big",
-        "MEM size is not specified",
-        "bad mem size",
-        "bad st combination",
-        "over local label",
-        "under local label",
-        "can't alloc",
-        "T_SHORT is not supported in AutoGrow",
-        "bad protect mode",
-        "bad pNum",
-        "bad tNum",
-        "bad vsib addressing",
-        "can't convert",
-        "label is not set by L()",
-        "label is already set by L()",
-        "bad label string",
-        "err munmap",
-        "opmask is already set",
-        "rounding is already set",
-        "k0 is invalid",
-        "evex is invalid",
-        "sae(suppress all exceptions) is invalid",
-        "er(embedded rounding) is invalid",
-        "invalid broadcast",
-        "invalid opmask with memory",
-        "invalid zero",
-        "invalid rip in AutoGrow",
-        "invalid mib address",
-        "x2APIC is not supported",
-        "not supported",
-        "same regs are invalid",
-        "invalid NF",
-        "invalid ZU",
-        "can't use rex2",
-        "invalid dfv",
-        "invalid reg index",
-        "bad encoding mode",
-        "can't use [abcd]h with rex",
-        "can't init CpuTopology",
-        "invalid cpumask index",
-        "internal error"
-    ];
+    // string[] errTbl = [
+    mixin(make_errTbl());
 
-    assert(ERR_INTERNAL + 1 == errTbl.length);
     return err <= ERR_INTERNAL ? errTbl[err] : "unknown err";
 }
 
