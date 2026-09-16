@@ -1118,6 +1118,84 @@ version (XBYAK64)
             ror(r16|T_nf, cl); sdump("");
             rol(r16|T_nf, cl); sdump("");
 
+            // ccmp
+            ccmpb(rax, rbx, 0); sdump("");
+            ccmpb(r30b, r31b, 1); sdump("");
+            ccmpb(r30w, r31w, 2); sdump("");
+            ccmpb(r30d, r31d, 3); sdump("");
+            ccmpb(r30, r31, 4); sdump("");
+            ccmpb(ptr [r30], r31b, 5); sdump("");
+            ccmpb(ptr [r30], r31w, 6); sdump("");
+            ccmpb(ptr [r30], r31d, 7); sdump("");
+            ccmpb(ptr [r30], r31, 8); sdump("");
+            ccmpb(r31b, ptr [r30], 9); sdump("");
+            ccmpb(r31w, ptr [r30], 10); sdump("");
+            ccmpb(r31d, ptr [r30], 11); sdump("");
+            ccmpb(r31, ptr [r30], 12); sdump("");
+            ccmpb(r20b, 0x12, 9); sdump("");
+            ccmpb(r20w, 0x1234, 9); sdump("");
+            ccmpb(r20d, 0x12345678, 9); sdump("");
+            ccmpb(r20, 0x12345678, 9); sdump("");
+            ccmpb(byte_ [r20], 0x12, 9); sdump("");
+            ccmpb(word [r20], 0x1234, 9); sdump("");
+            ccmpb(dword [r20], 0x12345678, 9); sdump("");
+            ccmpb(qword [r20], 0x12345678, 9); sdump("");
+            ccmpo(rax, rcx, 0); sdump("");
+            ccmpno(rax, rcx, 1); sdump("");
+            ccmpb(rax, rcx, 2); sdump("");
+            ccmpnb(rax, rcx, 3); sdump("");
+            ccmpz(rax, rcx, 4); sdump("");
+            ccmpnz(rax, rcx, 5); sdump("");
+            ccmpbe(rax, rcx, 6); sdump("");
+            ccmpnbe(rax, rcx, 7); sdump("");
+            ccmps(rax, rcx, 8); sdump("");
+            ccmpns(rax, rcx, 9); sdump("");
+            ccmpt(rax, rcx, 10); sdump("");
+            ccmpf(rax, rcx, 11); sdump("");
+            ccmpl(rax, rcx, 12); sdump("");
+            ccmpnl(rax, rcx, 13); sdump("");
+            ccmple(rax, rcx, 14); sdump("");
+            ccmpnle(rax, rcx, 15); sdump("");
+
+            // ctestb
+            ctestb(r30b, r31b, 0); sdump("");
+            ctestb(r30w, r31w, 1); sdump("");
+            ctestb(r30d, r31d, 2); sdump("");
+            ctestb(r30, r31, 3); sdump("");
+            ctestb(ptr [r30], r31b, 4); sdump("");
+            ctestb(ptr [r30], r31w, 5); sdump("");
+            ctestb(ptr [r30], r31d, 6); sdump("");
+            ctestb(ptr [r30], r31, 7); sdump("");
+            ctestb(r30b, 0x12, 8); sdump("");
+            ctestb(r30w, 0x1234, 9); sdump("");
+            ctestb(r30d, 0x12345678, 10); sdump("");
+            ctestb(r30, 0x12345678, 11); sdump("");
+            ctestb(byte_ [r30], 0x12, 12); sdump("");
+            ctestb(word [r30], 0x1234, 13); sdump("");
+            ctestb(dword [r30], 0x12345678, 14); sdump("");
+            ctestb(qword [r30], 0x12345678, 15); sdump("");
+            ctesto(rax, rcx, 0); sdump("");
+            ctestno(rax, rcx, 1); sdump("");
+            ctestb(rax, rcx, 2); sdump("");
+            ctestnb(rax, rcx, 3); sdump("");
+            ctestz(rax, rcx, 4); sdump("");
+            ctestnz(rax, rcx, 5); sdump("");
+            ctestbe(rax, rcx, 6); sdump("");
+            ctestnbe(rax, rcx, 7); sdump("");
+            ctests(rax, rcx, 8); sdump("");
+            ctestns(rax, rcx, 9); sdump("");
+            ctestt(rax, rcx, 10); sdump("");
+            ctestf(rax, rcx, 11); sdump("");
+            ctestl(rax, rcx, 12); sdump("");
+            ctestnl(rax, rcx, 13); sdump("");
+            ctestle(rax, rcx, 14); sdump("");
+            ctestnle(rax, rcx, 15); sdump("");
+
+            // dfv omitted (dfv=0)
+            ccmpb(rax, rbx); sdump("");
+            ccmpz(r20w, 0x1234); sdump("");
+            ctestnle(qword [r30], 0x12345678); sdump("");
+
         }
     }
 }
