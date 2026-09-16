@@ -1747,17 +1747,6 @@ version(XBYAK64)
 }
 
     bool isVsib(int bit = 128 | 256 | 512) const { return index_.isBit(bit); }
-
-    RegExp optimize()
-    {
-        RegExp exp = this;
-        // [reg * 2] => [reg + reg]
-        if (index_.isBit(i32e) && !base_.getBit() && scale_ == 2) {
-            exp.base_ = index_;
-            exp.scale_ = 1;
-        }
-        return exp;
-    }
     bool opEquals(const ref RegExp rhs) const
     {
         bool Base_ = base_ == rhs.base_;
@@ -1766,7 +1755,6 @@ version(XBYAK64)
         bool Scale_ = scale_ == rhs.scale_;
         return Base_ && Index_ && Dsip_ && Scale_;
     }
-
     Reg getBase() const { return cast(Reg)  base_; }
     Reg getIndex() const { return cast(Reg) index_; }
     Label* getLabel() { return label_; }
@@ -2243,7 +2231,7 @@ public:
         disp8N = 0;
         permitVsib = false;
         broadcast_ = false;
-        optimize_ = true;
+        optimized_ = false;
     }
 
     this(Address a)
@@ -2256,7 +2244,7 @@ public:
         disp8N = a.disp8N;
         permitVsib = a.permitVsib;
         broadcast_ = a.broadcast_;
-        optimize_ = a.optimize_;
+    ///    optimized_ = a.optimized_;
     }
 
     this(uint32_t sizeBit, bool broadcast, RegExp e)
@@ -2270,7 +2258,7 @@ public:
         disp8N = 0;
         permitVsib = false;
         broadcast_ = broadcast;
-        optimize_ = true;
+        optimized_ = false;
 
         if (e.rip_) {
             mode_ = (e.label_ || e.asPtr_) ? inner.M_ripAddr : inner.M_rip;
@@ -2286,13 +2274,31 @@ version(XBYAK64)
         }
 }
         e_.verify();
+        // [reg * 2] => [reg + reg] to shorten the encoding (cloneNoOptimize() undoes this)
+        if (e_.index_.isBit(RegExp.i32e) && !e_.base_.getBit() && e_.scale_ == 2) {
+            e_.base_ = e_.index_;
+            e_.scale_ = 1;
+            optimized_ = true;
+        }
+
     }
 
-    RegExp getRegExp(bool optimize = true)
+    RegExp getRegExp() //const
     {
-        return optimize ? e_.optimize() : e_;
+        return e_;
     }
-    Address cloneNoOptimize() { Address addr = new Address(this); addr.optimize_ = false; return addr; }
+
+    Address cloneNoOptimize() //const
+    {
+        Address addr = new Address(this);
+        if (addr.optimized_) {
+            addr.e_.base_ = Reg();
+            addr.e_.scale_ = 2;
+            addr.optimized_ = false;
+        }
+        return addr;
+    }
+
     inner.AddressMode getMode() const { return mode_; }
     bool is32bit() const { return e_.getBase().getBit() == 32 || e_.getIndex().getBit() == 32; }
     bool isOnlyDisp() const { return e_.isOnlyDisp(); }
@@ -2312,8 +2318,8 @@ version(XBYAK64)
         bool Disp8N_ = disp8N == rhs.disp8N;
         bool PermitVsib = permitVsib == rhs.permitVsib;
         bool Broadcast_ = broadcast_ == rhs.broadcast_;
-        bool Optimize_ = optimize_ == rhs.optimize_;
-        return Bit_ && E_ && Label_ && Mode_ && ImmSize && Disp8N_&& PermitVsib && Broadcast_ && Optimize_;
+        bool Optimized_ = optimized_ == rhs.optimized_;
+        return Bit_ && E_ && Label_ && Mode_ && ImmSize && Disp8N_&& PermitVsib && Broadcast_ && Optimized_;
     }
     bool isVsib() const { return e_.isVsib(); }
     // change byte to dword etc.
@@ -2334,7 +2340,7 @@ public:
     bool permitVsib;
 private:
     bool broadcast_;
-    bool optimize_;
+    bool optimized_; // e_ was rewritten from [reg * 2] to [reg + reg]
 }
 
 struct AddressFrame
@@ -3045,8 +3051,7 @@ static const uint64_t T_ALLOW_ABCDH = 1uL << 31; // allow [abcd]h reg
     }
     int evex(Reg reg, Reg base, Operand v, uint64_t type, int code, Address addr = null)
     {
-        RegExp regExp = addr ? addr.getRegExp() : RegExp();
-        Reg x = addr ? regExp.getIndex() : null;
+        Reg x = addr ? addr.getRegExp().getIndex() : null;
         int aaa = addr ? addr.getOpmaskIdx() : 0;
         if (aaa && !(type & T_M_K)) {
             mixin(XBYAK_THROW_RET(ERR_INVALID_OPMASK_WITH_MEMORY, "0"));
