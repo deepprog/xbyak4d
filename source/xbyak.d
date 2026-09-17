@@ -3546,10 +3546,11 @@ version (XBYAK64)
         int opBit = op.getBit();
         if (disableRex && opBit == 64) opBit = 32;
         Reg r = Reg(ext, REG, opBit);
-        if ((type & T_APX) &&
-            (d !is null || op.hasRex2NFZU()) &&
+        // EVEX is required only for ND/NF/ZU; a plain EGPR is encodable with the shorter REX2
+		if ((type & T_APX) &&
+            (d !is null || op.getNF() || op.getZU()) &&
             opROO(d ? d : Reg(0, REG, opBit), op, r, type, code)
-            )
+        )
         {
             return;
         }
