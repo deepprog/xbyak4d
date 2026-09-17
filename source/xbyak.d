@@ -3547,7 +3547,7 @@ version (XBYAK64)
         if (disableRex && opBit == 64) opBit = 32;
         Reg r = Reg(ext, REG, opBit);
         // EVEX is required only for ND/NF/ZU; a plain EGPR is encodable with the shorter REX2
-		if ((type & T_APX) &&
+        if ((type & T_APX) &&
             (d !is null || op.getNF() || op.getZU()) &&
             opROO(d ? d : Reg(0, REG, opBit), op, r, type, code)
         )
@@ -3565,7 +3565,8 @@ version (XBYAK64)
     }
     void opSetCC(Operand op, int ext)
     {
-        if (opROO(Reg(), op, Reg(), T_APX|T_ZU|T_F2, 0x40 | ext)) return;
+        // EVEX (opcode 0x40|ext) is required only for ZU; a plain EGPR is encodable with the shorter REX2
+        if (op.getZU() && opROO(Reg(), op, Reg(), T_APX|T_ZU|T_F2, 0x40 | ext)) return;
         opRext(op, 8, 0, T_0F, 0x90 | ext);
     }
     void opShiftCore(Operand op, int ext, Reg d, int code, int immSize)
