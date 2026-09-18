@@ -2984,13 +2984,10 @@ static const uint64_t T_M_K = 1uL << 23; // mem{k}
 static const uint64_t T_VSIB = 1uL << 24;
 static const uint64_t T_NF = 1uL << 25; // T_nf
 static const uint64_t T_OP_W1 = 1uL << 26; // opcode bit0 is the w (operand-size) bit; code|=1 unless the operand is 8-bit
-static const uint64_t T_OP_W0 = 1uL << 27; // the opcode has no w bit; suppress the default code|=1 of writeCode() (lds/les)
-static const uint64_t T_ND1 = 1uL << 28; // ND=1
-static const uint64_t T_ZU = 1uL << 29; // ND=ZU
-static const uint64_t T_SENTRY = (1uL << 30)-1; // attribute(>=T_SENTRY) is for error check
-static const uint64_t T_ALLOW_DIFF_SIZE = 1uL << 30; // allow difference reg size
-static const uint64_t T_ALLOW_ABCDH = 1uL << 31; // allow [abcd]h reg
-
+static const uint64_t T_ND1 = 1uL << 27; // ND=1
+static const uint64_t T_ZU = 1uL << 28; // ND=ZU
+static const uint64_t T_ALLOW_DIFF_SIZE = 1uL << 29; // allow difference reg size
+static const uint64_t T_ALLOW_ABCDH = 1uL << 30; // allow [abcd]h reg
     // T_66 = 1, T_F3 = 2, T_F2 = 3
     pragma(inline, true);
     uint32_t getPP(uint64_t type)
@@ -3276,7 +3273,7 @@ version (XBYAK64)
                     break;
             }
         }
-        db(code | (((type & T_SENTRY) == 0 || (type & T_OP_W1)) && !r.isBit(8)));
+        db(code | (((type & T_OP_W1) != 0) && !r.isBit(8)));
     }
     void opRR(Reg r1, Reg r2, uint64_t type, int code)
     {
@@ -3631,9 +3628,9 @@ version (XBYAK64)
             if (!op1.isREG()) {
                 mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
             }
-            opMR(op2.getAddress(), op1.getReg(), 0, code | 2);
+            opMR(op2.getAddress(), op1.getReg(), T_OP_W1, code | 2);
         } else {
-            opRO(cast(Reg)op2, op1, 0, code, op1.getKind() == op2.getKind());
+            opRO(cast(Reg)(op2), op1, T_OP_W1, code, op1.getKind() == op2.getKind());
         }
     }
     // allow add(ax, 0x8000);
@@ -3660,7 +3657,7 @@ version (XBYAK64)
             rex(op);
             db(code | 4 | (immBit == 8 ? 0 : 1));
         } else {
-            opRext(op, 0, ext, 0, 0x80 | getSbit(op, immBit), false, immBit / 8);
+            opRext(op, 0, ext, T_OP_W1, 0x80 | getSbit(op, immBit), false, immBit / 8);
         }
         db(imm, immBit / 8);
     }
@@ -3695,7 +3692,7 @@ else
             return;
         }
 }
-        opRext(op, op.getBit(), ext, 0, 0xFE);
+        opRext(op, op.getBit(), ext, T_OP_W1, 0xFE);
     }
     void opPushPop(Operand op, int code, int ext, int alt)
     {
@@ -4470,7 +4467,7 @@ version (XBYAK_VARIADIC_TEMPLATE)
 
     void test(Operand op, Reg reg)
     {
-        opRO(reg, op, 0, 0x84, op.getKind() == reg.getKind());
+        opRO(reg, op, T_OP_W1, 0x84, op.getKind() == reg.getKind());
     }
     void test(Operand op, uint32_t imm)
     {
@@ -4480,7 +4477,7 @@ version (XBYAK_VARIADIC_TEMPLATE)
             rex(op);
             db(0xA8 | (op.isBit(8) ? 0 : 1));
         } else {
-            opRext(op, 0, 0, 0, 0xF6, false, immSize);
+            opRext(op, 0, 0, T_OP_W1, 0xF6, false, immSize);
         }
         db(imm, immSize);
     }
@@ -4597,7 +4594,7 @@ else
                 }
                 immSize = 4;
             }
-            opMR(op.getAddress(immSize), Reg(0, REG, op.getBit()), 0, 0xC6);
+            opMR(op.getAddress(immSize), Reg(0, REG, op.getBit()), T_OP_W1, 0xC6);
             db(cast(uint32_t)imm, immSize);
         } else {
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
@@ -4891,8 +4888,8 @@ void aadd(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38, 0x0FC, T_APX); }
 void aand(Address addr, Reg32e reg) { opMR(addr, reg, T_0F38|T_66, 0x0FC, T_APX|T_66); }
 void adc(Operand op, uint32_t imm) { opOI(op, imm, 0x10, 2); }
 void adc(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x10); }
-void adc(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NONE, 2); }
-void adc(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NONE, 0x10); }
+void adc(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_OP_W1, 2); }
+void adc(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_OP_W1, 0x10); }
 void adcx(Reg32e d, Reg32e reg, Operand op) { opROO(d, op, reg, T_66, 0x66); }
 void adcx(Reg32e reg, Operand op)
 {
@@ -5978,8 +5975,8 @@ void sar(Reg d, Operand op, int imm) { opShift(op, imm, 15, d); }
 void sarx(Reg32e r1, Operand op, Reg32e r2) { opRRO(r1, r2, op, T_APX|T_F3|T_0F38, 0xf7); }
 void sbb(Operand op, uint32_t imm) { opOI(op, imm, 0x18, 3); }
 void sbb(Operand op1, Operand op2) { opRO_MR(op1, op2, 0x18); }
-void sbb(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_NONE, 3); }
-void sbb(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_NONE, 0x18); }
+void sbb(Reg d, Operand op, uint32_t imm) { opROI(d, op, imm, T_OP_W1, 3); }
+void sbb(Reg d, Operand op1, Operand op2) { opROO(d, op1, op2, T_OP_W1, 0x18); }
 void scasb() { db(0xAE); }
 void scasd() { db(0xAF); }
 void scasw() { db(0x66); db(0xAF); }
@@ -7406,8 +7403,8 @@ else
     void pushad() { db(0x60); }
     void pushfd() { db(0x9C); }
     void popa() { db(0x61); }
-    void lds(Reg reg, Address addr) { opLoadSeg(addr, reg, T_OP_W0|T_ALLOW_DIFF_SIZE, 0xC5); }
-    void les(Reg reg, Address addr) { opLoadSeg(addr, reg, T_OP_W0|T_ALLOW_DIFF_SIZE, 0xC4); }
+    void lds(Reg reg, Address addr) { opLoadSeg(addr, reg, T_ALLOW_DIFF_SIZE, 0xC5); }
+    void les(Reg reg, Address addr) { opLoadSeg(addr, reg, T_ALLOW_DIFF_SIZE, 0xC4); }
 }
 
 version (XBYAK_NO_OP_NAMES)
