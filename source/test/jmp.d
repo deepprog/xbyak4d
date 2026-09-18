@@ -1772,6 +1772,54 @@ void testAssige()
 	}
 }
 
+// assignL(dst, src) where dst has never been referenced before
+@("testAssignUnusedDst")
+unittest
+{
+	testAssignUnusedDst();
+}
+
+void testAssignUnusedDst()
+{
+	scope tc = TestCount(__FUNCTION__);
+
+	class Code : CodeGenerator
+	{
+   		this(ref TestCount, bool grow)
+		{
+			super(grow ? 128 : 4096, grow ? AutoGrow : null);
+
+			Label dst, src;
+			nop(); // make the offset of src nonzero
+		L(src);
+			assignL(dst, src); // dst is used for the first time here
+			jmp(dst); // backward reference via dst
+			jmp(dst, T_NEAR);
+			tc.TEST_ASSERT(!hasUndefinedLabel());
+		}
+	}
+	const uint8_t[] expected = [
+		0x90,
+		0xeb, 0xfe, // jmp -2
+		0xe9, 0xf9, 0xff, 0xff, 0xff, // jmp -7
+	];
+
+
+	for (int i = 0; i < 2; i++) {
+		const bool grow = i == 0;
+		Code code = new Code(tc, grow);
+		if (grow) code.ready();
+		tc.TEST_EQUAL(code.getSize(), expected.length);
+
+		auto ctbl = code.getCode();
+		const size_t n = expected.length;
+
+		for (int j = 0; j < n; j++)
+		{
+			tc.TEST_EQUAL(ctbl[j], expected[j]);
+		}
+	}
+}
 
 @("doubleDefine")
 unittest
