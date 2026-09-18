@@ -1821,6 +1821,79 @@ void testAssignUnusedDst()
 	}
 }
 
+// [label + disp] must point to label + disp for both forward/backward references
+// and for both fixed buffer/AutoGrow (immSize must not be subtracted for absolute addresses)
+@("labelDisp")
+unittest
+{
+	labelDisp();
+}
+
+void labelDisp()
+{
+	scope tc = TestCount(__FUNCTION__);
+
+	class Code : CodeGenerator
+	{
+   		size_t labelOffset;
+		size_t addrPos; // offset of the address field in the code
+		
+		this(bool grow, bool forward, bool useImm)
+		{
+			super(4096, grow ? AutoGrow : null);
+ 			labelOffset = 0;
+			addrPos = 0;
+
+			Label label;
+			if (!forward) defineLabel(label);
+version(XBYAK64)
+{
+			cast(void)useImm;
+			mov(eax, ptr[label + 8]); // a1 <addr64>
+			addrPos = getSize() - 8;
+}
+else
+{
+			if (useImm) {
+				mov(dword[label + 8], 1); // c7 05 <addr32> <imm32>
+				addrPos = getSize() - 8;
+			} else {
+				mov(eax, ptr[label + 8]); // a1 <addr32>
+				addrPos = getSize() - 4;
+			}
+}
+			if (forward) defineLabel(label);
+			if (grow) ready();
+		}
+
+		void defineLabel(ref Label label)
+		{
+		L(label);
+			labelOffset = getSize();
+			dq(0);
+			dq(0);
+		}
+	}
+
+	for (int grow = 0; grow < 2; grow++) {
+		for (int forward = 0; forward < 2; forward++) {
+			for (int useImm = 0; useImm < 2; useImm++) {
+version(XBYAK64)
+{
+				if (useImm) continue; // [label + disp] with imm is not encodable in 64-bit mode
+}
+				Code code = new Code(grow != 0, forward != 0, useImm != 0);
+				size_t addr = 0;
+				//addr = code.getCode()[code.addrPos + addr.sizeof];
+				import core.stdc.string : memcpy;
+				memcpy(&addr, code.getCode() + code.addrPos, addr.sizeof);
+				tc.TEST_EQUAL(addr, cast(size_t)(code.getCode() + code.labelOffset + 8));
+			}
+		}
+	}
+}
+
+
 @("doubleDefine")
 unittest
 {

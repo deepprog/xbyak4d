@@ -3243,7 +3243,7 @@ version (XBYAK64)
             db(disp);
         } else if (mod == mod10 || (mod == mod00 && !baseBit)) {
             if (label) {
-                putL_inner(label, false, e.getDisp() - addr.immSize, 4);
+                putL_inner(label, false, e.getDisp(), 4);
             } else {
                 dd(disp);
             }
@@ -3447,7 +3447,7 @@ version (XBYAK64)
         int code,
         bool delegate(Operand, Operand)isValid = null,
         int imm8 = NONE
-        )
+    )
     {
         if (isValid && !isValid(r, op)) {
             mixin(XBYAK_THROW(ERR_BAD_COMBINATION));
@@ -3758,9 +3758,9 @@ version(XBYAK64)
                 db(inner.VerifyInInt32(offset + disp - size_ - jmpSize), jmpSize);
             } else if (isAutoGrow()) {
                 db(cast(uint64_t) 0, jmpSize);
-                save(size_ - jmpSize, offset, jmpSize, inner.LaddTop);
+                save(size_ - jmpSize, offset + disp, jmpSize, inner.LaddTop);
             } else {
-                db(cast(size_t) top_ + offset, jmpSize);
+                db(cast(size_t) top_ + offset + disp, jmpSize);
             }
             return;
         }
@@ -4549,7 +4549,7 @@ version(XBYAK64)
                 rex(reg);
                 db(op1.isREG(8) ? 0xA0 : op1.isREG() ? 0xA1 : op2.isREG(8) ? 0xA2 : 0xA3);
                 if (addr.getLabel()) {
-                    putL_inner(addr.getLabel(), false, addr.getDisp() - addr.immSize, 8);
+                    putL_inner(addr.getLabel(), false, addr.getDisp(), 8);
                 } else {
                     db(addr.getDisp(), 8);
                 }
@@ -4568,7 +4568,7 @@ else
             rex(reg, addr);
             db(code | (reg.isBit(8) ? 0 : 1));
             if (addr.getLabel()) {
-                putL_inner(addr.getLabel(), false, addr.getDisp() - addr.immSize);
+                putL_inner(addr.getLabel(), false, addr.getDisp());
             } else {
                 dd(cast(uint32_t)(addr.getDisp()));
             }
