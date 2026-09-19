@@ -1981,8 +1981,14 @@ protected:
         top_     = newTop;
         maxSize_ = newSize;
     }
-
-//    calc jmp address for AutoGrow mode
+    // grow memory in advance so that the code of a jmp is not split by growMemory() in AutoGrow mode
+    void growMemoryForJmp()
+    {
+        if (isAutoGrow() && size_ + 16 >= maxSize_) growMemory();
+    }
+    /*
+        calc jmp address for AutoGrow mode
+    */
     void calcJmpAddress()
     {
         if (isCalledCalcJmpAddress_) return;
@@ -3346,7 +3352,7 @@ version (XBYAK64)
         if (type == T_FAR) {
             mixin(XBYAK_THROW(ERR_NOT_SUPPORTED));
         }
-        if (isAutoGrow() && size_ + 16 >= maxSize_) growMemory(); // avoid splitting code of jmp
+        growMemoryForJmp();
         size_t offset = 0;
         if (labelMgr_.getOffset(&offset, label)) {  // label exists
             makeJmp(inner.VerifyInInt32(offset - size_), type, shortCode, longCode, longPref);
@@ -3371,7 +3377,7 @@ version (XBYAK64)
         if (type == T_FAR) {
             mixin(XBYAK_THROW(ERR_NOT_SUPPORTED));
         }
-        if (isAutoGrow() && size_ + 16 >= maxSize_) growMemory(); // avoid splitting code of jmp
+        growMemoryForJmp();
         size_t offset = 0;
         if (labelMgr_.getOffset(&offset, &label)) { // label exists
             makeJmp(inner.VerifyInInt32(offset - size_), type, shortCode, longCode, longPref);
@@ -3400,7 +3406,7 @@ version (XBYAK64)
             if (type != T_NEAR) {
                 mixin(XBYAK_THROW(ERR_ONLY_T_NEAR_IS_SUPPORTED_IN_AUTO_GROW));
             }
-            if (size_ + 16 >= maxSize_) growMemory();
+            growMemoryForJmp();
             if (longPref) db(longPref);
             db(longCode);
             dd(0);
@@ -3760,7 +3766,7 @@ version(XBYAK64)
     void putL_inner(T)(T label, inner.LabelMode mode, size_t disp, int jmpSize)
     if(is(T == string) || is(T == Label*))
     {
-        if (isAutoGrow() && size_ + 16 >= maxSize_) growMemory();
+        growMemoryForJmp();
         if (mode == inner.Labs && isAutoGrow()) mode = inner.LaddTop;
         size_t offset = 0;
         if (labelMgr_.getOffset(&offset, label))
