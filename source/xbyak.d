@@ -301,19 +301,30 @@ alias XBYAK_STD_UNORDERED_MAP = Map;
 alias XBYAK_STD_UNORDERED_MULTIMAP = MultiMap;
 alias XBYAK_STD_UNORDERED_SET = Set;
 
-  version (Windows)
-  {
+version (Windows)
+{
     import core.sys.windows.windows;  // VirtualProtect
-  }
+}
 
-  version (Posix)
-  {
+version (Posix)
+{
     import core.sys.posix.fcntl;
     import core.sys.posix.sys.mman;
     import core.sys.posix.sys.stat;
     import core.sys.posix.unistd;
-  }
+}
 
+version(OSX)
+{
+    version(XBYAK_DONT_USE_MAP_JIT)
+    {}
+    else
+    {
+        version = XBYAK_USE_MAP_JIT;
+        import core.sys.darwin.sys.sysctl;
+        enum MAP_JIT = 0x800;
+    }
+}
 size_t DEFAULT_MAX_CODE_SIZE = 4096 * 8;
 size_t VERSION = 0x07410;  // 0xABCD = A.BC(D)
 
@@ -657,6 +668,34 @@ version (XBYAK_USE_MEMFD)
 
 version (XBYAK_USE_MMAP_ALLOCATOR)
 {
+    version (XBYAK_USE_MAP_JIT)
+    {
+        struct util
+        {
+            @disable this();
+
+            pragma(inline, true)
+            static int getMacOsVersionPure() nothrow @nogc
+            {
+                char[64] buf;
+                size_t size = buf.sizeof;
+                int err = sysctlbyname("kern.osrelease", buf.ptr, &size, null, 0);
+                if (err != 0) return 0;
+                char* endp;
+                int major = cast(int)strtol(buf.ptr, &endp, 10);
+                if (endp == null || *endp != '.') return 0;
+                return major;
+            }
+
+            pragma(inline, true)
+            static int getMacOsVersion()
+            {
+                static const int ver = getMacOsVersionPure();
+                return ver;
+            }
+        } // util
+    } // XBYAK_USE_MAP_JIT
+
     class MmapAllocator : Allocator
     {
         struct Allocation
@@ -687,6 +726,11 @@ version (XBYAK_USE_MMAP_ALLOCATOR)
             const size_t alignedSizeM1 = inner.getPageSize() - 1;
             size = (size + alignedSizeM1) & ~alignedSizeM1;
             int mode = MAP_PRIVATE | MAP_ANON;
+version(XBYAK_USE_MAP_JIT)
+{
+            const int mojaveVersion = 18;
+            if (util.getMacOsVersion() >= mojaveVersion) mode |= MAP_JIT;
+}
             int fd = -1;
     version (XBYAK_USE_MEMFD)
     {
