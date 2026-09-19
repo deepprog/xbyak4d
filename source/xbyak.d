@@ -314,6 +314,14 @@ version (Posix)
     import core.sys.posix.unistd;
 }
 
+version (Linux)
+{
+    version (XBYAK_USE_MEMFD)
+    {
+        extern(C) int memfd_create(const char*, uint);
+    }
+}
+
 version(OSX)
 {
     version(XBYAK_DONT_USE_MAP_JIT)
@@ -661,11 +669,6 @@ class Allocator
     bool useProtect() const { return true; }
 }
 
-version (XBYAK_USE_MEMFD)
-{
-    extern(C) int memfd_create(const char*, uint);
-}
-
 version (XBYAK_USE_MMAP_ALLOCATOR)
 {
     version (XBYAK_USE_MAP_JIT)
@@ -687,11 +690,17 @@ version (XBYAK_USE_MMAP_ALLOCATOR)
                 return major;
             }
 
+            static __gshared int macOsVersionCache;
+
+            static this()
+            {
+                macOsVersionCache = getMacOsVersionPure();
+            }
+
             pragma(inline, true)
             static int getMacOsVersion()
             {
-                static const int ver = getMacOsVersionPure();
-                return ver;
+                return macOsVersionCache;
             }
         } // util
     } // XBYAK_USE_MAP_JIT
@@ -702,13 +711,16 @@ version (XBYAK_USE_MMAP_ALLOCATOR)
         {
             uintptr_t addr;
             size_t size;
-            version (XBYAK_USE_MEMFD)
-            {
-            // fd_ is only used with XBYAK_USE_MEMFD. We keep the file open
-            // during the lifetime of each allocation in order to support
-            // checkpoint/restore by unprivileged users.
-                int fd;
-            }
+version (Linux)
+{
+    version (XBYAK_USE_MEMFD)
+    {
+        // fd_ is only used with XBYAK_USE_MEMFD. We keep the file open
+        // during the lifetime of each allocation in order to support
+        // checkpoint/restore by unprivileged users.
+            int fd;
+    }
+}
         }
 
         string name_; // only used with XBYAK_USE_MEMFD
@@ -732,6 +744,8 @@ version(XBYAK_USE_MAP_JIT)
             if (util.getMacOsVersion() >= mojaveVersion) mode |= MAP_JIT;
 }
             int fd = -1;
+version (Linux)
+{
     version (XBYAK_USE_MEMFD)
     {
             uint flag = 0;
@@ -746,6 +760,7 @@ version(XBYAK_USE_MAP_JIT)
                 }
             }
     }
+}
             void* p = mmap(null, size, PROT_READ | PROT_WRITE, mode, fd, 0);
             if (p == MAP_FAILED)
             {
@@ -759,11 +774,13 @@ version(XBYAK_USE_MAP_JIT)
             Allocation alloc;
             alloc.addr = cast(uintptr_t)p;
             alloc.size = size;
-
+version (Linux)
+{
     version (XBYAK_USE_MEMFD)
     {
             alloc.fd = fd;
     }
+}
             GC.addRange(p, (p is null ? 0 : size));
             allocList_ ~= alloc; //.push_back(alloc);
             return cast(uint8_t*) p;
@@ -783,10 +800,13 @@ version(XBYAK_USE_MAP_JIT)
                 {
                     mixin(XBYAK_THROW(ERR_MUNMAP));
                 }
+version (Linux)
+{
     version (XBYAK_USE_MEMFD)
     {
                 if (a.fd != -1) close(a.fd);
     }
+}
                 GC.removeRange(cast(void*)p);
                 a = allocList_[$ - 1]; //.back();
                 allocList_ = allocList_[0 .. $ - 1]; //.pop_back();
