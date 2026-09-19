@@ -608,8 +608,9 @@ version (Posix)
     enum LabelMode
     {
         LasIs, // as is
-        Labs, // absolute
-        LaddTop // (addr + top) for mov(reg, label) with AutoGrow
+        Labs, // absolute address (not used with AutoGrow)
+        LaddTop, // (addr + top) for mov(reg, label) with AutoGrow
+        LsubTop // (addr - top) for jmp/call to an absolute address with AutoGrow
     }
     mixin ImportEnumMembers!LabelMode;
 
@@ -1934,11 +1935,8 @@ class CodeArray
         uint64_t getVal(uint8_t* top) const
         {
             uint64_t disp =
-                (mode == inner.LaddTop) ?
-                    jmpAddr + cast(size_t) top :
-                    (mode == inner.LasIs) ?
-                        jmpAddr :
-                        jmpAddr - cast(size_t) top;
+                (mode == inner.LaddTop) ? jmpAddr + cast(size_t)(top) :
+                (mode == inner.LsubTop) ? jmpAddr - cast(size_t)(top) : jmpAddr;
 
             if (jmpSize == 4) { disp = inner.VerifyInInt32(disp); }
             return disp;
@@ -3411,7 +3409,7 @@ version (XBYAK64)
             if (longPref) db(longPref);
             db(longCode);
             dd(0);
-            save(size_ - 4, cast(size_t) addr - size_, 4, inner.Labs);
+            save(size_ - 4, cast(size_t)(addr) - size_, 4, inner.LsubTop);
         } else {
             makeJmp(inner.VerifyInInt32(cast(uint8_t*) addr - getCurr), type, shortCode, longCode, longPref);
         }
