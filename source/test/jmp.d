@@ -1821,6 +1821,55 @@ void testAssignUnusedDst()
 	}
 }
 
+// assignL(dst, src) after a forward reference mov(reg, dst) must write the address of src
+@("testAssignForwardMov")
+unittest
+{
+	testAssignForwardMov();
+}
+
+void testAssignForwardMov()
+{
+	scope tc = TestCount(__FUNCTION__);
+
+	class Code : CodeGenerator
+	{
+		size_t srcOffset;
+		size_t addrPos;
+		this(bool grow)
+		{
+			super(4096, grow ? AutoGrow : null);
+			srcOffset = 0;
+			addrPos = 0;
+
+			Label src, dst;
+			nop();
+		L(src);
+			srcOffset = getSize();
+			nop();
+version(XBYAK64)
+{
+			mov(rax, dst);
+}
+else
+{
+			mov(eax, dst);
+}
+			addrPos = getSize() - size_t.sizeof;
+			nop();
+			assignL(dst, src); // getCurr() != address of src
+			if (grow) ready();
+		}
+	}
+	for (int i = 0; i < 2; i++) {
+		Code code = new Code(i == 1);
+		size_t addr = 0;
+		import core.stdc.string : memcpy;
+		memcpy(&addr, code.getCode() + code.addrPos, addr.sizeof);
+		tc.TEST_EQUAL(addr, cast(size_t)(code.getCode()) + code.srcOffset);
+	}
+}
+
 // [label + disp] must point to label + disp for both forward/backward references
 // and for both fixed buffer/AutoGrow (immSize must not be subtracted for absolute addresses)
 @("labelDisp")
