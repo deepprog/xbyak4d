@@ -2558,13 +2558,13 @@ struct LabelManager
 
         foreach (JmpLabel jmp; undefList[labelId]) {
             size_t offset = jmp.endOfJmp - jmp.jmpSize;
-            size_t disp;
+            size_t disp = jmp.disp;
             if (jmp.mode == inner.LaddTop) {
-                disp = addrOffset;
+                disp += addrOffset;
             } else if (jmp.mode == inner.Labs) {
-                disp = cast(size_t)(base_.getCode()) + addrOffset; // assign() defines a label at another offset
+                disp += cast(size_t)(base_.getCode()) + addrOffset; // assign() defines a label at another offset
             } else {
-                disp = addrOffset - jmp.endOfJmp + jmp.disp;
+                disp += addrOffset - jmp.endOfJmp;
 version (XBYAK64)
 {
                 if (jmp.jmpSize <= 4 && !inner.IsInInt32(disp)) {
@@ -2574,9 +2574,6 @@ version (XBYAK64)
                 if (jmp.jmpSize == 1 && !inner.IsInDisp8(cast(uint32_t) disp)) {
                     mixin(XBYAK_THROW(ERR_LABEL_IS_TOO_FAR));
                 }
-            }
-            if (jmp.mode != inner.LasIs) {
-                disp += jmp.disp;
             }
             if (base_.isAutoGrow()) {
                 base_.save(offset, disp, jmp.jmpSize, jmp.mode);
