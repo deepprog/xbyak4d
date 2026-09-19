@@ -2542,6 +2542,16 @@ struct LabelManager
         if (label.id == 0) label.id = labelId_++;
         return label.id;
     }
+    // label starting with '.' is local (stateList_.back()), otherwise global (stateList_.front())
+    ref const(SlabelState) getSlabelState(const string label) const
+    {
+        return label[0] == '.' ? stateList_.back() : stateList_.front();
+    }
+    ref SlabelState getSlabelState(string label)
+    {
+        return label[0] == '.' ? stateList_.back() : stateList_.front();
+    }
+
     void define_inner(DefList, UndefList, T)(ref DefList defList, ref UndefList undefList, T labelId, size_t addrOffset)
     {
         // add label
@@ -2685,7 +2695,7 @@ public:
                 label = "@f";
             }
         }
-        ref SlabelState st = label[0] == '.' ? stateList_.back() : stateList_.front();
+        ref SlabelState st = getSlabelState(label);
         define_inner(st.defList, st.undefList, label, base_.getSize());
     }
     void defineClabel(Label* label)
@@ -2718,7 +2728,7 @@ public:
                 label = "@b";
             }
         }
-        const ref SlabelState st = label[0] == '.' ? stateList_.back() : stateList_.front();
+        ref const(SlabelState) st = getSlabelState(label);
         return getOffset_inner(st.defList, offset, label);
     }
     bool getOffset(size_t* offset, Label* label) //const
@@ -2727,7 +2737,7 @@ public:
     }
     void addUndefinedLabel(ref string label, ref JmpLabel jmp)
     {
-        ref SlabelState st = label[0] == '.' ? stateList_.back() : stateList_.front();
+        ref SlabelState st = getSlabelState(label);
         st.undefList.Insert(SlabelUndefList.value_type(label, jmp));
     }
     void addUndefinedLabel(Label* label, ref JmpLabel jmp)
