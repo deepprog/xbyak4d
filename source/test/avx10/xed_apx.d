@@ -1158,43 +1158,42 @@ version (XBYAK64)
             ccmpnle(rax, rcx, 15); sdump("");
 
             // ctestb
-            ctestb(r30b, r31b, 0); sdump("");
-            ctestb(r30w, r31w, 1); sdump("");
-            ctestb(r30d, r31d, 2); sdump("");
-            ctestb(r30, r31, 3); sdump("");
-            ctestb(ptr [r30], r31b, 4); sdump("");
-            ctestb(ptr [r30], r31w, 5); sdump("");
-            ctestb(ptr [r30], r31d, 6); sdump("");
-            ctestb(ptr [r30], r31, 7); sdump("");
-            ctestb(r30b, 0x12, 8); sdump("");
-            ctestb(r30w, 0x1234, 9); sdump("");
-            ctestb(r30d, 0x12345678, 10); sdump("");
-            ctestb(r30, 0x12345678, 11); sdump("");
-            ctestb(byte_ [r30], 0x12, 12); sdump("");
-            ctestb(word [r30], 0x1234, 13); sdump("");
-            ctestb(dword [r30], 0x12345678, 14); sdump("");
-            ctestb(qword [r30], 0x12345678, 15); sdump("");
-            ctesto(rax, rcx, 0); sdump("");
-            ctestno(rax, rcx, 1); sdump("");
-            ctestb(rax, rcx, 2); sdump("");
-            ctestnb(rax, rcx, 3); sdump("");
-            ctestz(rax, rcx, 4); sdump("");
-            ctestnz(rax, rcx, 5); sdump("");
-            ctestbe(rax, rcx, 6); sdump("");
-            ctestnbe(rax, rcx, 7); sdump("");
-            ctests(rax, rcx, 8); sdump("");
-            ctestns(rax, rcx, 9); sdump("");
-            ctestt(rax, rcx, 10); sdump("");
-            ctestf(rax, rcx, 11); sdump("");
-            ctestl(rax, rcx, 12); sdump("");
-            ctestnl(rax, rcx, 13); sdump("");
-            ctestle(rax, rcx, 14); sdump("");
-            ctestnle(rax, rcx, 15); sdump("");
+            ctestb(r30w, r31w, 1); sdump("624C0D0285FE");
+            ctestb(r30d, r31d, 2); sdump("624C140285FE");
+            ctestb(r30, r31, 3); sdump("624C9C0285FE");
+            ctestb(ptr [r30], r31b, 4); sdump("624C2402843E");
+            ctestb(ptr [r30], r31w, 5); sdump("624C2D02853E");
+            ctestb(ptr [r30], r31d, 6); sdump("624C3402853E");
+            ctestb(ptr [r30], r31, 7); sdump("624CBC02853E");
+            ctestb(r30b, 0x12, 8); sdump("62DC4402F6C612");
+            ctestb(r30w, 0x1234, 9); sdump("62DC4D02F7C63412");
+            ctestb(r30d, 0x12345678, 10); sdump("62DC5402F7C678563412");
+            ctestb(r30, 0x12345678, 11); sdump("62DCDC02F7C678563412");
+            ctestb(byte_ [r30], 0x12, 12); sdump("62DC6402F60612");
+            ctestb(word [r30], 0x1234, 13); sdump("62DC6D02F7063412");
+            ctestb(dword [r30], 0x12345678, 14); sdump("62DC7402F70678563412");
+            ctestb(qword [r30], 0x12345678, 15); sdump("62DCFC02F70678563412");
+            ctesto(rax, rcx, 0); sdump("62F4840085C8");
+            ctestno(rax, rcx, 1); sdump("62F48C0185C8");
+            ctestb(rax, rcx, 2); sdump("62F4940285C8");
+            ctestnb(rax, rcx, 3); sdump("62F49C0385C8");
+            ctestz(rax, rcx, 4); sdump("62F4A40485C8");
+            ctestnz(rax, rcx, 5); sdump("62F4AC0585C8");
+            ctestbe(rax, rcx, 6); sdump("62F4B40685C8");
+            ctestnbe(rax, rcx, 7); sdump("62F4BC0785C8");
+            ctests(rax, rcx, 8); sdump("62F4C40885C8");
+            ctestns(rax, rcx, 9); sdump("62F4CC0985C8");
+            ctestt(rax, rcx, 10); sdump("62F4D40A85C8");
+            ctestf(rax, rcx, 11); sdump("62F4DC0B85C8");
+            ctestl(rax, rcx, 12); sdump("62F4E40C85C8");
+            ctestnl(rax, rcx, 13); sdump("62F4EC0D85C8");
+            ctestle(rax, rcx, 14); sdump("62F4F40E85C8");
+            ctestnle(rax, rcx, 15); sdump("62F4FC0F85C8");
 
             // dfv omitted (dfv=0)
-            ccmpb(rax, rbx); sdump("");
-            ccmpz(r20w, 0x1234); sdump("");
-            ctestnle(qword [r30], 0x12345678); sdump("");
+            ccmpb(rax, rbx); sdump("62F4840239D8");
+            ccmpz(r20w, 0x1234); sdump("627C050481FC3412");
+            ctestnle(qword [r30], 0x12345678); sdump("62DC840FF70678563412");
 
         }
     }
