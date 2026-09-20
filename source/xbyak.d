@@ -13,6 +13,17 @@ module xbyak;
 version (X86)    version = XBYAK32;
 version (X86_64) version = XBYAK64;
 
+// treat k0 mask as no-mask for convenience (default)
+// error if version = XBYAK_ALLOW_K0_MASK
+version (XBYAK_ALLOW_K0_MASK)
+{
+    enum XBYAK_ALLOW_K0_MASK = 0;
+}
+else
+{
+    enum XBYAK_ALLOW_K0_MASK = 1;
+}
+
 version = XBYAK_ENABLE_OMITTED_OPERAND;
 //version = XBYAK_NO_EXCEPTION;
 
@@ -1067,10 +1078,12 @@ version(XBYAK32)
     ERR:
         mixin(XBYAK_THROW(ERR_CANT_CONVERT));
     }
-    void setOpmaskIdx(int idx, bool /*ignore_idx0*/ = true)
+    void setOpmaskIdx(int idx, bool ignore_idx0 = true)
     {
-        if (mask_ && (mask_ != cast(uint) idx))
-        {
+        if (idx == 0 && !ignore_idx0) {
+            mixin(XBYAK_THROW(ERR_K0_IS_INVALID));
+        }
+        if (mask_ && (mask_ != cast(uint) idx)) {
             mixin(XBYAK_THROW(ERR_OPMASK_IS_ALREADY_SET));
         }
         mask_ = idx;
@@ -1584,7 +1597,7 @@ class Opmask : Reg
     T opBinaryRight(string op : "|", T)(T x)
     {
         T r = new T(x);
-        r.setOpmaskIdx(getIdx());
+        r.setOpmaskIdx(getIdx(), XBYAK_ALLOW_K0_MASK == 1);
         return r;
     }
 }

@@ -398,7 +398,15 @@ void kmask()
 				tc.TEST_EXCEPTION!Exception({ kmovd(k1, rax); });
 				tc.TEST_NO_EXCEPTION({ kmovq(k1, rax); });
 			}
+
+static if(XBYAK_ALLOW_K0_MASK == 1)
+{
 			tc.TEST_NO_EXCEPTION({ vmovaps(xm0|k0, ptr[eax]); });
+}
+else
+{
+			tc.TEST_EXCEPTION!Exception({ vmovaps(xm0|k0, ptr[eax]); });
+}	
 			checkT_z();
 		}
 
