@@ -556,4 +556,70 @@ void rbpWithPpx()
     }
 }
 
+@("vecFlagError")
+unittest
+{
+    vecFlagError();
+}
+
+void vecFlagError()
+{
+    scope tc = TestCount(__FUNCTION__);
+
+    CodeGenerator code = new CodeGenerator();
+    tc.TEST_EXCEPTION!XError({ StackFrame(code, 0, UseSSE(1)|UseAVX(1)); });
+    tc.TEST_EXCEPTION!XError({ StackFrame(code, 0, UseSSE(17)); });
+    // NoVzeroupper requires UseAVX
+    tc.TEST_EXCEPTION!XError({ StackFrame(code, 0, UseSSE(3)|NoVzeroupper); });
+    tc.TEST_EXCEPTION!XError({ StackFrame(code, 0, NoVzeroupper); });
+    tc.TEST_EXCEPTION!XError({ StackFrame(code, 0, UseAVX(33)); });
+    tc.TEST_NO_EXCEPTION({ StackFrame(code, 0, UseSSE(16)); });
+    tc.TEST_NO_EXCEPTION({ StackFrame(code, 0, UseAVX(32)); });
+    tc.TEST_NO_EXCEPTION({ StackFrame(code, 0, UseAVX(8)|NoVzeroupper); });
+}
+
+// rsp must be 16-byte aligned whenever the xmm save area exists (Win64)
+@("vecAlign")
+unittest
+{
+    vecAlign();
+}
+
+void vecAlign()
+{
+    scope tc = TestCount(__FUNCTION__);
+    class AlignCode : CodeGenerator
+    {
+        this(int useRegs, int stackSizeByte)
+        {
+            StackFrame sf = StackFrame(this, 0, useRegs, stackSizeByte);
+            mov(eax, esp);
+            and_(eax, 15);
+        }
+    }
+
+version(XBYAK64_WIN)
+{
+    const int expected = 0; // the xmm save area forces 16-byte alignment
+}
+else
+{
+    const int expected = 8; // no save area on SysV; rsp stays as it is at entry
+}
+
+    AlignCode c1 = new AlignCode(UseSSE(8), 0);
+    auto fn1 = c1.getCode!(int function());
+    tc.TEST_EQUAL(expected, fn1());
+    AlignCode c2 = new AlignCode(UseSSE(8), 33);
+    auto fn2 = c2.getCode!(int function());
+    tc.TEST_EQUAL(0, fn2());
+
+    Cpu cpu = new Cpu();
+    if (cpu.has(Cpu.tAVX)) {
+        AlignCode c3 = new AlignCode(UseAVX(16)|NoVzeroupper, 0);
+        auto fn3 = c3.getCode!(int function());
+        tc.TEST_EQUAL(expected, fn3());
+    }
+}
+
 } //version(XBYAK64)
