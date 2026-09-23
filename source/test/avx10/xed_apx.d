@@ -1018,50 +1018,50 @@ version (XBYAK64)
             bsr(r20, r30); sdump("D5D9BDE6");
 
             // rao_int
-            aadd(ptr [r16+r31*1], r17d); sdump("");
-            aadd(ptr [r16+r31*1], r17); sdump("");
-            aand(ptr [r16+r31*1], r17d); sdump("");
-            aand(ptr [r16+r31*1], r17); sdump("");
-            aor(ptr [r16+r31*1], r17d); sdump("");
-            aor(ptr [r16+r31*1], r17); sdump("");
-            axor(ptr [r16+r31*1], r17d); sdump("");
-            axor(ptr [r16+r31*1], r17); sdump("");
+            aadd(ptr [r16+r31*1], r17d); sdump("62AC7808FC0C38");
+            aadd(ptr [r16+r31*1], r17); sdump("62ACF808FC0C38");
+            aand(ptr [r16+r31*1], r17d); sdump("62AC7908FC0C38");
+            aand(ptr [r16+r31*1], r17); sdump("62ACF908FC0C38");
+            aor(ptr [r16+r31*1], r17d); sdump("62AC7B08FC0C38");
+            aor(ptr [r16+r31*1], r17); sdump("62ACFB08FC0C38");
+            axor(ptr [r16+r31*1], r17d); sdump("62AC7A08FC0C38");
+            axor(ptr [r16+r31*1], r17); sdump("62ACFA08FC0C38");
 
             // NF
-            add(rax, rcx, rdx); sdump("");
-            add(rax|T_nf, rcx, rdx); sdump("");
-            and_(rax, rcx, rdx); sdump("");
-            and_(rax|T_nf, rcx, rdx); sdump("");
-            or_(rax, rcx, rdx); sdump("");
-            or_(rax|T_nf, rcx, rdx); sdump("");
-            sub(rax, rcx, rdx); sdump("");
-            sub(rax|T_nf, rcx, rdx); sdump("");
-            xor_(rax, rcx, rdx); sdump("");
-            xor_(rax|T_nf, rcx, rdx); sdump("");
-            add(rax, rcx, 3); sdump("");
-            add(rax|T_nf, rcx, 3); sdump("");
-            and_(rax, rcx, 3); sdump("");
-            and_(rax|T_nf, rcx, 3); sdump("");
-            or_(rax, rcx, 3); sdump("");
-            or_(rax|T_nf, rcx, 3); sdump("");
-            sub(rax, rcx, 3); sdump("");
-            sub(rax|T_nf, rcx, 3); sdump("");
-            xor_(rax, rcx, 3); sdump("");
-            xor_(rax|T_nf, rcx, 3); sdump("");
+            add(rax, rcx, rdx); sdump("62F4FC1801D1");
+            add(rax|T_nf, rcx, rdx); sdump("62F4FC1C01D1");
+            and_(rax, rcx, rdx); sdump("62F4FC1821D1");
+            and_(rax|T_nf, rcx, rdx); sdump("62F4FC1C21D1");
+            or_(rax, rcx, rdx); sdump("62F4FC1809D1");
+            or_(rax|T_nf, rcx, rdx); sdump("62F4FC1C09D1");
+            sub(rax, rcx, rdx); sdump("62F4FC1829D1");
+            sub(rax|T_nf, rcx, rdx); sdump("62F4FC1C29D1");
+            xor_(rax, rcx, rdx); sdump("62F4FC1831D1");
+            xor_(rax|T_nf, rcx, rdx); sdump("62F4FC1C31D1");
+            add(rax, rcx, 3); sdump("62F4FC1883C103");
+            add(rax|T_nf, rcx, 3); sdump("62F4FC1C83C103");
+            and_(rax, rcx, 3); sdump("62F4FC1883E103");
+            and_(rax|T_nf, rcx, 3); sdump("62F4FC1C83E103");
+            or_(rax, rcx, 3); sdump("62F4FC1883C903");
+            or_(rax|T_nf, rcx, 3); sdump("62F4FC1C83C903");
+            sub(rax, rcx, 3); sdump("62F4FC1883E903");
+            sub(rax|T_nf, rcx, 3); sdump("62F4FC1C83E903");
+            xor_(rax, rcx, 3); sdump("62F4FC1883F103");
+            xor_(rax|T_nf, rcx, 3); sdump("62F4FC1C83F103");
 
             // andn_etc
-            andn(r29|T_nf, r30, r31); sdump("");
+            andn(r29|T_nf, r30, r31); sdump("624A8C04F2EF");
 
             // bextr_etc
-            bextr(r29|T_nf, r30, r31); sdump("");
-            bzhi(r29|T_nf, r30, r31); sdump("");
-            blsi(r30|T_nf, r31); sdump("");
-            blsmsk(r30|T_nf, r31); sdump("");
-            blsr(r30|T_nf, r31); sdump("");
+            bextr(r29|T_nf, r30, r31); sdump("624A8404F7EE");
+            bzhi(r29|T_nf, r30, r31); sdump("624A8404F5EE");
+            blsi(r30|T_nf, r31); sdump("62DA8C04F3DF");
+            blsmsk(r30|T_nf, r31); sdump("62DA8C04F3D7");
+            blsr(r30|T_nf, r31); sdump("62DA8C04F3CF");
 
             // inc_dec
-            inc(r30w|T_nf, r31w); sdump("");
-            dec(r30w|T_nf, r31w); sdump("");
+            inc(r30w|T_nf, r31w); sdump("62DC0D14FFC7");
+            dec(r30w|T_nf, r31w); sdump("62DC0D14FFCF");
 
             // div_op1
             div(r20|T_nf); sdump("");
