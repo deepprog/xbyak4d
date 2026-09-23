@@ -977,45 +977,45 @@ version (XBYAK64)
             kmovq(r23, k4); sdump("62E1FF0893FC");
 
             // amx
-            ldtilecfg(ptr [r30+r29*4+0x12]); sdump("");
-            sttilecfg(ptr [r30+r29*4+0x12]); sdump("");
-            tileloadd(tmm1, ptr [r30+r29*4+0x12]); sdump("");
-            tileloaddt1(tmm3, ptr [r30+r29*4+0x12]); sdump("");
-            tilestored(ptr [r30+r29*4+0x12], tmm5); sdump("");
+            ldtilecfg(ptr [r30+r29*4+0x12]); sdump("629A78084944AE12");
+            sttilecfg(ptr [r30+r29*4+0x12]); sdump("629A79084944AE12");
+            tileloadd(tmm1, ptr [r30+r29*4+0x12]); sdump("629A7B084B4CAE12");
+            tileloaddt1(tmm3, ptr [r30+r29*4+0x12]); sdump("629A79084B5CAE12");
+            tilestored(ptr [r30+r29*4+0x12], tmm5); sdump("629A7A084B6CAE12");
 
             // aeskl
-            aesdec128kl(xmm15, ptr[rax+rcx*4+0x12]); sdump("");
-            aesdec256kl(xmm15, ptr[rax+rcx*4+0x12]); sdump("");
-            aesdecwide128kl(ptr[rax+rcx*4+0x12]); sdump("");
-            aesdecwide256kl(ptr[rax+rcx*4+0x12]); sdump("");
-            aesenc128kl(xmm15, ptr[rax+rcx*4+0x12]); sdump("");
-            aesenc256kl(xmm15, ptr[rax+rcx*4+0x12]); sdump("");
-            aesencwide128kl(ptr[rax+rcx*4+0x12]); sdump("");
-            aesencwide256kl(ptr[rax+rcx*4+0x12]); sdump("");
+            aesdec128kl(xmm15, ptr[rax+rcx*4+0x12]); sdump("F3440F38DD7C8812");
+            aesdec256kl(xmm15, ptr[rax+rcx*4+0x12]); sdump("F3440F38DF7C8812");
+            aesdecwide128kl(ptr[rax+rcx*4+0x12]); sdump("F30F38D84C8812");
+            aesdecwide256kl(ptr[rax+rcx*4+0x12]); sdump("F30F38D85C8812");
+            aesenc128kl(xmm15, ptr[rax+rcx*4+0x12]); sdump("F3440F38DC7C8812");
+            aesenc256kl(xmm15, ptr[rax+rcx*4+0x12]); sdump("F3440F38DE7C8812");
+            aesencwide128kl(ptr[rax+rcx*4+0x12]); sdump("F30F38D8448812");
+            aesencwide256kl(ptr[rax+rcx*4+0x12]); sdump("F30F38D8548812");
 
             // encodekey
-            encodekey128(eax, ebx); sdump("");
-            encodekey128(eax, r8d); sdump("");
-            encodekey128(r8d, ebx); sdump("");
-            encodekey256(eax, ebx); sdump("");
-            encodekey256(eax, r8d); sdump("");
-            encodekey256(r8d, ebx); sdump("");
+            encodekey128(eax, ebx); sdump("F30F38FAC3");
+            encodekey128(eax, r8d); sdump("F3410F38FAC0");
+            encodekey128(r8d, ebx); sdump("F3440F38FAC3");
+            encodekey256(eax, ebx); sdump("F30F38FBC3");
+            encodekey256(eax, r8d); sdump("F3410F38FBC0");
+            encodekey256(r8d, ebx); sdump("F3440F38FBC3");
 
             // sha
-            sha1msg1(xmm15, ptr [rax+rcx*4+0x12]); sdump("");
-            sha1msg2(xmm15, ptr [rax+rcx*4+0x12]); sdump("");
-            sha1nexte(xmm15, ptr [rax+rcx*4+0x12]); sdump("");
-            sha256msg1(xmm15, ptr [rax+rcx*4+0x12]); sdump("");
-            sha256msg2(xmm15, ptr [rax+rcx*4+0x12]); sdump("");
-            sha256rnds2(xmm15, ptr [rax+rcx*4+0x12]); sdump("");
-            sha1rnds4(xmm15, ptr [rax+rcx*4+0x12], 0x23); sdump("");
+            sha1msg1(xmm15, ptr [rax+rcx*4+0x12]); sdump("440F38C97C8812");
+            sha1msg2(xmm15, ptr [rax+rcx*4+0x12]); sdump("440F38CA7C8812");
+            sha1nexte(xmm15, ptr [rax+rcx*4+0x12]); sdump("440F38C87C8812");
+            sha256msg1(xmm15, ptr [rax+rcx*4+0x12]); sdump("440F38CC7C8812");
+            sha256msg2(xmm15, ptr [rax+rcx*4+0x12]); sdump("440F38CD7C8812");
+            sha256rnds2(xmm15, ptr [rax+rcx*4+0x12]); sdump("440F38CB7C8812");
+            sha1rnds4(xmm15, ptr [rax+rcx*4+0x12], 0x23); sdump("440F3ACC7C881223");
 
             // 0x0f_rex2
-            addps(xmm3, ptr [r30+r20*4+0x4]); sdump("");
-            movups(xmm5, ptr [r16]); sdump("");
-            movq(r31, xmm5); sdump("");
-            cvtsd2si(r20, ptr [r30]); sdump("");
-            bsr(r20, r30); sdump("");
+            addps(xmm3, ptr [r30+r20*4+0x4]); sdump("D5B1585CA604");
+            movups(xmm5, ptr [r16]); sdump("D5901028");
+            movq(r31, xmm5); sdump("66D5997EEF");
+            cvtsd2si(r20, ptr [r30]); sdump("F2D5D92D26");
+            bsr(r20, r30); sdump("D5D9BDE6");
 
             // rao_int
             aadd(ptr [r16+r31*1], r17d); sdump("");
