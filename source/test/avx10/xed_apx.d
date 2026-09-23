@@ -1064,48 +1064,48 @@ version (XBYAK64)
             dec(r30w|T_nf, r31w); sdump("62DC0D14FFCF");
 
             // div_op1
-            div(r20|T_nf); sdump("");
-            div(eax|T_nf); sdump("");
-            idiv(r20|T_nf); sdump("");
-            idiv(eax|T_nf); sdump("");
-            imul(r20|T_nf); sdump("");
-            imul(eax|T_nf); sdump("");
-            mul(r20|T_nf); sdump("");
-            mul(eax|T_nf); sdump("");
-            neg(r20|T_nf); sdump("");
-            neg(eax|T_nf); sdump("");
+            div(r20|T_nf); sdump("62FCFC0CF7F4");
+            div(eax|T_nf); sdump("62F47C0CF7F0");
+            idiv(r20|T_nf); sdump("62FCFC0CF7FC");
+            idiv(eax|T_nf); sdump("62F47C0CF7F8");
+            imul(r20|T_nf); sdump("62FCFC0CF7EC");
+            imul(eax|T_nf); sdump("62F47C0CF7E8");
+            mul(r20|T_nf); sdump("62FCFC0CF7E4");
+            mul(eax|T_nf); sdump("62F47C0CF7E0");
+            neg(r20|T_nf); sdump("62FCFC0CF7DC");
+            neg(eax|T_nf); sdump("62F47C0CF7D8");
 
             // imul_2op
-            imul(r30|T_nf, rax); sdump("");
-            imul(rcx|T_nf, rax); sdump("");
-            neg(r30|T_nf, rax); sdump("");
-            neg(rcx|T_nf, rax); sdump("");
+            imul(r30|T_nf, rax); sdump("6264FC0CAFF0");
+            imul(rcx|T_nf, rax); sdump("62F4FC0CAFC8");
+            neg(r30|T_nf, rax); sdump("62F48C14F7D8");
+            neg(rcx|T_nf, rax); sdump("62F4F41CF7D8");
 
             // imul_zu
-            imul(ax|T_zu, cx, 0x1234); sdump("");
-            imul(ax|T_nf, cx, 0x1234); sdump("");
-            imul(ax|T_zu|T_nf, cx, 0x1234); sdump("");
-            imul(r30|T_zu, rax, 0x12345678); sdump("");
-            imul(r30|T_nf, rax, 0x12345678); sdump("");
-            imul(r30|T_nf|T_zu, rax, 0x12345678); sdump("");
+            imul(ax|T_zu, cx, 0x1234); sdump("62F47D1869C13412");
+            imul(ax|T_nf, cx, 0x1234); sdump("62F47D0C69C13412");
+            imul(ax|T_zu|T_nf, cx, 0x1234); sdump("62F47D1C69C13412");
+            imul(r30|T_zu, rax, 0x12345678); sdump("6264FC1869F078563412");
+            imul(r30|T_nf, rax, 0x12345678); sdump("6264FC0C69F078563412");
+            imul(r30|T_nf|T_zu, rax, 0x12345678); sdump("6264FC1C69F078563412");
 
             // lzcnt
-            lzcnt(r16|T_nf, r17); sdump("");
-            lzcnt(rax|T_nf, rcx); sdump("");
-            tzcnt(r16|T_nf, r17); sdump("");
-            tzcnt(rax|T_nf, rcx); sdump("");
-            popcnt(r16|T_nf, r17); sdump("");
-            popcnt(rax|T_nf, rcx); sdump("");
+            lzcnt(r16|T_nf, r17); sdump("62ECFC0CF5C1");
+            lzcnt(rax|T_nf, rcx); sdump("62F4FC0CF5C1");
+            tzcnt(r16|T_nf, r17); sdump("62ECFC0CF4C1");
+            tzcnt(rax|T_nf, rcx); sdump("62F4FC0CF4C1");
+            popcnt(r16|T_nf, r17); sdump("62ECFC0C88C1");
+            popcnt(rax|T_nf, rcx); sdump("62F4FC0C88C1");
 
             // shld
-            shld(rax|T_nf, rcx, cl); sdump("");
-            shld(r16|T_nf, rcx, 0x9); sdump("");
-            shld(r20|T_nf, r16, rcx, cl); sdump("");
-            shld(r20|T_nf, r16, rcx, 0x9); sdump("");
-            shrd(rax|T_nf, rcx, cl); sdump("");
-            shrd(r16|T_nf, rcx, 0x9); sdump("");
-            shrd(r20|T_nf, r16, rcx, cl); sdump("");
-            shrd(r20|T_nf, r16, rcx, 0x9); sdump("");
+            shld(rax|T_nf, rcx, cl); sdump("62F4FC0CA5C8");
+            shld(r16|T_nf, rcx, 0x9); sdump("62FCFC0C24C809");
+            shld(r20|T_nf, r16, rcx, cl); sdump("62FCDC14A5C8");
+            shld(r20|T_nf, r16, rcx, 0x9); sdump("62FCDC1424C809");
+            shrd(rax|T_nf, rcx, cl); sdump("62F4FC0CADC8");
+            shrd(r16|T_nf, rcx, 0x9); sdump("62FCFC0C2CC809");
+            shrd(r20|T_nf, r16, rcx, cl); sdump("62FCDC14ADC8");
+            shrd(r20|T_nf, r16, rcx, 0x9); sdump("62FCDC142CC809");
 
             // mov_misc
             setb(r31b|T_zu); sdump("");
