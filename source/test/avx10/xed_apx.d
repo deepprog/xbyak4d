@@ -1108,54 +1108,54 @@ version (XBYAK64)
             shrd(r20|T_nf, r16, rcx, 0x9); sdump("62FCDC142CC809");
 
             // mov_misc
-            setb(r31b|T_zu); sdump("");
-            setb(r15b|T_zu); sdump("");
+            setb(r31b|T_zu); sdump("62DC7F1842C7");
+            setb(r15b|T_zu); sdump("62D47F1842C7");
 
             // shift_2op
-            shl(r16|T_nf, cl); sdump("");
-            shr(r16|T_nf, cl); sdump("");
-            sar(r16|T_nf, cl); sdump("");
-            ror(r16|T_nf, cl); sdump("");
-            rol(r16|T_nf, cl); sdump("");
+            shl(r16|T_nf, cl); sdump("62FCFC0CD3E0");
+            shr(r16|T_nf, cl); sdump("62FCFC0CD3E8");
+            sar(r16|T_nf, cl); sdump("62FCFC0CD3F8");
+            ror(r16|T_nf, cl); sdump("62FCFC0CD3C8");
+            rol(r16|T_nf, cl); sdump("62FCFC0CD3C0");
 
             // ccmp
-            ccmpb(rax, rbx, 0); sdump("");
-            ccmpb(r30b, r31b, 1); sdump("");
-            ccmpb(r30w, r31w, 2); sdump("");
-            ccmpb(r30d, r31d, 3); sdump("");
-            ccmpb(r30, r31, 4); sdump("");
-            ccmpb(ptr [r30], r31b, 5); sdump("");
-            ccmpb(ptr [r30], r31w, 6); sdump("");
-            ccmpb(ptr [r30], r31d, 7); sdump("");
-            ccmpb(ptr [r30], r31, 8); sdump("");
-            ccmpb(r31b, ptr [r30], 9); sdump("");
-            ccmpb(r31w, ptr [r30], 10); sdump("");
-            ccmpb(r31d, ptr [r30], 11); sdump("");
-            ccmpb(r31, ptr [r30], 12); sdump("");
-            ccmpb(r20b, 0x12, 9); sdump("");
-            ccmpb(r20w, 0x1234, 9); sdump("");
-            ccmpb(r20d, 0x12345678, 9); sdump("");
-            ccmpb(r20, 0x12345678, 9); sdump("");
-            ccmpb(byte_ [r20], 0x12, 9); sdump("");
-            ccmpb(word [r20], 0x1234, 9); sdump("");
-            ccmpb(dword [r20], 0x12345678, 9); sdump("");
-            ccmpb(qword [r20], 0x12345678, 9); sdump("");
-            ccmpo(rax, rcx, 0); sdump("");
-            ccmpno(rax, rcx, 1); sdump("");
-            ccmpb(rax, rcx, 2); sdump("");
-            ccmpnb(rax, rcx, 3); sdump("");
-            ccmpz(rax, rcx, 4); sdump("");
-            ccmpnz(rax, rcx, 5); sdump("");
-            ccmpbe(rax, rcx, 6); sdump("");
-            ccmpnbe(rax, rcx, 7); sdump("");
-            ccmps(rax, rcx, 8); sdump("");
-            ccmpns(rax, rcx, 9); sdump("");
-            ccmpt(rax, rcx, 10); sdump("");
-            ccmpf(rax, rcx, 11); sdump("");
-            ccmpl(rax, rcx, 12); sdump("");
-            ccmpnl(rax, rcx, 13); sdump("");
-            ccmple(rax, rcx, 14); sdump("");
-            ccmpnle(rax, rcx, 15); sdump("");
+            ccmpb(rax, rbx, 0); sdump("62F4840239D8");
+            ccmpb(r30b, r31b, 1); sdump("624C0C0238FE");
+            ccmpb(r30w, r31w, 2); sdump("624C150239FE");
+            ccmpb(r30d, r31d, 3); sdump("624C1C0239FE");
+            ccmpb(r30, r31, 4); sdump("624CA40239FE");
+            ccmpb(ptr [r30], r31b, 5); sdump("624C2C02383E");
+            ccmpb(ptr [r30], r31w, 6); sdump("624C3502393E");
+            ccmpb(ptr [r30], r31d, 7); sdump("624C3C02393E");
+            ccmpb(ptr [r30], r31, 8); sdump("624CC402393E");
+            ccmpb(r31b, ptr [r30], 9); sdump("624C4C023A3E");
+            ccmpb(r31w, ptr [r30], 10); sdump("624C55023B3E");
+            ccmpb(r31d, ptr [r30], 11); sdump("624C5C023B3E");
+            ccmpb(r31, ptr [r30], 12); sdump("624CE4023B3E");
+            ccmpb(r20b, 0x12, 9); sdump("627C4C0280FC12");
+            ccmpb(r20w, 0x1234, 9); sdump("627C4D0281FC3412");
+            ccmpb(r20d, 0x12345678, 9); sdump("627C4C0281FC78563412");
+            ccmpb(r20, 0x12345678, 9); sdump("627CCC0281FC78563412");
+            ccmpb(byte_ [r20], 0x12, 9); sdump("627C4C02803C2412");
+            ccmpb(word [r20], 0x1234, 9); sdump("627C4D02813C243412");
+            ccmpb(dword [r20], 0x12345678, 9); sdump("627C4C02813C2478563412");
+            ccmpb(qword [r20], 0x12345678, 9); sdump("627CCC02813C2478563412");
+            ccmpo(rax, rcx, 0); sdump("62F4840039C8");
+            ccmpno(rax, rcx, 1); sdump("62F48C0139C8");
+            ccmpb(rax, rcx, 2); sdump("62F4940239C8");
+            ccmpnb(rax, rcx, 3); sdump("62F49C0339C8");
+            ccmpz(rax, rcx, 4); sdump("62F4A40439C8");
+            ccmpnz(rax, rcx, 5); sdump("62F4AC0539C8");
+            ccmpbe(rax, rcx, 6); sdump("62F4B40639C8");
+            ccmpnbe(rax, rcx, 7); sdump("62F4BC0739C8");
+            ccmps(rax, rcx, 8); sdump("62F4C40839C8");
+            ccmpns(rax, rcx, 9); sdump("62F4CC0939C8");
+            ccmpt(rax, rcx, 10); sdump("62F4D40A39C8");
+            ccmpf(rax, rcx, 11); sdump("62F4DC0B39C8");
+            ccmpl(rax, rcx, 12); sdump("62F4E40C39C8");
+            ccmpnl(rax, rcx, 13); sdump("62F4EC0D39C8");
+            ccmple(rax, rcx, 14); sdump("62F4F40E39C8");
+            ccmpnle(rax, rcx, 15); sdump("62F4FC0F39C8");
 
             // ctestb
             ctestb(r30w, r31w, 1); sdump("624C0D0285FE");
